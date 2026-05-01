@@ -1,0 +1,180 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Enable class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0E0E0F;
+  --card: #f8fafc;
+  --card-foreground: #0E0E0F;
+  --popover: #ffffff;
+  --popover-foreground: #0E0E0F;
+  --primary: #2563eb; /* vibrant blue */
+  --primary-foreground: #ffffff;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #0E0E0F;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #8b5cf6; /* vibrant purple */
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #cbd5e1;
+  --input: #cbd5e1;
+  --ring: #2563eb;
+  --radius: 0.25rem; /* sharper corners for academic/tech feel */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) + 2px);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.dark {
+  --background: #0E0E0F; /* Deep Slate */
+  --foreground: #e2e8f0; /* slate-200 */
+  --card: #141622; /* Slightly elevated from background */
+  --card-foreground: #e2e8f0;
+  --popover: #141622;
+  --popover-foreground: #e2e8f0;
+  --primary: #3b82f6; /* Vibrant Blue */
+  --primary-foreground: #ffffff;
+  --secondary: #1E2235; /* Indigo */
+  --secondary-foreground: #e2e8f0;
+  --muted: #1E2235;
+  --muted-foreground: #94a3b8;
+  --accent: #a855f7; /* Vibrant Purple */
+  --accent-foreground: #ffffff;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #ffffff;
+  --border: #1E2235;
+  --input: #1E2235;
+  --ring: #3b82f6;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+}
+
+/* ─── Article / Prose typography fixes ─────────────────────────────────── */
+
+/* Block math: centered, scrollable */
+.prose .katex-display {
+  text-align: center;
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Inline math errors */
+.prose .katex-error {
+  color: #ef4444 !important;
+  font-family: monospace;
+}
+
+/* Inline code: styled pill, no Tailwind backticks */
+.prose :not(pre) > code {
+  background-color: #27272a;
+  color: #67e8f9;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  font-size: 0.875em;
+}
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none !important;
+}
+
+/* Ensure prose padding never bleeds into syntax highlighter code/pre elements */
+.prose .not-prose code,
+.prose .not-prose pre {
+  padding-left: revert;
+  margin-left: revert;
+}
+
+/* Kill prose backtick pseudo-elements inside syntax highlighter blocks */
+.not-prose code::before,
+.not-prose code::after {
+  content: none !important;
+}
+
+/* Prevent any text-indent from shifting the first line of code */
+.not-prose code,
+.not-prose pre {
+  text-indent: 0 !important;
+}
+
+
+/* ─── Article Table Styles ────────────────────────────────────────────────── */
+.prose table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  margin: 2rem 0;
+  font-size: 0.9rem;
+}
+.prose thead {
+  background: #1e2030;
+}
+.prose thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #67e8f9;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.prose tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s;
+}
+.prose tbody tr:nth-child(odd)  { background: rgba(255,255,255,0.02); }
+.prose tbody tr:nth-child(even) { background: rgba(255,255,255,0.04); }
+.prose tbody tr:hover            { background: rgba(103,232,249,0.05); }
+.prose tbody td {
+  padding: 0.65rem 1rem;
+  color: rgba(255,255,255,0.8);
+  vertical-align: top;
+  line-height: 1.5;
+}
+/* Remove double-borders from prose defaults */
+.prose table th, .prose table td { border: none; }
