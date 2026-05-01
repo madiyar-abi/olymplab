@@ -22,7 +22,7 @@ export default async function ArticlePage({
     .from('roadmap_topics')
     .select('*')
     .eq('id', id)
-    .single()
+    .single() as { data: any; error: any }
 
   if (error || !topic) {
     notFound()

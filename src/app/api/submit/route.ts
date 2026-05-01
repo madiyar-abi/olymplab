@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       .from('problems')
       .select('id, sample_input, sample_output')
       .eq('id', problemId)
-      .single()
+      .single() as { data: { id: string; sample_input: string | null; sample_output: string | null } | null; error: any }
 
     if (probErr || !probData) {
       return NextResponse.json({ error: 'Problem not found in database.' }, { status: 404 })

@@ -74,21 +74,56 @@ export interface Database {
           id: string
           user_id: string
           problem_id: string
+          cf_submission_id?: string | null
           status: string
+          verdict?: string
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           problem_id: string
+          cf_submission_id?: string | null
           status: string
+          verdict?: string
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           problem_id?: string
+          cf_submission_id?: string | null
           status?: string
+          verdict?: string
+          created_at?: string
+        }
+      }
+      roadmap_topics: {
+        Row: {
+          id: string
+          title: string
+          stage: string
+          order_index: number
+          prerequisites: string[] | null
+          article_markdown: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          stage: string
+          order_index?: number
+          prerequisites?: string[] | null
+          article_markdown?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          stage?: string
+          order_index?: number
+          prerequisites?: string[] | null
+          article_markdown?: string | null
           created_at?: string
         }
       }
