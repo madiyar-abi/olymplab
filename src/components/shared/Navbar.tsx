@@ -1,14 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
+import { User } from '@supabase/supabase-js'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Navbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,7 +28,7 @@ export function Navbar() {
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -32,19 +36,27 @@ export function Navbar() {
     router.refresh()
   }
 
+  if (pathname === '/') {
+    return null
+  }
+
   return (
-    <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
+    <nav className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
       <div className="container flex h-16 items-center px-4 mx-auto max-w-7xl">
-        <Link href="/" className="flex items-center space-x-2">
-          {/* Geometric Logo */}
-          <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary to-accent shadow-md flex items-center justify-center text-white text-xs font-mono font-bold select-none border border-white/10">
-            {'{'}OL{'}'}
-          </div>
-          <span className="font-bold text-xl tracking-tight text-foreground font-mono">Olymp<span className="text-primary">Lab</span></span>
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <Image
+            src="/logo.png"
+            alt="OlympLab"
+            width={30}
+            height={30}
+            className="rounded-lg flex-shrink-0"
+          />
+          <span className="font-bold text-xl tracking-tight text-foreground font-mono group-hover:text-primary transition-colors">OlympLab</span>
         </Link>
 
         <div className="flex flex-1 items-center justify-end space-x-3">
-          <nav className="flex items-center space-x-2">
+          <nav className="flex items-center space-x-4">
+            <ThemeToggle />
             {user ? (
               <>
                 <Link

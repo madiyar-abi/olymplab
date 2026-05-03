@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { Problem } from '@/app/dashboard/problems/[id]/IDEClient'
 
 export async function POST(request: Request) {
   try {
@@ -23,20 +24,108 @@ export async function POST(request: Request) {
       )
     }
 
-    // 1. Fetch Problem Data (Sample Input/Output)
+    // 1. Fetch Problem Data (Sample Input/Output + External Info)
     const { data: probData, error: probErr } = await supabase
       .from('problems')
-      .select('id, sample_input, sample_output')
+      .select('id, title, description, difficulty, requirements, sample_input, sample_output, external_id')
       .eq('id', problemId)
-      .single() as { data: { id: string; sample_input: string | null; sample_output: string | null } | null; error: any }
+      .single()
 
     if (probErr || !probData) {
       return NextResponse.json({ error: 'Problem not found in database.' }, { status: 404 })
     }
 
-    // Clean up Codeforces test cases (remove double newlines from Cheerio HTML extraction)
-    const cleanInput = (probData.sample_input || '').replace(/\n\s*\n/g, '\n').trim()
-    const cleanOutput = (probData.sample_output || '').replace(/\n\s*\n/g, '\n').trim()
+    const problem = probData as unknown as Problem
+
+    // ─── Case 1: CSES Submission via Bot ──────────────────────────
+    if (problem.external_id?.startsWith('cses-')) {
+      try {
+        const { CSESJudge } = await import('@/lib/judges/cses')
+        const csesTaskId = problem.external_id.replace('cses-', '')
+        const csesSubmissionId = await CSESJudge.submit(csesTaskId, code, language)
+
+        const supabaseAdmin = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+
+        const { data, error } = await supabaseAdmin
+          .from('submissions')
+          .insert({
+            user_id: user.id,
+            problem_id: problemId,
+            cf_submission_id: csesSubmissionId, // Reuse field for CSES ID
+            code,
+            language,
+            status: 'PENDING',
+            verdict: null,
+          })
+          .select('id')
+          .single()
+
+        if (error) {
+          console.error('[CSES Submit] Supabase Error:', JSON.stringify(error, null, 2))
+          throw error
+        }
+        console.log('[External Judge] Success, submission ID:', data.id)
+        return NextResponse.json({ submission_id: data.id, status: 'PENDING' })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error('[CSES Submit] Error:', message, err)
+        return NextResponse.json({ error: `CSES Bot Error: ${message}` }, { status: 500 })
+      }
+    }
+
+    // ─── Case 2: Codeforces Submission via Bot ─────────────────────
+    if (problem.external_id?.startsWith('cf-')) {
+      try {
+        const { CodeforcesJudge } = await import('@/lib/judges/codeforces')
+        const cfPart = problem.external_id.replace('cf-', '') // e.g., "123/A"
+        const [contestId, problemIndex] = cfPart.split('/')
+        
+        if (!contestId || !problemIndex) {
+          throw new Error(`Invalid Codeforces external_id format: ${problem.external_id}`)
+        }
+
+        const cfSubmissionId = await CodeforcesJudge.submit(contestId, problemIndex, code)
+
+        const supabaseAdmin = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+
+        const { data, error } = await supabaseAdmin
+          .from('submissions')
+          .insert({
+            user_id: user.id,
+            problem_id: problemId,
+            cf_submission_id: cfSubmissionId,
+            code,
+            language,
+            status: 'PENDING',
+            verdict: null,
+          })
+          .select('id')
+          .single()
+
+        if (error) {
+          console.error('[CF Submit] Supabase Error:', JSON.stringify(error, null, 2))
+          throw error
+        }
+        console.log('[External Judge] Success, submission ID:', data.id)
+        return NextResponse.json({ submission_id: data.id, status: 'PENDING' })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error('[CF Submit] Error:', message, err)
+        return NextResponse.json({ error: `Codeforces Bot Error: ${message}` }, { status: 500 })
+      }
+    }
+
+    // ─── Case 2: Local Evaluation (Wandbox) ────────────────────────
+    // Clean up test cases
+    const cleanInput = (problem.sample_input || '').replace(/\n\s*\n/g, '\n').trim()
+    const cleanOutput = (problem.sample_output || '').replace(/\n\s*\n/g, '\n').trim()
+
 
     // Map language to Wandbox compiler
     let compiler = 'gcc-head' // Default C++
@@ -115,6 +204,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Database error while saving submission' }, { status: 500 })
     }
 
+    console.log('[Local Evaluation] Success, submission ID:', data.id)
     return NextResponse.json({ submission_id: data.id, verdict })
   } catch (error) {
     console.error('[Submit] Internal error:', error)

@@ -117,15 +117,59 @@ async function main() {
   }
 
   // 3. Extract main content with Readability
-  let doc
+  let dom
   try {
-    doc = new JSDOM(html, { url: articleUrl })
+    dom = new JSDOM(html, { url: articleUrl })
   } catch (err) {
     console.error('❌  Failed to parse HTML:', err.message)
     process.exit(1)
   }
 
-  const reader = new Readability(doc.window.document)
+  const doc = dom.window.document
+
+  // --- Pre-cleaning ---
+  const trashSelectors = [
+    'header', 'footer', 'nav', 'aside', '.sidebar', '.ads', '.comments', '.sharing',
+    '.nav-links', '.footer-widgets', '.site-footer', '.widget-area',
+    '.social', '.bottom-nav', 'a.header-anchor', '.header-anchor',
+    '.metadata', '.authors', '.page-meta', '.breadcrumb', '.edit-link',
+    '#comments', '#sidebar', '#header', '#footer',
+    '.prev-next', '.article-nav', '.post-nav'
+  ]
+  
+  trashSelectors.forEach(selector => {
+    doc.querySelectorAll(selector).forEach(el => el.remove())
+  })
+
+  // Remove elements that look like ads or social buttons
+  doc.querySelectorAll('div, section, p, span').forEach(el => {
+    const className = (el.className || '').toLowerCase()
+    const id = (el.id || '').toLowerCase()
+    const text = (el.textContent || '').toLowerCase()
+
+    if (className.includes('adsense') || className.includes('banner') || className.includes('social') ||
+        id.includes('adsense') || id.includes('banner') || id.includes('social')) {
+      el.remove()
+      return
+    }
+
+    // Site-specific removals
+    if (text.includes('авторы ') || text.includes('автор ') || text.includes('authors ') || text.includes('author ')) {
+      if (el.textContent.length < 100) {
+        el.remove()
+      }
+    }
+  })
+
+  // Remove icon images and other UI fluff
+  doc.querySelectorAll('img').forEach(el => {
+    const src = (el.getAttribute('src') || '').toLowerCase()
+    if (src.includes('/icons/') || src.includes('favicon') || src.includes('logo')) {
+      el.remove()
+    }
+  })
+
+  const reader = new Readability(doc)
   const article = reader.parse()
 
   if (!article || !article.content) {
@@ -143,6 +187,12 @@ async function main() {
     codeBlockStyle: 'fenced',
     bulletListMarker: '-',
     fence: '```',
+  })
+
+  // Ignore certain elements in Turndown
+  td.addRule('ignore', {
+    filter: ['script', 'style', 'noscript', 'iframe', 'canvas', 'svg'],
+    replacement: () => ''
   })
 
   // ⚠️ Disable escaping — preserves LaTeX and code characters

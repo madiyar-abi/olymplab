@@ -13,6 +13,9 @@ export type SkillAxes =
   | 'coding'
   | 'debugging'
   | 'speed'
+  | 'logic'
+  | 'math'
+  | 'graphs'
 
 export interface Database {
   public: {
@@ -21,19 +24,31 @@ export interface Database {
         Row: {
           id: string
           username: string
-          skills: Record<SkillAxes, number>
+          skills: Json
+          primary_subject: string | null
+          experience_level: string | null
+          code_template: string | null
+          settings: Json
           created_at: string
         }
         Insert: {
           id: string
           username: string
-          skills?: Record<SkillAxes, number>
+          skills?: Json
+          primary_subject?: string | null
+          experience_level?: string | null
+          code_template?: string | null
+          settings?: Json
           created_at?: string
         }
         Update: {
           id?: string
           username?: string
-          skills?: Record<SkillAxes, number>
+          skills?: Json
+          primary_subject?: string | null
+          experience_level?: string | null
+          code_template?: string | null
+          settings?: Json
           created_at?: string
         }
       }
@@ -46,6 +61,7 @@ export interface Database {
           requirements: Record<SkillAxes, { level: number; weight: number }>
           sample_input: string | null
           sample_output: string | null
+          external_id: string | null
           created_at: string
         }
         Insert: {
@@ -56,6 +72,7 @@ export interface Database {
           requirements?: Record<SkillAxes, { level: number; weight: number }>
           sample_input?: string | null
           sample_output?: string | null
+          external_id?: string | null
           created_at?: string
         }
         Update: {
@@ -66,6 +83,7 @@ export interface Database {
           requirements?: Record<SkillAxes, { level: number; weight: number }>
           sample_input?: string | null
           sample_output?: string | null
+          external_id?: string | null
           created_at?: string
         }
       }
@@ -74,27 +92,33 @@ export interface Database {
           id: string
           user_id: string
           problem_id: string
-          cf_submission_id?: string | null
+          cf_submission_id: string | number | null
           status: string
-          verdict?: string
+          verdict: string | null
+          code: string | null
+          language: string | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           problem_id: string
-          cf_submission_id?: string | null
+          cf_submission_id?: string | number | null
           status: string
-          verdict?: string
+          verdict?: string | null
+          code?: string | null
+          language?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           problem_id?: string
-          cf_submission_id?: string | null
+          cf_submission_id?: string | number | null
           status?: string
-          verdict?: string
+          verdict?: string | null
+          code?: string | null
+          language?: string | null
           created_at?: string
         }
       }
@@ -106,6 +130,8 @@ export interface Database {
           order_index: number
           prerequisites: string[] | null
           article_markdown: string | null
+          article_url: string | null
+          level: string
           created_at: string
         }
         Insert: {
@@ -115,6 +141,8 @@ export interface Database {
           order_index?: number
           prerequisites?: string[] | null
           article_markdown?: string | null
+          article_url?: string | null
+          level?: string
           created_at?: string
         }
         Update: {
@@ -124,6 +152,55 @@ export interface Database {
           order_index?: number
           prerequisites?: string[] | null
           article_markdown?: string | null
+          article_url?: string | null
+          level?: string
+          created_at?: string
+        }
+      }
+      topic_problems: {
+        Row: {
+          id: string
+          topic_id: string
+          problem_id: string | null
+          source: string
+          source_id: string
+          title: string
+          url: string
+          cf_rating: number | null
+          difficulty: string
+          layer: string
+          tags: string[]
+          solved_count: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          topic_id: string
+          problem_id?: string | null
+          source: string
+          source_id: string
+          title: string
+          url: string
+          cf_rating?: number | null
+          difficulty?: string
+          layer?: string
+          tags?: string[]
+          solved_count?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          topic_id?: string
+          problem_id?: string | null
+          source?: string
+          source_id?: string
+          title?: string
+          url?: string
+          cf_rating?: number | null
+          difficulty?: string
+          layer?: string
+          tags?: string[]
+          solved_count?: number | null
           created_at?: string
         }
       }

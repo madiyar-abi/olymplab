@@ -2,18 +2,26 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { code, stdin } = await request.json();
+    const { code, stdin, language = 'cpp' } = await request.json();
 
     if (!code) {
       return NextResponse.json({ error: 'Missing required field: code.' }, { status: 400 });
     }
+
+    // Map internal language to Wandbox compiler
+    let compiler = 'gcc-head' // Default C++
+    const langLower = language.toLowerCase()
+    if (langLower.includes('python')) compiler = 'cpython-head'
+    else if (langLower.includes('java')) compiler = 'openjdk-head'
+    else if (langLower.includes('node') || langLower.includes('js')) compiler = 'nodejs-head'
+    else if (langLower.includes('rust')) compiler = 'rust-head'
 
     // Wandbox API
     const response = await fetch('https://wandbox.org/api/compile.json', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        compiler: 'gcc-head',
+        compiler,
         code: code,
         stdin: stdin || '',
       }),

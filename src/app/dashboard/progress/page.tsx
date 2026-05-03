@@ -1,3 +1,5 @@
+import { Activity } from 'lucide-react'
+
 export default function ProgressPage() {
   const skills = [
     { name: 'Logic', value: 75, color: 'bg-blue-500' },
@@ -16,10 +18,12 @@ export default function ProgressPage() {
   ]
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-full p-4 md:p-8">
+      <div className="max-w-5xl mx-auto space-y-8">
       <header className="border-b border-border pb-6">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono">
-          // Performance Analytics
+        <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono flex items-center gap-3">
+          <Activity className="w-8 h-8 text-primary" />
+          Performance Analytics
         </h1>
         <p className="text-muted-foreground font-mono text-sm">
           Track mathematical proficiency and algorithmic mastery.
@@ -64,10 +68,10 @@ export default function ProgressPage() {
               <div key={index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                 <div className="flex items-center justify-center w-10 h-10 rounded border border-border bg-background text-muted-foreground shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 shadow-sm">
                   <div className={`w-2 h-2 rounded-sm ${
-                    activity.type === 'solve' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' :
-                    activity.type === 'achievement' ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]' :
-                    activity.type === 'streak' ? 'bg-accent shadow-[0_0_8px_rgba(168,85,247,0.5)]' :
-                    'bg-primary shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                    activity.type === 'solve' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)] dark:shadow-[0_0_8px_rgba(34,197,94,0.5)]' :
+                    activity.type === 'achievement' ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.3)] dark:shadow-[0_0_8px_rgba(234,179,8,0.5)]' :
+                    activity.type === 'streak' ? 'bg-accent shadow-[0_0_8px_rgba(168,85,247,0.3)] dark:shadow-[0_0_8px_rgba(168,85,247,0.5)]' :
+                    'bg-primary shadow-[0_0_8px_rgba(59,130,246,0.3)] dark:shadow-[0_0_8px_rgba(59,130,246,0.5)]'
                   }`} />
                 </div>
                 
@@ -81,6 +85,7 @@ export default function ProgressPage() {
             ))}
           </div>
         </section>
+      </div>
       </div>
     </div>
   )

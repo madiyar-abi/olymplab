@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   let profile: { username: string, primary_subject?: string, experience_level?: string } | null = null;
   if (user) {
     const { data } = await supabase.from('profiles').select('username, primary_subject, experience_level').eq('id', user.id).single();
-    profile = data as any;
+    profile = data as { username: string; primary_subject?: string; experience_level?: string } | null;
   }
 
   // Enforce Onboarding
@@ -24,14 +24,14 @@ export default async function DashboardLayout({
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* Sidebar - hidden on very small screens, visible on md+ */}
       <div className="hidden md:flex">
         <Sidebar username={username} email={user?.email || ''} />
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-background">
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
     </div>

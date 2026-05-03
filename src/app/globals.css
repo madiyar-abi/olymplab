@@ -56,25 +56,35 @@
 }
 
 .dark {
-  --background: #0E0E0F; /* Deep Slate */
-  --foreground: #e2e8f0; /* slate-200 */
-  --card: #141622; /* Slightly elevated from background */
+  --background: #0d0f14; /* Deep, soft navy-charcoal */
+  --foreground: #e2e8f0; /* slate-200, softer than near-white */
+  --card: #14171e; /* Distinct card background */
   --card-foreground: #e2e8f0;
-  --popover: #141622;
+  --popover: #0d0f14;
   --popover-foreground: #e2e8f0;
-  --primary: #3b82f6; /* Vibrant Blue */
+  --primary: #60a5fa; /* Brighter, more visible blue */
   --primary-foreground: #ffffff;
-  --secondary: #1E2235; /* Indigo */
-  --secondary-foreground: #e2e8f0;
-  --muted: #1E2235;
-  --muted-foreground: #94a3b8;
-  --accent: #a855f7; /* Vibrant Purple */
+  --secondary: #1c212a; /* slate-900 */
+  --secondary-foreground: #f1f5f9;
+  --muted: #1c212a;
+  --muted-foreground: #94a3b8; /* slate-400 */
+  --accent: #c084fc; /* Brighter purple */
   --accent-foreground: #ffffff;
-  --destructive: #7f1d1d;
+  --destructive: #991b1b;
   --destructive-foreground: #ffffff;
-  --border: #1E2235;
-  --input: #1E2235;
-  --ring: #3b82f6;
+  --border: #242b36; /* Visible borders */
+  --input: #242b36;
+  --ring: #60a5fa;
+}
+
+@layer components {
+  .dark .bg-card {
+    box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.4), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  }
+  
+  .dark .border-border {
+    border-color: var(--border);
+  }
 }
 
 body {
@@ -91,53 +101,100 @@ body {
 
 /* ─── Article / Prose typography fixes ─────────────────────────────────── */
 
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--primary);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--primary);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--primary);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--secondary);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin-top: 2.5em;
+  margin-bottom: 1em;
+}
+
+.prose h1 { font-size: 2.25rem; }
+.prose h2 { 
+  font-size: 1.75rem; 
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.prose h3 { font-size: 1.35rem; }
+
+.prose p {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose ul, .prose ol {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 1.625em;
+}
+
+.prose li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose blockquote {
+  font-style: normal;
+  font-weight: 400;
+  border-left-width: 4px;
+  padding-left: 1.5em;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
 /* Block math: centered, scrollable */
 .prose .katex-display {
   text-align: center;
-  margin: 1.5em 0;
+  margin: 2em 0;
+  padding: 1.5rem;
+  background: var(--secondary)/20;
+  border-radius: 0.75rem;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
-/* Inline math errors */
-.prose .katex-error {
-  color: #ef4444 !important;
-  font-family: monospace;
+/* Inline math */
+.prose .katex {
+  font-size: 1.1em;
 }
 
 /* Inline code: styled pill, no Tailwind backticks */
 .prose :not(pre) > code {
-  background-color: #27272a;
-  color: #67e8f9;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  font-size: 0.875em;
+  background-color: var(--muted);
+  color: var(--primary);
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.85em;
+  border: 1px solid var(--border);
 }
 .prose :not(pre) > code::before,
 .prose :not(pre) > code::after {
   content: none !important;
 }
-
-/* Ensure prose padding never bleeds into syntax highlighter code/pre elements */
-.prose .not-prose code,
-.prose .not-prose pre {
-  padding-left: revert;
-  margin-left: revert;
-}
-
-/* Kill prose backtick pseudo-elements inside syntax highlighter blocks */
-.not-prose code::before,
-.not-prose code::after {
-  content: none !important;
-}
-
-/* Prevent any text-indent from shifting the first line of code */
-.not-prose code,
-.not-prose pre {
-  text-indent: 0 !important;
-}
-
 
 /* ─── Article Table Styles ────────────────────────────────────────────────── */
 .prose table {
@@ -146,35 +203,72 @@ body {
   border-spacing: 0;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.08);
-  margin: 2rem 0;
-  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  margin: 3rem 0;
+  font-size: 0.95rem;
 }
 .prose thead {
-  background: #1e2030;
+  background: var(--muted);
 }
 .prose thead th {
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
   text-align: left;
-  font-weight: 600;
-  color: #67e8f9;
-  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--foreground);
+  font-size: 0.85rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
 }
-.prose tbody tr {
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.15s;
-}
-.prose tbody tr:nth-child(odd)  { background: rgba(255,255,255,0.02); }
-.prose tbody tr:nth-child(even) { background: rgba(255,255,255,0.04); }
-.prose tbody tr:hover            { background: rgba(103,232,249,0.05); }
 .prose tbody td {
-  padding: 0.65rem 1rem;
-  color: rgba(255,255,255,0.8);
-  vertical-align: top;
-  line-height: 1.5;
+  padding: 1rem 1.25rem;
+  color: var(--foreground);
+  vertical-align: middle;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--border);
 }
+.prose tbody tr:last-child td {
+  border-bottom: none;
+}
+.prose tbody tr:hover {
+  background: var(--muted)/40;
+}
+
 /* Remove double-borders from prose defaults */
-.prose table th, .prose table td { border: none; }
+/* ─── Zen Mode Styles ────────────────────────────────────────────────── */
+
+.zen-mode nav {
+  display: none !important;
+}
+
+.zen-mode aside {
+  display: none !important;
+}
+
+/* Force main area to fill screen */
+.zen-mode main {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
+}
+
+/* Adjust Dashboard Layout container */
+.zen-mode [class*="h-[calc(100vh-4rem)]"] {
+  height: 100vh !important;
+}
+
+/* Slight dimming effect on the background */
+.zen-mode body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: black;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Ensure the IDE stays above the dimming layer */
+.zen-mode .relative.select-none {
+  z-index: 50;
+}

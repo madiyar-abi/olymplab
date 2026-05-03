@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Ignore scripts and test files
+    "scripts/**",
+    "test_*.js",
+    "fix_*.js",
+    "cf_api_help.html",
   ]),
 ]);
 

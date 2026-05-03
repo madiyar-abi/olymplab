@@ -1,138 +1,117 @@
-import { createClient } from '@supabase/supabase-js';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as cheerio from 'cheerio';
+import { createClient } from '@supabase/supabase-js'
+import * as cheerio from 'cheerio'
+import puppeteer from 'puppeteer-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
+import { htmlToMarkdown } from '../src/lib/converter'
+import * as fs from 'fs'
+import * as path from 'path'
 
-
-// ─── Environment ─────────────────────────────────────────────────────────────
-const envPath = path.resolve(__dirname, '../.env.local');
+// ─── Environment Setup ────────────────────────────────────────────────────────
+const envPath = path.resolve(__dirname, '../.env.local')
 if (fs.existsSync(envPath)) {
-  const envFile = fs.readFileSync(envPath, 'utf8');
+  const envFile = fs.readFileSync(envPath, 'utf8')
   envFile.split('\n').forEach(line => {
-    const match = line.match(/^([^#\s]+)=(.*)$/);
-    if (match) process.env[match[1]] = match[2].trim().replace(/^['"]|['"]$/g, '');
-  });
+    const match = line.match(/^([^#\s]+)=(.*)$/)
+    if (match) process.env[match[1]] = match[2].trim().replace(/^['"]|['"]$/g, '')
+  })
 }
 
-const SUPABASE_URL         = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local.');
-  process.exit(1);
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local.')
+  process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 // ─── Puppeteer Stealth ────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const puppeteerExtra = require('puppeteer-extra');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const StealthPlugin  = require('puppeteer-extra-plugin-stealth');
-puppeteerExtra.use(StealthPlugin());
+puppeteer.use(StealthPlugin())
 
 // ─── Problem Code Parser ──────────────────────────────────────────────────────
 function parseProblemCode(code: string) {
-  const match = code.match(/^(\d+)([A-Z]\d*)$/i);
-  if (match) return { contestId: parseInt(match[1]), index: match[2].toUpperCase() };
-  return null;
-}
-
-// ─── HTML Helpers ─────────────────────────────────────────────────────────────
-function htmlToText(html: string): string {
-  let text = html;
-  // Replace block elements with newlines
-  text = text.replace(/<br\s*\/?>/gi, '\n');
-  text = text.replace(/<\/(p|div|li|h[1-6])>/gi, '\n\n');
-  text = text.replace(/<(p|div|li|h[1-6])[^>]*>/gi, '\n');
-  // Remove all remaining tags
-  text = text.replace(/<[^>]+>/g, ' ');
-  // Decode basic entities
-  text = text.replace(/&nbsp;/g, ' ')
-             .replace(/&lt;/g, '<')
-             .replace(/&gt;/g, '>')
-             .replace(/&amp;/g, '&')
-             .replace(/&quot;/g, '"')
-             .replace(/&times;/g, '×')
-             .replace(/&le;/g, '≤')
-             .replace(/&ge;/g, '≥');
-  // Collapse spaces and excessive newlines
-  text = text.replace(/[ \t]+/g, ' ');
-  text = text.replace(/\n[ \t]+/g, '\n');
-  text = text.replace(/\n{3,}/g, '\n\n');
-  return text.trim();
-}
-
-
-
-interface ScrapeResult {
-  title: string;
-  description: string;
-  sampleInput: string;
-  sampleOutput: string;
-  timeLimit: string;
-  memoryLimit: string;
+  const match = code.match(/^(\d+)([A-Z]\d*)$/i)
+  if (match) return { contestId: parseInt(match[1]), index: match[2].toUpperCase() }
+  return null
 }
 
 // ─── Puppeteer Scraper ────────────────────────────────────────────────────────
-async function scrapeProblem(
-  browser: any,
-  contestId: number,
-  index: string
-): Promise<ScrapeResult> {
+async function scrapeProblem(browser: any, contestId: number, index: string) {
   const urls = [
     `https://codeforces.com/contest/${contestId}/problem/${index}`,
     `https://codeforces.com/problemset/problem/${contestId}/${index}`,
-  ];
+  ]
 
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 768 });
+  const page = await browser.newPage()
+  await page.setViewport({ width: 1366, height: 768 })
 
-  let html = '';
+  let html = ''
   try {
     for (const url of urls) {
-      console.log(`  [Puppeteer] Navigating to ${url}`);
+      console.log(`  [Puppeteer] Navigating to ${url}`)
       try {
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-        await page.waitForSelector('.problem-statement', { timeout: 20000 });
-        html = await page.content();
-        console.log(`  [Puppeteer] ✓ Page loaded (${html.length} bytes).`);
-        break;
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+        await page.waitForSelector('.problem-statement', { timeout: 20000 })
+        
+        // Wait a bit for MathJax if present
+        await sleep(1000)
+        
+        html = await page.content()
+        console.log(`  [Puppeteer] ✓ Page loaded (${html.length} bytes).`)
+        break
       } catch (err: any) {
-        console.warn(`  [Puppeteer] Failed ${url}: ${err.message.substring(0, 80)}`);
+        console.warn(`  [Puppeteer] Failed ${url}: ${err.message.substring(0, 80)}`)
       }
     }
   } finally {
-    await page.close();
+    await page.close()
   }
 
-  if (!html) throw new Error('Could not load problem page (all URLs failed).');
+  if (!html) throw new Error('Could not load problem page (all URLs failed).')
 
-  const $ = cheerio.load(html);
+  const $ = cheerio.load(html)
+  const $ps = $('.problem-statement')
 
-  // ── Sample I/O ──
-  const sampleInputHtml = $('.problem-statement .sample-test .input pre').html();
-  const sampleOutputHtml = $('.problem-statement .sample-test .output pre').html();
+  // 1. Title & Limits
+  const title = $ps.find('.header .title').text().trim() || `Problem ${contestId}${index}`
+  const timeLimit = $ps.find('.time-limit').text().replace('time limit per test', '').trim()
+  const memoryLimit = $ps.find('.memory-limit').text().replace('memory limit per test', '').trim()
+
+  // 2. Sample I/O (handled as raw text)
+  const sampleInput = $ps.find('.sample-test .input pre').text().trim() || '// No sample input found.'
+  const sampleOutput = $ps.find('.sample-test .output pre').text().trim() || '// No sample output found.'
+
+  // 3. Mathematical Extraction & Cleaning (Surgical)
+  // Remove visual/assistive layers to prevent duplication in final markdown
+  $ps.find('.MathJax_Preview, .MathJax, .MathJax_Display, .MJX_Assistive_MathML, .MathJax_SVG').remove()
+
+  // Convert MathJax scripts to clean LaTeX spans before conversion
+  $ps.find('script[type="math/tex"]').each((i, el) => {
+    const tex = $(el).text().trim()
+    $(el).replaceWith(`<span class="tex-span">${tex}</span>`)
+  })
   
-  const sampleInput = sampleInputHtml ? htmlToText(sampleInputHtml) : '// No sample input found.';
-  const sampleOutput = sampleOutputHtml ? htmlToText(sampleOutputHtml) : '// No sample output found.';
+  $ps.find('script[type="math/tex; mode=display"]').each((i, el) => {
+    const tex = $(el).text().trim()
+    $(el).replaceWith(`<div class="tex-graphics" alt="${tex}"></div>`)
+  })
 
-  // ── Title ──
-  let title = $('.problem-statement .header .title').text().trim();
-  if (!title) title = `Problem ${contestId}${index}`;
+  // 4. Cleanup non-description headers
+  $ps.find('.header, .sample-tests, .input-file, .output-file, .property-title').remove()
 
-  // ── Limits ──
-  const timeLimit = $('.time-limit').text().replace('time limit per test', '').trim();
-  const memoryLimit = $('.memory-limit').text().replace('memory limit per test', '').trim();
+  // 5. Convert to Markdown using the expert converter
+  const descriptionMarkdown = htmlToMarkdown($ps.html() || '')
 
-  // ── Description ──
-  $('.problem-statement .header').remove();
-  $('.problem-statement .sample-tests').remove();
-
-  const cleanDescriptionHtml = $('.problem-statement > div').first().html() || '';
-
-  return { title, description: cleanDescriptionHtml, sampleInput, sampleOutput, timeLimit, memoryLimit };
+  return { 
+    title, 
+    description: descriptionMarkdown, 
+    sampleInput, 
+    sampleOutput, 
+    timeLimit, 
+    memoryLimit 
+  }
 }
 
 // ─── CF API – top 100 ────────────────────────────────────────────────────────
@@ -146,100 +125,80 @@ async function fetchTop100Problems(): Promise<{ contestId: number; index: string
   return problems;
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main Execution ──────────────────────────────────────────────────────────
 async function main() {
-  const args = process.argv.slice(2);
-  let problemsToProcess: { contestId: number; index: string; name?: string }[] = [];
-
-  if (args.length > 0) {
-    console.log('=== Codeforces Ingestion — Specific Problems ===');
-    for (const arg of args) {
-      const parsed = parseProblemCode(arg);
-      if (parsed) problemsToProcess.push(parsed);
-      else console.warn(`[Warning] Invalid problem code: "${arg}". Skipping.`);
-    }
-  } else {
-    console.log('=== Codeforces Ingestion — Top 100 ===');
-    problemsToProcess = await fetchTop100Problems();
+  const codes = process.argv.slice(2)
+  
+  if (codes.length === 0) {
+    console.log('No problem codes provided. Usage: node scripts/ingest_cf.js 71A 158A ...')
+    return
   }
 
-  // Launch ONE browser for all problems
-  console.log('[Browser] Launching Puppeteer Stealth...');
-  const browser = await puppeteerExtra.launch({
-    headless: false, // Set to false so you can solve CAPTCHAs manually!
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-blink-features=AutomationControlled',
-      '--window-size=1366,768',
-    ],
-  });
-  console.log('[Browser] Ready.\n');
-
-  let success = 0;
+  console.log(`=== Codeforces Ingestion — Specific Problems ===`)
+  const browser = await (puppeteer as any).launch({ headless: true, args: ['--no-sandbox'] })
 
   try {
-    for (let idx = 0; idx < problemsToProcess.length; idx++) {
-      const { contestId, index, name } = problemsToProcess[idx];
-      console.log(`--- [${idx + 1}/${problemsToProcess.length}] ${contestId}${index} ---`);
+    for (let i = 0; i < codes.length; i++) {
+      const code = codes[i]
+      const parsed = parseProblemCode(code)
+      
+      console.log(`\n--- [${i+1}/${codes.length}] ${code} ---`)
+      
+      if (!parsed) {
+        console.error(`  [Error] Invalid problem code: ${code}`)
+        continue
+      }
 
       try {
-        // 1. Scrape via Puppeteer Stealth
-        const scraped = await scrapeProblem(browser, contestId, index);
-        const title = name || scraped.title;
+        const scraped = await scrapeProblem(browser, parsed.contestId, parsed.index)
+        
+        console.log(`  [Title]      ${scraped.title}`)
+        console.log(`  [Sample In]  ${scraped.sampleInput.substring(0, 50)}...`)
+        console.log(`  [Sample Out] ${scraped.sampleOutput.substring(0, 50)}...`)
 
-        console.log(`  [Title]      ${title}`);
-        console.log(`  [Sample In]  ${scraped.sampleInput.substring(0, 80)}`);
-        console.log(`  [Sample Out] ${scraped.sampleOutput.substring(0, 80)}`);
-
-        // 2. Delete existing problem with this title (simulates upsert without needing UNIQUE constraint)
-        await supabase.from('problems').delete().eq('title', title);
-
-        // 3. Insert fresh scraped data
-        console.log(`  [DB] Inserting "${title}"…`);
-        const DEFAULT_REQUIREMENTS = {
-          algorithms:      { level: 0, weight: 0 },
-          data_structures: { level: 0, weight: 0 },
-          complexity:      { level: 0, weight: 0 },
-          coding:          { level: 0, weight: 0 },
-          debugging:       { level: 0, weight: 0 },
-          speed:           { level: 0, weight: 0 },
-        };
+        // ── Supabase Insertion ──
+        console.log(`  [DB] Inserting "${scraped.title}"…`)
         
         const { data, error } = await supabase
           .from('problems')
-          .insert({
-            title,
-            cf_id:         `${contestId}${index}`, // e.g., "71A"
-            description:   scraped.description,
-            sample_input:  scraped.sampleInput,
+          .upsert({
+            external_id: `cf-${parsed.contestId}/${parsed.index}`,
+            title: `[CF] ${scraped.title}`,
+            description: scraped.description,
+            difficulty: 'Medium',
+            requirements: {
+              algorithms: { level: 40, weight: 1 },
+              logic: { level: 40, weight: 1 }
+            },
+            sample_input: scraped.sampleInput,
             sample_output: scraped.sampleOutput,
-            time_limit:    scraped.timeLimit,
-            memory_limit:  scraped.memoryLimit,
-            difficulty:    'Unrated',
-            requirements:  DEFAULT_REQUIREMENTS,
-          })
-          .select();
+            time_limit: scraped.timeLimit,
+            memory_limit: scraped.memoryLimit,
+          }, { onConflict: 'external_id' })
+          .select('id')
+          .single()
 
-        if (error) throw error;
-        console.log(`  [DB] ✓ Inserted — ID: ${data?.[0]?.id}`);
-        success++;
+        if (error) {
+          console.error(`  [DB Error] ${error.message}`)
+        } else {
+          console.log(`  [DB] ✓ Inserted — ID: ${data.id}`)
+        }
 
+        // Politely wait between problems
+        if (i < codes.length - 1) {
+          console.log(`  [Delay] Sleeping 4s…`)
+          await sleep(4000)
+        }
       } catch (err: any) {
-        console.error(`  [Error] Failed ${contestId}${index}: ${err.message}. Skipping.`);
-      }
-
-      if (idx < problemsToProcess.length - 1) {
-        console.log('  [Delay] Sleeping 4s…\n');
-        await sleep(4000);
+        console.error(`  [Error] ${err.message}`)
       }
     }
   } finally {
-    await browser.close();
-    console.log('[Browser] Closed.');
+    await browser.close()
+    console.log(`\n[Browser] Closed.`)
   }
 
-  console.log(`\n=== Finished: ${success}/${problemsToProcess.length} problems ingested ===`);
+  console.log(`\n=== Finished: ${codes.length}/${codes.length} problems ingested ===`)
 }
 
-main();
+main().catch(console.error)

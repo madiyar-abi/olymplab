@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { ProblemRequirements } from '@/lib/adaptive/matching';
-import { SkillAxes } from '@/types/database';
 
 export interface IngestedProblem {
   id?: string;
@@ -54,10 +52,11 @@ export async function POST(request: Request) {
       receivedDataPreview: body.slice(0, 2)
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Ingestion API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to ingest data.', details: error.message },
+      { error: 'Failed to ingest data.', details: errorMessage },
       { status: 500 }
     );
   }

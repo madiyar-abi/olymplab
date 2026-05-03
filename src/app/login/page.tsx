@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { MountainIllustration } from '@/components/shared/MountainIllustration'
+
 
 export default function LoginPage() {
   const router = useRouter()
@@ -41,10 +42,13 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Logo + headline */}
           <div className="flex flex-col items-center mb-8 text-center">
-            {/* Logo Placeholder */}
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-accent shadow-lg flex items-center justify-center text-white text-lg font-mono font-bold select-none border border-white/10 mb-6">
-              {'{'}OL{'}'}
-            </div>
+            <Image
+              src="/logo.png"
+              alt="OlympLab"
+              width={52}
+              height={52}
+              className="rounded-xl mb-5 shadow-lg"
+            />
             
             <div className="space-y-2">
               <h1 className="text-3xl font-extrabold tracking-tight text-foreground font-mono">Sign in to OlympLab</h1>
@@ -133,9 +137,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Right column: Illustration ── */}
-      <div className="hidden lg:flex flex-1 bg-secondary relative overflow-hidden">
-        <MountainIllustration />
+      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-[#0d0f2b] border-l border-white/5">
+        <Image
+          src="/auth_bg.png"
+          alt="Algorithmic Mastery"
+          fill
+          className="object-cover opacity-80"
+          priority
+        />
+        {/* Subtle overlay gradient to blend with the dark theme */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
       </div>
     </div>
   )
