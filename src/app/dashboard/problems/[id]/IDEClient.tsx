@@ -746,7 +746,7 @@ export default function IDEClient({ problem, initialCode, settings = { sound_ena
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
                     <Bot className="w-8 h-8 text-muted-foreground/50" />
                     <p className="max-w-md text-center text-xs">
-                      Застряли? Нажмите "Ask Mentor", чтобы получить подсказку без раскрытия полного решения. Ментор проанализирует вашу логику и направит в нужную сторону!
+                      Застряли? Нажмите &quot;Ask Mentor&quot;, чтобы получить подсказку без раскрытия полного решения. Ментор проанализирует вашу логику и направит в нужную сторону!
                     </p>
                     <button 
                       onClick={() => handleSendMentorMessage(true)}

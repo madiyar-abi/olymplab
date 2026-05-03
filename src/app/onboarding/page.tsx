@@ -33,7 +33,7 @@ export default function OnboardingPage() {
       ? { logic: level === 'Beginner' ? 10 : level === 'Intermediate' ? 30 : 60, coding: level === 'Beginner' ? 15 : level === 'Intermediate' ? 40 : 70 }
       : { math: level === 'Beginner' ? 15 : level === 'Intermediate' ? 40 : 70, logic: level === 'Beginner' ? 10 : level === 'Intermediate' ? 30 : 50 };
 
-    const { error } = await supabase.from('profiles')
+    const { error } = await (supabase.from('profiles') as any)
       .update({
         primary_subject: subject,
         experience_level: level,

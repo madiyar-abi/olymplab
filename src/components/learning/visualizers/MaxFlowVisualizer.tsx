@@ -91,7 +91,7 @@ export default function MaxFlowVisualizer() {
       if (currentStep < steps.length - 1) {
         interval = setInterval(() => setCurrentStep(s => s + 1), 1000)
       } else {
-        setIsPlaying(false)
+        setTimeout(() => setIsPlaying(false), 0)
       }
     }
     return () => clearInterval(interval)

@@ -176,7 +176,7 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
             return <div className="not-prose my-8">{children}</div>
           },
 
-          code(props: ComponentPropsWithoutRef<'code'> & { inline?: boolean, node?: any }) {
+          code(props: ComponentPropsWithoutRef<'code'> & { inline?: boolean, node?: unknown }) {
             const { children, className, inline, node, ...rest } = props
             const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
             
@@ -207,11 +207,11 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
             // ─── Visualizer Handlers ─────────────────────────────────────
             if (label.startsWith('viz-')) {
               const vizMap: Record<string, () => React.ReactNode> = {
-                'viz-sort': () => <SortingVisualizer algorithm={vizLines[0] as any} initialArray={safeJsonParse(vizLines[1])} />,
+                'viz-sort': () => <SortingVisualizer algorithm={vizLines[0] as 'bubble' | 'selection' | 'insertion' | 'merge' | 'quick'} initialArray={safeJsonParse(vizLines[1])} />,
                 'viz-search': () => <BinarySearchVisualizer target={parseInt(vizLines[0]) || 23} initialArray={safeJsonParse(vizLines[1])} />,
-                'viz-data': () => <StackQueueVisualizer type={(vizLines[0] || 'stack') as any} />,
+                'viz-data': () => <StackQueueVisualizer type={(vizLines[0] || 'stack') as 'stack' | 'queue'} />,
                 'viz-prefix': () => <PrefixSumVisualizer initialArray={safeJsonParse(vizLines[0])} />,
-                'viz-graph': () => <GraphVisualizer type={(vizLines[0] || 'bfs') as any} />,
+                'viz-graph': () => <GraphVisualizer type={(vizLines[0] || 'bfs') as 'bfs' | 'dfs'} />,
                 'viz-sieve': () => <SieveVisualizer limit={parseInt(vizLines[0]) || 40} />,
                 'viz-bits': () => <BitwiseVisualizer initialA={parseInt(vizLines[0])} initialB={parseInt(vizLines[1])} />,
                 'viz-heap': () => <HeapVisualizer />,

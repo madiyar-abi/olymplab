@@ -27,7 +27,7 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
 
   const saveSettings = async () => {
     setIsSaving(true)
-    const { error } = await supabase.from('profiles')
+    const { error } = await (supabase.from('profiles') as any)
       .update({ settings: settings })
       .eq('id', userId)
 

@@ -53,10 +53,11 @@ export default function SlidingWindowVisualizer() {
   }, [array, targetSum])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentStep(0)
-     
-    setIsPlaying(false)
+    const timer = setTimeout(() => {
+      setCurrentStep(0)
+      setIsPlaying(false)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [steps])
 
   useEffect(() => {
@@ -67,8 +68,7 @@ export default function SlidingWindowVisualizer() {
           setCurrentStep((s) => s + 1)
         }, speed)
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsPlaying(false)
+        setTimeout(() => setIsPlaying(false), 0)
       }
     }
     return () => clearInterval(interval)

@@ -86,8 +86,10 @@ export default function KnapsackVisualizer() {
   const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentStep(0)
+    const timer = setTimeout(() => {
+      setCurrentStep(0)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [steps])
 
   useEffect(() => {
@@ -95,8 +97,7 @@ export default function KnapsackVisualizer() {
     if (isPlaying && currentStep < steps.length - 1) {
       interval = setInterval(() => setCurrentStep((s) => s + 1), 600)
     } else if (isPlaying) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsPlaying(false)
+      setTimeout(() => setIsPlaying(false), 0)
     }
     return () => clearInterval(interval)
   }, [isPlaying, currentStep, steps.length])

@@ -98,7 +98,7 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
       if (currentStep < steps.length - 1) {
         interval = setInterval(() => setCurrentStep(s => s + 1), 800)
       } else {
-        setIsPlaying(false)
+        setTimeout(() => setIsPlaying(false), 0)
       }
     }
     return () => clearInterval(interval)

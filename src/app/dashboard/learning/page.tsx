@@ -5,9 +5,11 @@ import { BookOpen, AlertTriangle } from 'lucide-react'
 interface Topic {
   id: string
   title: string
-  description: string
+  stage: string
+  level: string
   order_index: number
-  icon?: string
+  prerequisites: string[]
+  article_url: string | null
 }
 
 export default async function LearningPage() {

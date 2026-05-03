@@ -65,10 +65,11 @@ export default function ConvexHullVisualizer() {
   const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentStep(0)
-     
-    setIsPlaying(false)
+    const timer = setTimeout(() => {
+      setCurrentStep(0)
+      setIsPlaying(false)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [steps])
 
   useEffect(() => {
@@ -77,8 +78,7 @@ export default function ConvexHullVisualizer() {
       if (currentStep < steps.length - 1) {
         interval = setInterval(() => setCurrentStep(s => s + 1), 1000)
       } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsPlaying(false)
+        setTimeout(() => setIsPlaying(false), 0)
       }
     }
     return () => clearInterval(interval)

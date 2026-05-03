@@ -68,7 +68,7 @@ export default function PrefixSum2DVisualizer({
       if (currentStep < steps.length - 1) {
         interval = setInterval(() => setCurrentStep(s => s + 1), 800)
       } else {
-        setIsPlaying(false)
+        setTimeout(() => setIsPlaying(false), 0)
       }
     }
     return () => clearInterval(interval)

@@ -230,7 +230,7 @@ export default function LandingPage() {
               <BrainCircuit className="w-10 h-10 text-violet-400 mb-6" />
               <h3 className="text-xl font-bold mb-3">Socratic AI Mentor</h3>
               <p className="text-muted-foreground/80 leading-relaxed text-sm">
-                Powered by Gemini. Our mentor follows George Polya's "How to Solve It" methodology. It never gives you the answer—it guides your intuition and logic until you solve it yourself.
+                Powered by Gemini. Our mentor follows George Polya&apos;s &quot;How to Solve It&quot; methodology. It never gives you the answer—it guides your intuition and logic until you solve it yourself.
               </p>
             </motion.div>
 
@@ -304,7 +304,7 @@ export default function LandingPage() {
             <div className="flex-1 w-full max-w-md relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-violet-500/20 blur-3xl rounded-full" />
               <div className="relative bg-card border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
-                <div className="text-sm font-mono text-muted-foreground mb-4">Polya's Four Principles:</div>
+                <div className="text-sm font-mono text-muted-foreground mb-4">Polya&apos;s Four Principles:</div>
                 <div className="space-y-3">
                   {['1. Understand the Problem', '2. Devise a Plan', '3. Carry out the Plan', '4. Look Back & Review'].map((item, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-white/5">

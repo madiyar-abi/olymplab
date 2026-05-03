@@ -93,7 +93,8 @@ export default function SortingVisualizer({
         const mid = Math.floor((l + r) / 2)
         mergeSortSync(l, mid)
         mergeSortSync(mid + 1, r)
-        let i = l, j = mid + 1, merged = []
+        let i = l, j = mid + 1
+        const merged = []
         while (i <= mid && j <= r) {
           newSteps.push({ array: [...tempArr], active: [i, j], comparing: [i, j], sorted: [] })
           if (tempArr[i] <= tempArr[j]) merged.push(tempArr[i++])
