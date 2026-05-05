@@ -7,7 +7,11 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Clock, Cpu, Flag, Maximize2, Minimize2, Timer as TimerIcon, Bot, Paperclip, Eye, History, RotateCcw, X, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Clock, Cpu, Flag, Maximize2, Minimize2, Timer as TimerIcon, Bot, Paperclip, Eye, History } from 'lucide-react'
+import { MentorTab } from '@/components/ide/MentorTab'
+import { SubmissionsTab } from '@/components/ide/SubmissionsTab'
+import { HistoryTab } from '@/components/ide/HistoryTab'
+import { SubmissionModal } from '@/components/ide/SubmissionModal'
 import confetti from 'canvas-confetti'
 import { useTheme } from '@/components/shared/ThemeProvider'
 import { playSuccessSound } from '@/lib/audio'
@@ -247,8 +251,6 @@ export default function IDEClient({
   const [isMentorThinking, setIsMentorThinking] = useState(false)
   const [mentorHistory, setMentorHistory] = useState<{ role: 'user' | 'model', text: string }[]>([])
   const [chatInput, setChatInput] = useState('')
-  const chatScrollRef = useRef<HTMLDivElement>(null)
-  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentSubmission, setCurrentSubmission] = useState<Partial<Submission> | null>(null)
   const [submissionHistory, setSubmissionHistory] = useState<Submission[]>([])
@@ -560,11 +562,7 @@ export default function IDEClient({
     handleRunRef.current = handleRunCode
   }, [handleRunCode])
 
-  useEffect(() => {
-    if (activeConsoleTab === 'mentor' && chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
-    }
-  }, [mentorHistory, isMentorThinking, activeConsoleTab])
+
 
   const handleSendMentorMessage = async (isInitial = false) => {
     if (!editorRef.current) return
@@ -1062,248 +1060,21 @@ export default function IDEClient({
           {/* Console content */}
           <div className="flex-1 overflow-hidden p-4">
             {activeConsoleTab === 'mentor' ? (
-              <div className="h-full flex flex-col font-mono text-sm text-foreground overflow-hidden">
-                {mentorHistory.length === 0 && !isMentorThinking ? (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-                    <Bot className="w-8 h-8 text-muted-foreground/50" />
-                    <p className="max-w-md text-center text-xs">
-                      Застряли? Нажмите &quot;Ask Mentor&quot;, чтобы получить подсказку без раскрытия полного решения. Ментор проанализирует вашу логику и направит в нужную сторону!
-                    </p>
-                    <button 
-                      onClick={() => handleSendMentorMessage(true)}
-                      className="px-4 py-2 mt-2 text-xs font-semibold text-purple-600 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors"
-                    >
-                      Начать анализ кода
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {/* Chat Messages */}
-                    <div ref={chatScrollRef} className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6 pb-4">
-                      {mentorHistory.map((msg, idx) => (
-                        <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                          <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                            msg.role === 'user' 
-                              ? 'bg-purple-600 text-white rounded-br-none' 
-                              : 'bg-secondary/50 border border-border rounded-bl-none'
-                          }`}>
-                            {msg.role === 'user' ? (
-                              <p className="whitespace-pre-wrap">{msg.text}</p>
-                            ) : (
-                              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-secondary/80 prose-pre:border prose-pre:border-border prose-pre:whitespace-pre-wrap">
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm, remarkMath]}
-                                  rehypePlugins={[[rehypeKatex, { strict: 'ignore' }]]}
-                                  components={{
-                                    pre: ({children}) => <div className="not-prose my-4">{children}</div>,
-                                    code: (props) => {
-                                      const { children, className, ...rest } = props as any
-                                      const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
-                                      const contentString = String(children).replace(/\n$/, '')
-                                      const isInline = !match && !contentString.includes('\n')
-
-                                      if (isInline) {
-                                        return <code className="bg-secondary/80 px-1 py-0.5 rounded text-cyan-500 font-mono text-[0.9em]" {...rest}>{children}</code>
-                                      }
-
-                                      return (
-                                        <div className="relative group rounded-xl overflow-hidden border border-border bg-background/50">
-                                          <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-b border-border/50">
-                                            <span className="text-[10px] font-mono text-muted-foreground uppercase">
-                                              {match ? match[1] : 'code'}
-                                            </span>
-                                            <CopyButton value={contentString} className="h-6 px-2 text-[10px]" />
-                                          </div>
-                                          <pre className="p-3 overflow-x-auto text-[12px] leading-relaxed">
-                                            <code className={className} {...rest}>
-                                              {children}
-                                            </code>
-                                          </pre>
-                                        </div>
-                                      )
-                                    }
-                                  }}
-                                >
-                                  {msg.text
-                                    .replace(/\$\$\$/g, '$')
-                                    .replace(/∗/g, '$\\ast$')
-                                    .replace(/†/g, '$\\dagger$')
-                                    .replace(/‡/g, '$\\ddagger$')}
-                                </ReactMarkdown>
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                            {msg.role === 'user' ? 'Вы' : 'ИИ Ментор'}
-                          </span>
-                        </div>
-                      ))}
-                      
-                      {isMentorThinking && (
-                        <div className="flex flex-col items-start">
-                          <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-secondary/50 border border-border rounded-bl-none flex items-center gap-3">
-                            <span className="w-4 h-4 border-2 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
-                            <span className="animate-pulse text-xs font-semibold text-muted-foreground">Ментор печатает...</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Chat Input */}
-                    <div className="pt-3 border-t border-border mt-2 shrink-0">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMentorMessage(false);
-                            }
-                          }}
-                          placeholder="Ответьте ментору или задайте вопрос..."
-                          className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50"
-                          disabled={isMentorThinking}
-                        />
-                        <button
-                          onClick={() => handleSendMentorMessage(false)}
-                          disabled={!chatInput.trim() || isMentorThinking}
-                          className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Отправить
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+              <MentorTab
+                mentorHistory={mentorHistory}
+                isMentorThinking={isMentorThinking}
+                chatInput={chatInput}
+                setChatInput={setChatInput}
+                onSendMessage={handleSendMentorMessage}
+              />
             ) : activeConsoleTab === 'submissions' ? (
-              <div className="h-full flex flex-col font-mono text-sm text-foreground/80 overflow-y-auto">
-                {!currentSubmission ? (
-                  <div className="text-muted-foreground italic flex flex-col items-center justify-center h-full gap-2">
-                    <AlertCircle className="w-8 h-8 opacity-20" />
-                    <span>No active submission.</span>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border">
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground">Status</span>
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            {currentSubmission.status === 'PENDING' && <span className="text-amber-500 flex items-center gap-2 font-bold"><span className="w-3 h-3 border-2 border-amber-500/30 border-t-amber-400 rounded-full animate-spin" /> In Queue</span>}
-                            {currentSubmission.status === 'TESTING' && <span className="text-cyan-600 flex items-center gap-2 font-bold"><span className="w-3 h-3 border-2 border-cyan-600/30 border-t-cyan-600 rounded-full animate-spin" /> Testing</span>}
-                            {currentSubmission.status === 'COMPLETED' && <span className="text-emerald-500 flex items-center gap-2 font-bold"><CheckCircle2 className="w-4 h-4" /> Finished</span>}
-                            {currentSubmission.status === 'ERROR' && <span className="text-red-500 flex items-center gap-2 font-bold"><XCircle className="w-4 h-4" /> Error</span>}
-                          </div>
-                          {(currentSubmission.status === 'TESTING' || currentSubmission.status === 'COMPLETED') && currentSubmission.test_case !== undefined && (
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              on test {currentSubmission.test_case}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {currentSubmission.status === 'COMPLETED' && currentSubmission.verdict && (
-                        <div className="text-right flex flex-col items-end gap-2">
-                          <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Verdict</span>
-                            <VerdictBadge verdict={currentSubmission.verdict} size="lg" />
-                          </div>
-                          <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground bg-secondary/50 px-2 py-1 rounded border border-border">
-                            {currentSubmission.time_ms !== undefined && (
-                              <div className="flex items-center gap-1">
-                                <TimerIcon className="w-3 h-3 text-amber-500/70" />
-                                {currentSubmission.time_ms} ms
-                              </div>
-                            )}
-                            {currentSubmission.memory_kb !== undefined && (
-                              <div className="flex items-center gap-1">
-                                <Cpu className="w-3 h-3 text-blue-500/70" />
-                                {currentSubmission.memory_kb < 1024 
-                                  ? `${currentSubmission.memory_kb} KB` 
-                                  : `${(currentSubmission.memory_kb / 1024).toFixed(1)} MB`}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {currentSubmission.status === 'ERROR' && (
-                      <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl text-red-500">
-                        {currentSubmission.verdict || 'Internal submission error.'}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <SubmissionsTab currentSubmission={currentSubmission} />
             ) : activeConsoleTab === 'history' ? (
-              <div className="h-full flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                  {isLoadingHistory ? (
-                    <div className="flex items-center justify-center h-full">
-                      <span className="w-6 h-6 border-2 border-muted-foreground/30 border-t-cyan-500 rounded-full animate-spin" />
-                    </div>
-                  ) : submissionHistory.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground italic text-xs gap-2">
-                       <History className="w-8 h-8 opacity-20" />
-                       <span>You haven&apos;t submitted this problem yet.</span>
-                    </div>
-                  ) : (
-                    <table className="w-full text-left border-collapse">
-                      <thead className="sticky top-0 bg-card z-10">
-                        <tr className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border">
-                          <th className="py-2 px-2">Verdict</th>
-                          <th className="py-2 px-2">Lang</th>
-                          <th className="py-2 px-2">Time</th>
-                          <th className="py-2 px-2">Mem</th>
-                          <th className="py-2 px-2 text-right">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/50">
-                        {submissionHistory.map((sub) => (
-                          <tr 
-                            key={sub.id} 
-                            onClick={() => setViewingSubmission(sub)}
-                            className="group hover:bg-secondary/50 transition-colors cursor-pointer"
-                          >
-                            <td className="py-3 px-2">
-                              <div className="flex flex-col gap-0.5">
-                                <VerdictBadge verdict={sub.verdict} size="sm" />
-                                {sub.test_case !== undefined && (
-                                  <span className="text-[9px] text-muted-foreground font-mono">
-                                    test {sub.test_case}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-3 px-2 text-xs font-mono text-muted-foreground uppercase">
-                              {sub.language}
-                            </td>
-                            <td className="py-3 px-2 text-xs font-mono text-muted-foreground">
-                              {sub.time_ms !== undefined ? `${sub.time_ms}ms` : '—'}
-                            </td>
-                            <td className="py-3 px-2 text-xs font-mono text-muted-foreground">
-                              {sub.memory_kb !== undefined 
-                                ? sub.memory_kb < 1024 
-                                  ? `${sub.memory_kb}KB` 
-                                  : `${(sub.memory_kb / 1024).toFixed(1)}MB` 
-                                : '—'}
-                            </td>
-                            <td className="py-3 px-2 text-[10px] font-mono text-muted-foreground text-right">
-                              <div className="flex flex-col items-end">
-                                <span>{new Date(sub.created_at).toLocaleDateString()}</span>
-                                <span className="opacity-60">{new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
+              <HistoryTab
+                isLoadingHistory={isLoadingHistory}
+                submissionHistory={submissionHistory}
+                onViewSubmission={setViewingSubmission}
+              />
             ) : activeConsoleTab === 'testcases' ? (
               <div className="h-full flex flex-col gap-2">
                 <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -1343,87 +1114,12 @@ export default function IDEClient({
         </div>
       </div>
 
-      {/* Code Viewer Modal */}
       {viewingSubmission && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-secondary rounded-lg">
-                  <History className="w-5 h-5 text-cyan-500" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Submission Code</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <VerdictBadge verdict={viewingSubmission.verdict} size="sm" />
-                    <span className="text-[10px] text-muted-foreground font-mono bg-secondary px-1.5 py-0.5 rounded border border-border uppercase">
-                      {viewingSubmission.language}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {new Date(viewingSubmission.created_at).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button 
-                onClick={() => setViewingSubmission(null)}
-                className="p-2 hover:bg-secondary rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body (Monaco) */}
-            <div className="flex-1 min-h-0 relative bg-background">
-              <Editor
-                height="100%"
-                language={viewingSubmission.language === 'python' ? 'python' : viewingSubmission.language === 'java' ? 'java' : viewingSubmission.language === 'rust' ? 'rust' : 'cpp'}
-                value={viewingSubmission.code || ''}
-                theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-                options={{
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
-                  minimap: { enabled: true },
-                  readOnly: true,
-                  automaticLayout: true,
-                  scrollBeyondLastLine: false,
-                  padding: { top: 16, bottom: 16 },
-                }}
-              />
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-between items-center shrink-0">
-               <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-                 {viewingSubmission.test_case !== undefined && (
-                   <span>Test: {viewingSubmission.test_case}</span>
-                 )}
-                 {viewingSubmission.time_ms !== undefined && (
-                   <span>Time: {viewingSubmission.time_ms}ms</span>
-                 )}
-                 {viewingSubmission.memory_kb !== undefined && (
-                   <span>Memory: {viewingSubmission.memory_kb < 1024 ? `${viewingSubmission.memory_kb}KB` : `${(viewingSubmission.memory_kb / 1024).toFixed(1)}MB`}</span>
-                 )}
-               </div>
-               <div className="flex items-center gap-3">
-                 <button 
-                   onClick={() => setViewingSubmission(null)}
-                   className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                 >
-                   Close
-                 </button>
-                 <button 
-                   onClick={() => handleRestoreCode(viewingSubmission.code || '', viewingSubmission.language || 'cpp')}
-                   className="flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
-                 >
-                   <RotateCcw className="w-4 h-4" />
-                   Restore to Editor
-                 </button>
-               </div>
-            </div>
-          </div>
-        </div>
+        <SubmissionModal
+          submission={viewingSubmission}
+          onClose={() => setViewingSubmission(null)}
+          onRestore={handleRestoreCode}
+        />
       )}
     </div>
   )
