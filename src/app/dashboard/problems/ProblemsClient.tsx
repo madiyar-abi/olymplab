@@ -193,7 +193,7 @@ export function ProblemsClient({
 
   return (
     <div className="h-full">
-      <div className="min-h-full px-12 pt-16 pb-12 w-full flex flex-col gap-10">
+      <div className="min-h-full px-8 pt-14 pb-12 w-full flex flex-col gap-10">
       {/* Page Header */}
       {!hideHeader && (
         <motion.header 

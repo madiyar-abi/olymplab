@@ -68,7 +68,7 @@ export default async function SubmissionsPage() {
   return (
     <div className="min-h-full p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        <header className="border-b border-border pb-6">
+        <header className="border-b border-white/5 pb-6">
           <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono flex items-center gap-3">
             <Hash className="w-8 h-8 text-primary" />
             Submission History

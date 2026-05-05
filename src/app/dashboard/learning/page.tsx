@@ -59,7 +59,7 @@ export default async function LearningPage() {
   return (
     <div className="min-h-full bg-background text-foreground">
       {/* Page Header */}
-      <div className="px-12 pt-16 pb-8">
+      <div className="px-8 pt-14 pb-8">
         <div className="flex items-center gap-3 mb-1">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-sky-500 flex items-center justify-center text-sm">
             <BookOpen className="w-4 h-4 text-white" />
@@ -73,7 +73,7 @@ export default async function LearningPage() {
 
       {/* Migration warning */}
       {error && (
-        <div className="px-12 mt-8">
+        <div className="px-8 mt-8">
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 font-mono flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Таблица roadmap_topics не найдена. Создайте её в Supabase SQL Editor.</span>

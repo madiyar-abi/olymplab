@@ -73,7 +73,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col min-h-full pb-20">
-      <header className="border-b border-border pb-6 mb-8 flex items-center justify-between">
+      <header className="border-b border-white/5 pb-6 mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono flex items-center gap-3">
             <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

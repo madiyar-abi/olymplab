@@ -94,7 +94,7 @@ export function RoadmapClient({
   }
 
   return (
-    <div className="px-12 pb-24 w-full">
+    <div className="px-8 pb-24 w-full">
       {/* Tabs Header (Telegram Folder Style) */}
       <div className="flex items-center gap-8 border-b border-white/5 mb-10 overflow-x-auto hide-scrollbar">
         {STAGE_ORDER.map((stage) => {

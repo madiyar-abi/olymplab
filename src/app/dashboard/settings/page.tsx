@@ -33,7 +33,7 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-full p-4 md:p-8 space-y-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <header className="border-b border-border pb-6">
+        <header className="border-b border-white/5 pb-6">
           <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono">
             Settings
           </h1>
