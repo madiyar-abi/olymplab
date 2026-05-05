@@ -175,34 +175,7 @@ export function Sidebar({ username }: { username: string; email: string }) {
 
       {/* ── FOOTER — anchored to bottom ────────────────────────────────────────── */}
       <div className={cn('mt-auto', px)}>
-        {/* ── LOGO — footer signature ──────────────────────────────────────────────────── */}
-        <div className={cn('mb-4', isCollapsed ? 'flex justify-center' : 'px-2')}>
-          <Link
-            href="/dashboard"
-            className={cn(
-              'flex items-center gap-2.5 group',
-              isCollapsed && 'justify-center'
-            )}
-          >
-            <Image
-              src="/logo.png"
-              alt="OlympLab"
-              width={26}
-              height={26}
-              className="rounded-lg flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
-            />
-            {!isCollapsed && (
-              <span className="font-mono font-bold text-sm tracking-tight text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap">
-                OlympLab
-              </span>
-            )}
-          </Link>
-        </div>
-
-        {/* Hairline separator */}
-        <div className="border-t border-white/5 mb-3" />
-
-        <div className={cn('space-y-0.5', isCollapsed && 'flex flex-col items-center')}>
+        <div className={cn('space-y-0.5 mb-4', isCollapsed && 'flex flex-col items-center')}>
           {/* Profile */}
           <Link
             href="/dashboard/profile"
@@ -286,6 +259,33 @@ export function Sidebar({ username }: { username: string; email: string }) {
               <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Ready</span>
             </div>
           )}
+        </div>
+
+        {/* Hairline separator */}
+        <div className="border-t border-white/5 mb-4" />
+
+        {/* ── LOGO — footer signature ──────────────────────────────────────────────────── */}
+        <div className={cn('mb-2', isCollapsed ? 'flex justify-center' : 'px-2')}>
+          <Link
+            href="/dashboard"
+            className={cn(
+              'flex items-center gap-2.5 group',
+              isCollapsed && 'justify-center'
+            )}
+          >
+            <Image
+              src="/logo.png"
+              alt="OlympLab"
+              width={26}
+              height={26}
+              className="rounded-lg flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+            />
+            {!isCollapsed && (
+              <span className="font-mono font-bold text-sm tracking-tight text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap">
+                OlympLab
+              </span>
+            )}
+          </Link>
         </div>
       </div>
     </aside>
