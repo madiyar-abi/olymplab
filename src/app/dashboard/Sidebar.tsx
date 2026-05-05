@@ -136,32 +136,8 @@ export function Sidebar({ username }: { username: string; email: string }) {
         </svg>
       </button>
 
-      {/* ── LOGO — top header ──────────────────────────────────────────────────── */}
-      <div className={cn('pt-8 mb-8', isCollapsed ? 'flex justify-center' : 'px-4')}>
-        <Link
-          href="/dashboard"
-          className={cn(
-            'flex items-center gap-2.5 group',
-            isCollapsed && 'justify-center'
-          )}
-        >
-          <Image
-            src="/logo.png"
-            alt="OlympLab"
-            width={28}
-            height={28}
-            className="rounded-lg flex-shrink-0 group-hover:opacity-80 transition-opacity"
-          />
-          {!isCollapsed && (
-            <span className="font-mono font-bold text-base tracking-tight text-foreground group-hover:text-primary transition-colors whitespace-nowrap">
-              OlympLab
-            </span>
-          )}
-        </Link>
-      </div>
-
       {/* ── NAV ITEMS ─────────────────────────────────────────────────────────── */}
-      <nav className={cn('space-y-0.5', px)}>
+      <nav className={cn('space-y-0.5 pt-8', px)}>
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
@@ -199,6 +175,30 @@ export function Sidebar({ username }: { username: string; email: string }) {
 
       {/* ── FOOTER — anchored to bottom ────────────────────────────────────────── */}
       <div className={cn('mt-auto', px)}>
+        {/* ── LOGO — footer signature ──────────────────────────────────────────────────── */}
+        <div className={cn('mb-4', isCollapsed ? 'flex justify-center' : 'px-2')}>
+          <Link
+            href="/dashboard"
+            className={cn(
+              'flex items-center gap-2.5 group',
+              isCollapsed && 'justify-center'
+            )}
+          >
+            <Image
+              src="/logo.png"
+              alt="OlympLab"
+              width={26}
+              height={26}
+              className="rounded-lg flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+            />
+            {!isCollapsed && (
+              <span className="font-mono font-bold text-sm tracking-tight text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap">
+                OlympLab
+              </span>
+            )}
+          </Link>
+        </div>
+
         {/* Hairline separator */}
         <div className="border-t border-white/5 mb-3" />
 
