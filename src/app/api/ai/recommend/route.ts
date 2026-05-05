@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getRecommendedProblems } from '@/lib/adaptive/matching'
 import { UserSkills, ProblemCandidate } from '@/lib/adaptive/matching'
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const { difficulty: selectedDifficulty = 'auto' } = await req.json().catch(() => ({}));
     const supabase = await createClient()
 
     // 1. Получаем пользователя
@@ -37,23 +38,57 @@ export async function POST() {
       .from('submissions')
       .select('problem_id')
       .eq('user_id', user.id)
-      .eq('verdict', 'Accepted')
+      .in('verdict', ['Accepted', 'AC'])
 
     const solvedProblemIds = new Set((solvedSubmissions as { problem_id: string }[])?.map(s => s.problem_id) || [])
 
-    // 4. Получаем все доступные задачи из таблицы problems
-    const { data: allProblems } = await supabase
+    // 4. Получаем доступные задачи из таблицы problems
+    let query = supabase
       .from('problems')
-      .select('id, title, description, difficulty, requirements')
+      .select('id, title, description, difficulty, rating, requirements')
+
+    // Если выбрана конкретная сложность (рейтинг)
+    if (selectedDifficulty !== 'auto') {
+      const ratingValue = parseInt(selectedDifficulty)
+      if (!isNaN(ratingValue)) {
+        query = query.eq('rating', ratingValue)
+      }
+    }
+
+    const { data: allProblems, error: dbError } = await query
+
+    if (dbError) {
+      console.error('[DB Error]:', dbError)
+      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+    }
 
     if (!allProblems || allProblems.length === 0) {
-      return NextResponse.json({ error: 'No problems found in database' }, { status: 404 })
+      return NextResponse.json({ 
+        error: selectedDifficulty === 'auto' 
+          ? 'No problems found in database' 
+          : `No problems found with rating ${selectedDifficulty}` 
+      }, { status: 404 })
     }
 
     // 5. Фильтруем те, что уже решены
     const candidates = (allProblems as unknown as ProblemCandidate[]).filter(p => !solvedProblemIds.has(p.id))
 
-    // 6. Используем алгоритм подбора (Matching Engine)
+    if (candidates.length === 0) {
+      return NextResponse.json({ 
+        error: 'You have already solved all available problems for this difficulty.' 
+      }, { status: 404 })
+    }
+
+    // 6. Если выбрана конкретная сложность, возвращаем случайную из кандидатов
+    if (selectedDifficulty !== 'auto') {
+      const randomIndex = Math.floor(Math.random() * candidates.length)
+      return NextResponse.json({
+        problem: candidates[randomIndex],
+        isFallback: false
+      })
+    }
+
+    // 7. Используем алгоритм подбора (Matching Engine) для "Авто"
     const recommended = getRecommendedProblems(userSkills, candidates)
 
     if (recommended.length === 0) {

@@ -57,7 +57,9 @@ export interface Database {
           id: string
           title: string
           description: string
+          note: string | null
           difficulty: string
+          rating: number | null
           requirements: Record<SkillAxes, { level: number; weight: number }>
           sample_input: string | null
           sample_output: string | null
@@ -68,7 +70,9 @@ export interface Database {
           id?: string
           title: string
           description: string
+          note?: string | null
           difficulty?: string
+          rating?: number | null
           requirements?: Record<SkillAxes, { level: number; weight: number }>
           sample_input?: string | null
           sample_output?: string | null
@@ -79,7 +83,9 @@ export interface Database {
           id?: string
           title?: string
           description?: string
+          note?: string | null
           difficulty?: string
+          rating?: number | null
           requirements?: Record<SkillAxes, { level: number; weight: number }>
           sample_input?: string | null
           sample_output?: string | null
@@ -97,6 +103,9 @@ export interface Database {
           verdict: string | null
           code: string | null
           language: string | null
+          test_case: number | null
+          time_ms: number | null
+          memory_kb: number | null
           created_at: string
         }
         Insert: {
@@ -108,6 +117,9 @@ export interface Database {
           verdict?: string | null
           code?: string | null
           language?: string | null
+          test_case?: number | null
+          time_ms?: number | null
+          memory_kb?: number | null
           created_at?: string
         }
         Update: {
@@ -119,6 +131,9 @@ export interface Database {
           verdict?: string | null
           code?: string | null
           language?: string | null
+          test_case?: number | null
+          time_ms?: number | null
+          memory_kb?: number | null
           created_at?: string
         }
       }

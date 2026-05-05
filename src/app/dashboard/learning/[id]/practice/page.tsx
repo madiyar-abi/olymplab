@@ -155,7 +155,7 @@ export default async function PracticePage({
         .from('submissions')
         .select('problem_id')
         .eq('user_id', user.id)
-        .eq('verdict', 'Accepted')
+        .in('verdict', ['Accepted', 'AC'])
         .in('problem_id', all.map(p => p.problem_id).filter(Boolean) as string[]) as unknown as Promise<{ data: { problem_id: string }[] | null }>)
     : { data: [] }
 

@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Problem } from '@/app/dashboard/problems/[id]/IDEClient'
 
+import { Verdict } from '@/types/verdict'
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
           throw new Error(`Invalid Codeforces external_id format: ${problem.external_id}`)
         }
 
-        const cfSubmissionId = await CodeforcesJudge.submit(contestId, problemIndex, code)
+        const cfSubmissionId = await CodeforcesJudge.submit(contestId, problemIndex, code, language)
 
         const supabaseAdmin = createAdminClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -154,16 +156,16 @@ export async function POST(request: Request) {
     const wData = await wandboxRes.json()
 
     // 3. Determine Verdict
-    let verdict = 'Testing'
+    let verdict: string = Verdict.TESTING
     
     // Wandbox errors
     if (wData.status !== '0') {
       // Compilation or Runtime error
       const errText = wData.compiler_error || wData.program_error || ''
       if (errText.toLowerCase().includes('error:')) {
-        verdict = 'Compilation Error'
+        verdict = Verdict.CE
       } else {
-        verdict = 'Runtime Error'
+        verdict = Verdict.RE
       }
     } else {
       // Run completed successfully, check output
@@ -171,9 +173,9 @@ export async function POST(request: Request) {
       const cleanStdout = rawStdout.trim().replace(/\r\n/g, '\n')
       
       if (cleanStdout === cleanOutput) {
-        verdict = 'Accepted'
+        verdict = Verdict.AC
       } else {
-        verdict = 'Wrong Answer'
+        verdict = Verdict.WA
         console.log('[Virtual Judge] Expected:', JSON.stringify(cleanOutput))
         console.log('[Virtual Judge] Received:', JSON.stringify(cleanStdout))
       }
@@ -185,6 +187,9 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    const timeMs = wData.cpu_time ? Math.round(parseFloat(wData.cpu_time) * 1000) : null
+    const memoryKb = wData.memory ? Math.floor(parseInt(wData.memory) / 1024) : null
+
     const { data, error } = await supabaseAdmin
       .from('submissions')
       .insert({
@@ -195,6 +200,9 @@ export async function POST(request: Request) {
         language,
         status: 'COMPLETED',
         verdict: verdict,
+        test_case: 1,
+        time_ms: timeMs,
+        memory_kb: memoryKb,
       })
       .select('id')
       .single()

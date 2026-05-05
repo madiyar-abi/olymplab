@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: [
+    'jsdom',
+    'puppeteer',
+    'puppeteer-core',
+    '@sparticuz/chromium',
+    'puppeteer-extra',
+    'puppeteer-extra-plugin-stealth',
+    'cheerio'
+  ],
 };
 
 export default nextConfig;

@@ -1,0 +1,1 @@
+ALTER TABLE public.problems ADD COLUMN IF NOT EXISTS note TEXT;

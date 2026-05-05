@@ -19,7 +19,7 @@ export default async function RandomProblemPage() {
     .from('submissions')
     .select('created_at')
     .eq('user_id', user.id)
-    .eq('verdict', 'Accepted')
+    .in('verdict', ['Accepted', 'AC'])
 
   const streakCount = calculateStreak((contributionsData as { created_at: string }[])?.map(c => c.created_at) || [])
 

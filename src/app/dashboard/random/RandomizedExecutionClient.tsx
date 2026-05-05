@@ -13,8 +13,17 @@ interface LastProblem {
 
 export default function RandomizedExecutionClient({ streakCount = 0 }: { streakCount?: number }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('auto')
   const [lastProblem, setLastProblem] = useState<LastProblem | null>(null)
   const router = useRouter()
+
+  const difficulties = [
+    'auto', '800', '900', '1000', '1100', '1200', '1300', '1400', '1500', 
+    '1600', '1700', '1800', '1900', '2000', '2100', '2200', '2300', '2400', 
+    '2500', '2600', '2700', '2800', '2900', '3000', '3100', '3200', '3300', 
+    '3400', '3500'
+  ]
 
   useEffect(() => {
     const saved = localStorage.getItem('last_random_problem')
@@ -30,11 +39,22 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
 
   const handleExecute = async () => {
     setIsLoading(true)
+    setError(null)
     try {
       const response = await fetch('/api/ai/recommend', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ difficulty: selectedDifficulty }),
       })
+      
       const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to find a suitable problem.')
+        return
+      }
 
       if (data.problem) {
         localStorage.setItem('last_random_problem', JSON.stringify({
@@ -45,13 +65,14 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
       }
     } catch (error) {
       console.error('Failed to get recommendation:', error)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col min-h-full">
+    <div className="max-w-4xl mx-auto flex flex-col min-h-full pb-20">
       <header className="border-b border-border pb-6 mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono flex items-center gap-3">
@@ -61,7 +82,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
             Randomized Execution
           </h1>
           <p className="text-muted-foreground font-mono text-sm">
-            Trust the algorithm to select your next optimal challenge.
+            Trust the algorithm or set your target rating.
           </p>
         </div>
 
@@ -76,12 +97,12 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
         )}
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-card border border-border rounded-2xl shadow-sm text-center relative overflow-hidden min-h-[400px]">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-card border border-border rounded-2xl shadow-sm text-center relative overflow-hidden min-h-[500px]">
         {/* Background decorative elements */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded bg-primary/5 blur-3xl animate-pulse" />
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded bg-accent/5 blur-3xl animate-pulse" />
         
-        <div className="relative z-10 max-w-md mx-auto space-y-8">
+        <div className="relative z-10 max-w-md mx-auto space-y-8 w-full">
           <div className={`w-24 h-24 mx-auto bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 border border-primary/20 shadow-xl transition-all duration-500 ${isLoading ? 'animate-spin scale-110' : ''}`}>
             {isLoading ? (
               <Loader2 className="w-12 h-12" />
@@ -94,11 +115,36 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
             <h2 className="text-2xl font-bold text-foreground mb-3 font-mono tracking-tight">
               {isLoading ? 'Analyzing Skill Matrix...' : 'Initiate Auto-Select?'}
             </h2>
-            <p className="text-muted-foreground leading-relaxed text-sm font-mono opacity-80">
+            <p className="text-muted-foreground leading-relaxed text-sm font-mono opacity-80 mb-6">
               {isLoading 
                 ? 'Parsing solved problems and calculating your optimal flow state trajectory...' 
-                : 'The AI will parse your current skill matrix and provision a problem engineered to induce Flow State.'}
+                : 'Configure your target difficulty below or let the AI provision a problem engineered for your level.'}
             </p>
+
+            <div className="bg-secondary/30 p-4 rounded-xl border border-border/50 mb-8">
+              <label htmlFor="difficulty" className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
+                Manual Difficulty Selection
+              </label>
+              <select
+                id="difficulty"
+                value={selectedDifficulty}
+                onChange={(e) => setSelectedDifficulty(e.target.value)}
+                disabled={isLoading}
+                className="w-full bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+              >
+                {difficulties.map((diff) => (
+                  <option key={diff} value={diff}>
+                    {diff === 'auto' ? 'AUTO (Personalized)' : `CF RATING: ${diff}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-mono animate-in fade-in zoom-in-95 duration-300">
+                {error}
+              </div>
+            )}
           </div>
           
           <button 

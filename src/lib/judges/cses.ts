@@ -1,15 +1,19 @@
-import { JSDOM } from 'jsdom'
+import { Verdict } from '@/types/verdict'
 
 export interface CSESResult {
   status: 'PENDING' | 'TESTING' | 'COMPLETED' | 'ERROR'
-  verdict: string | null
+  verdict: Verdict | string | null
   score?: number
+  testCase?: number
+  timeMs?: number
+  memoryKb?: number
 }
 
 export class CSESJudge {
   private static cookie: string | null = null
 
   private static async login() {
+    const cheerio = await import('cheerio')
     const username = process.env.CSES_USERNAME
     const password = process.env.CSES_PASSWORD
 
@@ -36,8 +40,8 @@ export class CSESJudge {
       })
 
       const loginHtml = await loginPage.text()
-      const dom = new JSDOM(loginHtml)
-      const csrfToken = (dom.window.document.querySelector('input[name="csrf_token"]') as HTMLInputElement)?.value
+      const $ = cheerio.load(loginHtml)
+      const csrfToken = $('input[name="csrf_token"]').val() as string
 
       if (!csrfToken) {
         throw new Error('Could not find CSRF token on login page')
@@ -105,26 +109,25 @@ export class CSESJudge {
        return this.submit(problemId, code, language, retryCount + 1)
     }
 
-    const dom = new JSDOM(submitHtml)
-    const doc = dom.window.document
-    const form = doc.querySelector('form')
+    const cheerio = await import('cheerio')
+    const $ = cheerio.load(submitHtml)
+    const form = $('form').first()
     
-    if (!form) {
+    if (form.length === 0) {
        console.warn('[CSES Bot] No form found on submit page. Re-logging...')
        this.cookie = null
        return this.submit(problemId, code, language, retryCount + 1)
     }
 
-    const action = form.getAttribute('action')
+    const action = form.attr('action')
     const postUrl = action?.startsWith('http') ? action : `https://cses.fi${action}`
     
     const formData = new FormData()
 
     // 1. Collect ALL inputs from the form (including CSRF token)
-    const inputs = form.querySelectorAll('input')
-    inputs.forEach(input => {
-      const name = input.getAttribute('name')
-      const value = input.getAttribute('value')
+    form.find('input').each((_, input) => {
+      const name = $(input).attr('name')
+      const value = $(input).attr('value')
       if (name && value && name !== 'file' && name !== 'lang' && name !== 'option' && name !== 'task') {
         formData.append(name, value)
       }
@@ -183,8 +186,9 @@ export class CSESJudge {
       
       const errorHtml = await res.text()
       if (errorHtml.includes('error')) {
-        const errDom = new JSDOM(errorHtml)
-        const errorMessage = errDom.window.document.querySelector('.error')?.textContent || 'Unknown error'
+        const cheerio = await import('cheerio')
+        const $ = cheerio.load(errorHtml)
+        const errorMessage = $('.error').text() || 'Unknown error'
         console.error('[CSES Bot] CSES Error Message:', errorMessage)
         
         if (errorMessage.toLowerCase().includes('login') || errorMessage.toLowerCase().includes('csrf') || errorMessage.toLowerCase().includes('session')) {
@@ -227,35 +231,55 @@ export class CSESJudge {
         return this.getStatus(submissionId, retryCount + 1)
     }
 
-    const dom = new JSDOM(html)
-    const doc = dom.window.document
+    const cheerio = await import('cheerio')
+    const $ = cheerio.load(html)
 
-    const statusText = doc.querySelector('.verdict')?.textContent?.trim() || ''
+    const statusText = $('.verdict').first().text().trim() || ''
     console.log(`[CSES Bot] Submission ${submissionId} status: ${statusText}`)
     
     if (statusText === 'READY' || statusText === 'PENDING' || statusText === 'WAITING' || statusText === '') {
-      // Check if it's actually a result page or if we are redirected to something else
-      if (!html.includes('Submission details')) {
-          console.warn('[CSES Bot] Page does not look like a result page. ID:', submissionId)
-          // If we are on the wrong page, maybe the ID is for a different path
-      }
       return { status: 'PENDING', verdict: null }
     }
 
-    if (statusText === 'ACCEPTED') {
-      return { status: 'COMPLETED', verdict: 'Accepted' }
-    }
+    // Scrape stats from test results
+    let maxTime = 0
+    let maxMemory = 0
+    let lastTestCase = 0
+
+    $('tr').each((_, row) => {
+        const text = $(row).text() || ''
+        if (text.includes('test') && (text.includes('s /') || text.includes('MB'))) {
+            const timeMatch = text.match(/(\d+\.\d+)\s*s/)
+            const memMatch = text.match(/(\d+\.\d+)\s*MB/)
+            const testMatch = text.match(/test\s*(\d+)/)
+
+            if (timeMatch) maxTime = Math.max(maxTime, Math.round(parseFloat(timeMatch[1]) * 1000))
+            if (memMatch) maxMemory = Math.max(maxMemory, Math.round(parseFloat(memMatch[1]) * 1024))
+            if (testMatch) lastTestCase = Math.max(lastTestCase, parseInt(testMatch[1]))
+        }
+    })
 
     const upperStatus = statusText.toUpperCase()
-    if (upperStatus.includes('WRONG ANSWER')) return { status: 'COMPLETED', verdict: 'Wrong Answer' }
-    if (upperStatus.includes('TIME LIMIT EXCEEDED')) return { status: 'COMPLETED', verdict: 'Time Limit Exceeded' }
-    if (upperStatus.includes('COMPILE ERROR')) return { status: 'COMPLETED', verdict: 'Compile Error' }
-    if (upperStatus.includes('RUNTIME ERROR')) return { status: 'COMPLETED', verdict: 'Runtime Error' }
-    if (upperStatus.includes('MEMORY LIMIT EXCEEDED')) return { status: 'COMPLETED', verdict: 'Memory Limit Exceeded' }
+    let verdict: string = statusText
+    let status: 'PENDING' | 'TESTING' | 'COMPLETED' | 'ERROR' = 'COMPLETED'
 
-    if (upperStatus.includes('TESTING')) return { status: 'TESTING', verdict: statusText }
+    if (upperStatus === 'ACCEPTED') verdict = Verdict.AC
+    else if (upperStatus.includes('WRONG ANSWER')) verdict = Verdict.WA
+    else if (upperStatus.includes('TIME LIMIT EXCEEDED')) verdict = Verdict.TLE
+    else if (upperStatus.includes('COMPILE ERROR')) verdict = Verdict.CE
+    else if (upperStatus.includes('RUNTIME ERROR')) verdict = Verdict.RE
+    else if (upperStatus.includes('MEMORY LIMIT EXCEEDED')) verdict = Verdict.MLE
+    else if (upperStatus.includes('TESTING')) {
+        status = 'TESTING'
+        verdict = statusText
+    }
 
-    return { status: 'COMPLETED', verdict: statusText }
+    return {
+        status,
+        verdict,
+        testCase: lastTestCase,
+        timeMs: maxTime,
+        memoryKb: maxMemory
+    }
   }
 }
-

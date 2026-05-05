@@ -19,14 +19,14 @@ export default async function ProfilePage() {
     .from('submissions')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
-    .eq('verdict', 'Accepted')
+    .in('verdict', ['Accepted', 'AC'])
 
   // Fetch real contribution data for the heatmap
   const { data: contributionsData } = await supabase
     .from('submissions')
     .select('created_at')
     .eq('user_id', user.id)
-    .eq('verdict', 'Accepted')
+    .in('verdict', ['Accepted', 'AC'])
 
   const contributionsMap = new Map<string, number>()
   ;(contributionsData as { created_at: string }[] | null)?.forEach(sub => {

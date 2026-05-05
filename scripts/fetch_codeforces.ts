@@ -117,6 +117,28 @@ async function scrapeProblem(browser: any, contestId: number, index: string) {
   const sampleInput = $ps.find('.sample-test .input pre').text().trim() || null
   const sampleOutput = $ps.find('.sample-test .output pre').text().trim() || null
 
+  // 3. Mathematical Extraction & Cleaning (Surgical)
+  // Remove visual/assistive layers to prevent duplication in final markdown
+  $ps.find('.MathJax_Preview, .MathJax, .MathJax_Display, .MJX_Assistive_MathML, .MathJax_SVG').remove()
+
+  // Extract Note
+  const $note = $ps.find('.note')
+  let noteMarkdown = ''
+  if ($note.length > 0) {
+    // Convert note MathJax before conversion
+    $note.find('script[type="math/tex"]').each((i, el) => {
+      const tex = $(el).text().trim()
+      $(el).replaceWith(`<span class="tex-span">${tex}</span>`)
+    })
+    $note.find('script[type="math/tex; mode=display"]').each((i, el) => {
+      const tex = $(el).text().trim()
+      $(el).replaceWith(`<div class="tex-graphics" alt="${tex}"></div>`)
+    })
+    
+    noteMarkdown = htmlToMarkdown($note.html() || '')
+    $note.remove()
+  }
+
   // Remove elements we don't want in the description
   $ps.find('.header, .sample-tests, .input-file, .output-file, .property-title').remove()
 
@@ -124,6 +146,7 @@ async function scrapeProblem(browser: any, contestId: number, index: string) {
 
   return { 
     description: descriptionMarkdown, 
+    note: noteMarkdown,
     sample_input: sampleInput, 
     sample_output: sampleOutput, 
     time_limit: timeLimit, 
@@ -213,9 +236,11 @@ async function main() {
               external_id: externalId,
               title: `[CF] ${p.name}`,
               description: content.description,
+              note: content.note,
               sample_input: content.sample_input,
               sample_output: content.sample_output,
               difficulty: p.rating <= cfg.easy ? 'Easy' : p.rating <= cfg.medium ? 'Medium' : 'Hard',
+              rating: p.rating,
               requirements
             }, { onConflict: 'external_id' })
             .select()

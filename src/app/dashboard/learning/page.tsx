@@ -35,7 +35,7 @@ export default async function LearningPage() {
         .from('submissions')
         .select('problem_id')
         .eq('user_id', user.id)
-        .eq('verdict', 'Accepted') as { data: { problem_id: string }[] | null }
+        .in('verdict', ['Accepted', 'AC']) as { data: { problem_id: string }[] | null }
     : { data: [] }
 
   // Calculate mastery per topic

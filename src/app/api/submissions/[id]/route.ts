@@ -69,13 +69,24 @@ export async function GET(
             .update({
               status: 'COMPLETED',
               verdict: result.verdict,
+              test_case: result.testCase,
+              time_ms: result.timeMs,
+              memory_kb: result.memoryKb,
             })
             .eq('id', id)
             .select()
             .single()
           return NextResponse.json({ ...updated, problems: problem })
         } else {
-          return NextResponse.json({ ...submission, status: result.status, verdict: result.verdict, problems: problem })
+          return NextResponse.json({ 
+            ...submission, 
+            status: result.status, 
+            verdict: result.verdict, 
+            test_case: result.testCase,
+            time_ms: result.timeMs,
+            memory_kb: result.memoryKb,
+            problems: problem 
+          })
         }
 
       } catch (err) {
@@ -96,13 +107,24 @@ export async function GET(
             .update({
               status: 'COMPLETED',
               verdict: result.verdict,
+              test_case: result.testCase,
+              time_ms: result.timeMs,
+              memory_kb: result.memoryKb,
             })
             .eq('id', id)
             .select()
             .single()
           return NextResponse.json({ ...updated, problems: problem })
         } else {
-          return NextResponse.json({ ...submission, status: result.status, verdict: result.verdict, problems: problem })
+          return NextResponse.json({ 
+            ...submission, 
+            status: result.status, 
+            verdict: result.verdict, 
+            test_case: result.testCase,
+            time_ms: result.timeMs,
+            memory_kb: result.memoryKb,
+            problems: problem 
+          })
         }
       } catch (err) {
         console.error('[CF Polling] Error:', err)

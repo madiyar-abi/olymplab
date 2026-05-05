@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Clock, Code2, ExternalLink, Hash } from 'lucide-react'
+import { Clock, Code2, ExternalLink, Hash, Zap, Cpu } from 'lucide-react'
+import { VerdictBadge } from '@/components/ui/VerdictBadge'
 
 interface Submission {
   id: string
@@ -10,6 +11,9 @@ interface Submission {
   verdict: string | null
   language: string | null
   created_at: string
+  test_case: number | null
+  time_ms: number | null
+  memory_kb: number | null
   problems: { title: string } | null
 }
 
@@ -34,6 +38,9 @@ export default async function SubmissionsPage() {
       verdict,
       language,
       created_at,
+      test_case,
+      time_ms,
+      memory_kb,
       problems!inner (
         title
       )
@@ -43,6 +50,17 @@ export default async function SubmissionsPage() {
 
   if (error) {
     console.error('Error fetching submissions:', error)
+  }
+
+  const formatMemory = (kb: number | null) => {
+    if (kb === null) return '---'
+    if (kb < 1024) return `${kb} KB`
+    return `${(kb / 1024).toFixed(1)} MB`
+  }
+
+  const formatTime = (ms: number | null) => {
+    if (ms === null) return '---'
+    return `${ms} ms`
   }
 
   return (
@@ -66,6 +84,7 @@ export default async function SubmissionsPage() {
                   <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">ID / Time</th>
                   <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Problem</th>
                   <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Verdict</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Stat</th>
                   <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Lang</th>
                   <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono text-right">Action</th>
                 </tr>
@@ -73,7 +92,7 @@ export default async function SubmissionsPage() {
               <tbody className="divide-y divide-border">
                 {!submissions || submissions.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-24 text-center">
+                    <td colSpan={6} className="px-6 py-24 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <div className="w-16 h-16 rounded-full bg-secondary/50 border border-border flex items-center justify-center text-muted-foreground">
                           <Code2 className="w-8 h-8 opacity-50" />
@@ -94,7 +113,7 @@ export default async function SubmissionsPage() {
                     </td>
                   </tr>
                 ) : (
-                  (submissions as Submission[]).map((sub) => (
+                  (submissions as unknown as Submission[]).map((sub) => (
                     <tr key={sub.id} className="hover:bg-secondary/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -118,17 +137,27 @@ export default async function SubmissionsPage() {
                           {sub.problems?.title || 'Unknown Problem'}
                         </Link>
                       </td>
-
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold font-mono ${
-                          sub.verdict === 'Accepted' 
-                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
-                            : sub.verdict === 'Testing' || sub.status === 'PENDING'
-                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                            : 'bg-red-500/10 text-red-500 border border-red-500/20'
-                        }`}>
-                          {sub.verdict || sub.status}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <VerdictBadge verdict={sub.verdict || sub.status} />
+                          {sub.test_case !== null && (
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              on test {sub.test_case}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1 text-[10px] font-mono text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Zap className="w-3 h-3 text-amber-500/70" />
+                            {formatTime(sub.time_ms)}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Cpu className="w-3 h-3 text-blue-500/70" />
+                            {formatMemory(sub.memory_kb)}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded border border-border">

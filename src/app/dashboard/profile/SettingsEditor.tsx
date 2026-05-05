@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Volume2, VolumeX, Save, Check } from 'lucide-react'
+import { Volume2, VolumeX, Save, Check, Flag } from 'lucide-react'
 
 type ProfileSettings = {
   sound_enabled: boolean
+  hide_unsolved_tags?: boolean
 }
 
 interface SettingsEditorProps {
@@ -19,9 +20,8 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
   const [hasSaved, setHasSaved] = useState(false)
   const supabase = createClient()
 
-  const handleToggleSound = async () => {
-    const newSettings = { ...settings, sound_enabled: !settings.sound_enabled }
-    setSettings(newSettings)
+  const handleToggle = (key: keyof ProfileSettings) => {
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }))
     setHasSaved(false)
   }
 
@@ -68,6 +68,7 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
       </div>
 
       <div className="grid grid-cols-1 gap-4">
+        {/* Audio Toggle */}
         <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors group">
           <div className="flex items-center gap-4">
             <div className={`p-2 rounded-lg transition-colors ${settings.sound_enabled ? 'bg-cyan-500/10 text-cyan-500' : 'bg-muted text-muted-foreground'}`}>
@@ -79,7 +80,7 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
             </div>
           </div>
           <button
-            onClick={handleToggleSound}
+            onClick={() => handleToggle('sound_enabled')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
               settings.sound_enabled ? 'bg-cyan-500' : 'bg-zinc-700'
             }`}
@@ -87,6 +88,31 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                 settings.sound_enabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Spoiler Protection Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors group">
+          <div className="flex items-center gap-4">
+            <div className={`p-2 rounded-lg transition-colors ${settings.hide_unsolved_tags ? 'bg-amber-500/10 text-amber-500' : 'bg-muted text-muted-foreground'}`}>
+              <Flag className={`w-5 h-5 ${settings.hide_unsolved_tags ? 'fill-amber-500' : ''}`} />
+            </div>
+            <div>
+              <p className="font-bold text-foreground font-mono text-sm">Spoiler Protection</p>
+              <p className="text-xs text-muted-foreground font-mono">Hide problem tags until you solve the problem.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleToggle('hide_unsolved_tags')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+              settings.hide_unsolved_tags ? 'bg-amber-500' : 'bg-zinc-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                settings.hide_unsolved_tags ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

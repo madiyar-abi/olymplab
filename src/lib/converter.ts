@@ -69,7 +69,13 @@ export function createTurndownService() {
     replacement: (content) => `\n\n${content}\n\n`
   })
 
-  // 6. Support for subscripts and superscripts (common in math)
+  // 6. Support for Codeforces section titles
+  turndownService.addRule('cf-section-title', {
+    filter: (node: HTMLElement) => node.nodeName === 'DIV' && node.classList.contains('section-title'),
+    replacement: (content) => `\n\n### ${content.trim()}\n\n`
+  })
+
+  // 7. Support for subscripts and superscripts (common in math)
   turndownService.addRule('subscript', {
     filter: ['sub'],
     replacement: (content) => `~${content}~`
@@ -113,6 +119,8 @@ export function htmlToMarkdown(html: string): string {
   const processedHtml = html
     .replace(/<span class="MathJax_Preview".*?<\/span>/g, '')
     .replace(/<div class="MathJax_Display".*?<\/div>/g, '')
+    // Handle Codeforces triple-dollar math
+    .replace(/\$\$\$/g, '$')
     // Handle MathJax scripts if they are still there
     .replace(/<script type="math\/tex">(.*?)<\/script>/g, (_, tex) => `$${tex}$`)
     .replace(/<script type="math\/tex; mode=display">(.*?)<\/script>/g, (_, tex) => `\n\n$$${tex}$$\n\n`)
@@ -125,15 +133,23 @@ export function htmlToMarkdown(html: string): string {
     .replace(/\n{3,}/g, '\n\n')
     // Fix escaped LaTeX characters that Turndown might have escaped
     .replace(/\\([_$#%&])/g, '$1')
-    // Fix common CSES math patterns if they are not wrapped
+    // Fix common CSES/CF math patterns if they are not wrapped
+    .replace(/\\ast(?![^$]*\$)/g, '$\\ast$')
+    .replace(/\\dagger(?![^$]*\$)/g, '$\\dagger$')
+    .replace(/\\ddagger(?![^$]*\$)/g, '$\\ddagger$')
     .replace(/\\le(?![^$]*\$)/g, '$\\le$')
     .replace(/\\ge(?![^$]*\$)/g, '$\\ge$')
     .replace(/\\times(?![^$]*\$)/g, '$\\times$')
     .replace(/\\dots(?![^$]*\$)/g, '$\\dots$')
-    .replace(/\\dots(?![^$]*\$)/g, '$\\dots$')
     .replace(/\\log(?![^$]*\$)/g, '$\\log$')
     .replace(/\\min(?![^$]*\$)/g, '$\\min$')
     .replace(/\\max(?![^$]*\$)/g, '$\\max$')
+    .replace(/∗/g, '$\\ast$')
+    .replace(/†/g, '$\\dagger$')
+    .replace(/‡/g, '$\\ddagger$')
+    // Fix spacing around math
+    .replace(/([^ \n])\$/g, '$1 $')
+    .replace(/\$([^ \n.,!?;:()])/g, '$ $1')
     .trim()
 
   return markdown

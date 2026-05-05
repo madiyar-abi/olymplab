@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, ComponentPropsWithoutRef } from 'react'
+import React, { ComponentPropsWithoutRef } from 'react'
 import NextLink from 'next/link'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
@@ -10,7 +10,7 @@ import rehypeKatex from 'rehype-katex'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import 'katex/dist/katex.min.css'
-import { cn } from '@/lib/utils'
+import { CopyButton } from '@/components/ui/CopyButton'
 
 // Visualizers
 import SortingVisualizer from '@/components/learning/visualizers/SortingVisualizer'
@@ -35,54 +35,6 @@ import SlidingWindowVisualizer from '@/components/learning/visualizers/SlidingWi
 import CoordinateCompressionVisualizer from '@/components/learning/visualizers/CoordinateCompressionVisualizer'
 import PrefixSum2DVisualizer from '@/components/learning/visualizers/PrefixSum2DVisualizer'
 import MaxFlowVisualizer from '@/components/learning/visualizers/MaxFlowVisualizer'
-
-// ─── Copy Button ─────────────────────────────────────────────────────────────
-function CopyButton({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(code)
-    } catch {
-      const el = document.createElement('textarea')
-      el.value = code
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <button
-      onClick={handleCopy}
-      className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono transition-all duration-200 border",
-        copied 
-          ? "bg-green-500/15 text-green-500 border-green-500/30" 
-          : "bg-muted text-muted-foreground border-border hover:bg-secondary"
-      )}
-    >
-      {copied ? (
-        <>
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          Copied!
-        </>
-      ) : (
-        <>
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          Copy
-        </>
-      )}
-    </button>
-  )
-}
 
 // ─── Topic reference type ────────────────────────────────────────────────────
 interface TopicRef { id: string; title: string }
@@ -122,15 +74,6 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
         components={{
           // Fix Hydration Error: <p> cannot contain block elements like <div>
           p({ children }) {
-            // Check if children contain a block element (like our visualizers or code blocks)
-            const hasBlock = React.Children.toArray(children).some(child => {
-              if (React.isValidElement(child)) {
-                // If it's a code component that returns a div, or a div itself
-                return true 
-              }
-              return false
-            })
-
             // If it has complex children, render as div to be safe, otherwise as p
             return <div className="mb-6 last:mb-0 leading-relaxed text-foreground/90">{children}</div>
           },
@@ -176,8 +119,8 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
             return <div className="not-prose my-8">{children}</div>
           },
 
-          code(props: ComponentPropsWithoutRef<'code'> & { inline?: boolean, node?: unknown }) {
-            const { children, className, inline, node, ...rest } = props
+          code(props: ComponentPropsWithoutRef<'code'> & { inline?: boolean }) {
+            const { children, className, inline, ...rest } = props
             const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
             
             const contentString = React.Children.toArray(children).join('')
@@ -261,7 +204,7 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
                       {label}
                     </span>
                   </div>
-                  <CopyButton code={cleanCode} />
+                  <CopyButton value={cleanCode} showText />
                 </div>
                 <SyntaxHighlighter
                   PreTag="div"
@@ -289,9 +232,10 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
         }}
       >
         {content
-          .replace(/∗/g, '\\ast ')
-          .replace(/†/g, '\\dagger ')
-          .replace(/‡/g, '\\ddagger ')}
+          .replace(/\$\$\$/g, '$')
+          .replace(/∗/g, '$\\ast$')
+          .replace(/†/g, '$\\dagger$')
+          .replace(/‡/g, '$\\ddagger$')}
       </ReactMarkdown>
     </div>
   )

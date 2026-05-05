@@ -98,15 +98,34 @@ async function scrapeProblem(browser: any, contestId: number, index: string) {
     $(el).replaceWith(`<div class="tex-graphics" alt="${tex}"></div>`)
   })
 
-  // 4. Cleanup non-description headers
+  // 4. Extract Note (Codeforces specific)
+  const $note = $ps.find('.note')
+  let noteMarkdown = ''
+  if ($note.length > 0) {
+    // Convert note MathJax before conversion
+    $note.find('script[type="math/tex"]').each((i, el) => {
+      const tex = $(el).text().trim()
+      $(el).replaceWith(`<span class="tex-span">${tex}</span>`)
+    })
+    $note.find('script[type="math/tex; mode=display"]').each((i, el) => {
+      const tex = $(el).text().trim()
+      $(el).replaceWith(`<div class="tex-graphics" alt="${tex}"></div>`)
+    })
+    
+    noteMarkdown = htmlToMarkdown($note.html() || '')
+    $note.remove() // Remove it so it doesn't appear in description if it was inside
+  }
+
+  // 5. Cleanup non-description headers
   $ps.find('.header, .sample-tests, .input-file, .output-file, .property-title').remove()
 
-  // 5. Convert to Markdown using the expert converter
+  // 6. Convert to Markdown using the expert converter
   const descriptionMarkdown = htmlToMarkdown($ps.html() || '')
 
   return { 
     title, 
     description: descriptionMarkdown, 
+    note: noteMarkdown,
     sampleInput, 
     sampleOutput, 
     timeLimit, 
@@ -155,6 +174,7 @@ async function main() {
         console.log(`  [Title]      ${scraped.title}`)
         console.log(`  [Sample In]  ${scraped.sampleInput.substring(0, 50)}...`)
         console.log(`  [Sample Out] ${scraped.sampleOutput.substring(0, 50)}...`)
+        if (scraped.note) console.log(`  [Note]       Found (${scraped.note.length} chars)`)
 
         // ── Supabase Insertion ──
         console.log(`  [DB] Inserting "${scraped.title}"…`)
@@ -165,6 +185,7 @@ async function main() {
             external_id: `cf-${parsed.contestId}/${parsed.index}`,
             title: `[CF] ${scraped.title}`,
             description: scraped.description,
+            note: scraped.note,
             difficulty: 'Medium',
             requirements: {
               algorithms: { level: 40, weight: 1 },

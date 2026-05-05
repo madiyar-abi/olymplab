@@ -1,14 +1,18 @@
-import { JSDOM } from 'jsdom'
+import { Verdict } from '@/types/verdict'
 
 export interface CFResult {
   status: 'PENDING' | 'TESTING' | 'COMPLETED' | 'ERROR'
-  verdict: string | null
+  verdict: Verdict | string | null
+  testCase?: number
+  timeMs?: number
+  memoryKb?: number
 }
 
 export class CodeforcesJudge {
   private static cookie: string | null = null
 
   private static async login() {
+    const cheerio = await import('cheerio')
     const handle = process.env.CF_HANDLE
     const password = process.env.CF_PASSWORD
 
@@ -35,8 +39,8 @@ export class CodeforcesJudge {
     })
 
     const enterHtml = await enterPage.text()
-    const dom = new JSDOM(enterHtml)
-    const csrfToken = (dom.window.document.querySelector('input[name="csrf_token"]') as HTMLInputElement)?.value
+    const $ = cheerio.load(enterHtml)
+    const csrfToken = $('input[name="csrf_token"]').val() as string
 
     if (!csrfToken) {
       throw new Error('Could not find CSRF token on Codeforces login page')
@@ -86,7 +90,7 @@ export class CodeforcesJudge {
     console.log('[CF Bot] Login successful')
   }
 
-  static async submit(contestId: string, problemIndex: string, code: string, retryCount = 0): Promise<string> {
+  static async submit(contestId: string, problemIndex: string, code: string, language = 'cpp', retryCount = 0): Promise<string> {
     if (retryCount > 1) {
       throw new Error('Codeforces Submission failed after multiple retries.')
     }
@@ -107,28 +111,37 @@ export class CodeforcesJudge {
     if (submitHtml.includes('/enter') && submitHtml.includes('handle')) {
        console.log('[CF Bot] Session expired. Re-logging...')
        this.cookie = null
-       return this.submit(contestId, problemIndex, code, retryCount + 1)
+       return this.submit(contestId, problemIndex, code, language, retryCount + 1)
     }
 
-    const dom = new JSDOM(submitHtml)
-    const doc = dom.window.document
-    const csrfToken = (doc.querySelector('input[name="csrf_token"]') as HTMLInputElement)?.value
+    const cheerio = await import('cheerio')
+    const $ = cheerio.load(submitHtml)
+    const csrfToken = $('input[name="csrf_token"]').val() as string
 
     if (!csrfToken) {
        console.warn('[CF Bot] No CSRF token found on submit page. Re-logging...')
        this.cookie = null
-       return this.submit(contestId, problemIndex, code, retryCount + 1)
+       return this.submit(contestId, problemIndex, code, language, retryCount + 1)
     }
 
     // Prepare multipart form data
     const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2)
     const parts: string[] = []
 
+    // Map our internal language names to Codeforces programTypeId
+    const CF_LANG_MAP: Record<string, string> = {
+      cpp:    '89', // GNU G++20 13.2
+      python: '70', // PyPy 3.10 (faster) | use '31' for CPython 3.8
+      java:   '87', // Java 21 64bit
+      rust:   '75', // Rust 2021
+    }
+    const programTypeId = CF_LANG_MAP[language] ?? '89'
+
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="csrf_token"\r\n\r\n${csrfToken}\r\n`)
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="ftaa"\r\n\r\n\r\n`)
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="bfaa"\r\n\r\n\r\n`)
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="submittedProblemIndex"\r\n\r\n${problemIndex}\r\n`)
-    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="programTypeId"\r\n\r\n89\r\n`) // 89 is C++20 (G++ 13.2.0)
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="programTypeId"\r\n\r\n${programTypeId}\r\n`)
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="source"\r\n\r\n${code}\r\n`)
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="tabSize"\r\n\r\n4\r\n`)
     parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="_tta"\r\n\r\n37\r\n`)
@@ -182,38 +195,38 @@ export class CodeforcesJudge {
     }
 
     const submission = data.result.find((s: { id: { toString: () => string } }) => s.id.toString() === submissionId)
+
     if (!submission) {
-        // Maybe it's older than 10? 
-        return { status: 'COMPLETED', verdict: 'Unknown (Not in last 10)' }
+        return { status: 'PENDING', verdict: null }
     }
 
     const verdict = submission.verdict
-    
+
     if (!verdict || verdict === 'TESTING') {
-        return { status: 'TESTING', verdict: `Testing on test ${submission.passedTestCount + 1}` }
+      return { status: 'TESTING', verdict: `Testing on test ${submission.passedTestCount + 1}` }
     }
 
-    const VERDICT_MAP: Record<string, string> = {
-        'OK': 'Accepted',
-        'WRONG_ANSWER': 'Wrong Answer',
-        'TIME_LIMIT_EXCEEDED': 'Time Limit Exceeded',
-        'MEMORY_LIMIT_EXCEEDED': 'Memory Limit Exceeded',
-        'RUNTIME_ERROR': 'Runtime Error',
-        'COMPILATION_ERROR': 'Compilation Error',
-        'CHALLENGED': 'Challenged',
-        'SKIPPED': 'Skipped',
-        'PARTIAL': 'Partial',
-        'PRESENTATION_ERROR': 'Presentation Error',
-        'IDLENESS_LIMIT_EXCEEDED': 'Idleness Limit Exceeded',
-        'SECURITY_VIOLATED': 'Security Violated',
-        'CRASHED': 'Crashed',
-        'INPUT_PREPARATION_FAILED': 'Input Preparation Failed',
-        'FAILED': 'Failed'
+    const VERDICT_MAP: Record<string, Verdict> = {
+      'OK': Verdict.AC,
+      'WRONG_ANSWER': Verdict.WA,
+      'TIME_LIMIT_EXCEEDED': Verdict.TLE,
+      'MEMORY_LIMIT_EXCEEDED': Verdict.MLE,
+      'RUNTIME_ERROR': Verdict.RE,
+      'COMPILATION_ERROR': Verdict.CE,
+      'CHALLENGED': Verdict.CHALLENGED,
+      'SKIPPED': Verdict.SKIPPED,
+      'PARTIAL': Verdict.PARTIAL,
+      'PRESENTATION_ERROR': Verdict.PE,
+      'IDLENESS_LIMIT_EXCEEDED': Verdict.TLE, // Map to TLE as it's a time limit issue
+      'SECURITY_VIOLATED': Verdict.RE,
+      'CRASHED': Verdict.RE,
+      'INPUT_PREPARATION_FAILED': Verdict.FAILED,
+      'FAILED': Verdict.FAILED
     }
 
     return {
-        status: 'COMPLETED',
-        verdict: VERDICT_MAP[verdict] || verdict
+      status: 'COMPLETED',
+      verdict: VERDICT_MAP[verdict] || verdict
     }
-  }
+    }
 }

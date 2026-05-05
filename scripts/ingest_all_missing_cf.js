@@ -58,18 +58,15 @@ async function scrapeProblem(page, url) {
     const statement = $('.problem-statement')
     if (statement.length === 0) return null
 
-    const timeLimit = $('.time-limit').text().replace('time limit per test', '').trim()
-    const memoryLimit = $('.memory-limit').text().replace('memory limit per test', '').trim()
+    const timeLimit = statement.find('.time-limit').text().replace('time limit per test', '').trim()
+    const memoryLimit = statement.find('.memory-limit').text().replace('memory limit per test', '').trim()
 
-    const descEl = $('.problem-statement > div').eq(1)
-    const inputSpec = $('.input-specification')
-    const outputSpec = $('.output-specification')
-    const note = $('.note')
+    // ─── Surgical Cleanup ───
+    // Remove headers, samples, and mathjax visual layers before conversion
+    statement.find('.header, .sample-tests, .input-file, .output-file, .property-title').remove()
+    statement.find('.MathJax_Preview, .MathJax, .MathJax_Display, .MJX_Assistive_MathML, .MathJax_SVG').remove()
 
-    let fullMarkdown = td.turndown(descEl.html() || '')
-    if (inputSpec.length) fullMarkdown += `\n\n### Input\n\n` + td.turndown(inputSpec.html())
-    if (outputSpec.length) fullMarkdown += `\n\n### Output\n\n` + td.turndown(outputSpec.html())
-    if (note.length) fullMarkdown += `\n\n### Note\n\n` + td.turndown(note.html())
+    const fullMarkdown = td.turndown(statement.html() || '')
 
     const sampleInput = $('.sample-test .input pre').text().trim() || null
     const sampleOutput = $('.sample-test .output pre').text().trim() || null
@@ -140,6 +137,7 @@ async function main() {
           sample_input: content.sample_input,
           sample_output: content.sample_output,
           difficulty: p.cf_rating <= 1200 ? 'Easy' : p.cf_rating <= 1600 ? 'Medium' : 'Hard',
+          rating: p.cf_rating,
           requirements
         }, { onConflict: 'external_id' })
         .select()

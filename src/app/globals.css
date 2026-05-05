@@ -269,6 +269,6 @@ body {
 }
 
 /* Ensure the IDE stays above the dimming layer */
-.zen-mode .relative.select-none {
+.zen-mode .relative {
   z-index: 50;
 }
