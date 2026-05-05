@@ -100,16 +100,16 @@ const Timer = () => {
 }
 
 const MarkdownRenderer = ({ content }: { content: string }) => (
-  <ReactMarkdown 
+  <ReactMarkdown
     remarkPlugins={[remarkGfm, remarkMath]}
     rehypePlugins={[[rehypeKatex, { strict: false }]]}
     components={{
-      p: ({children}) => <div className="mb-5 last:mb-0 leading-[1.8] text-foreground/90">{children}</div>,
-      strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-      ul: ({children}) => <ul className="list-disc pl-5 mb-5 space-y-2">{children}</ul>,
-      ol: ({children}) => <ol className="list-decimal pl-5 mb-5 space-y-2">{children}</ol>,
-      li: ({children}) => <li className="pl-1">{children}</li>,
-      pre: ({children}) => <div className="not-prose my-6">{children}</div>,
+      p: ({ children }) => <div className="mb-5 last:mb-0 leading-[1.8] text-foreground/90">{children}</div>,
+      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+      ul: ({ children }) => <ul className="list-disc pl-5 mb-5 space-y-2">{children}</ul>,
+      ol: ({ children }) => <ol className="list-decimal pl-5 mb-5 space-y-2">{children}</ol>,
+      li: ({ children }) => <li className="pl-1">{children}</li>,
+      pre: ({ children }) => <div className="not-prose my-6">{children}</div>,
       code: (props) => {
         const { children, className, ...rest } = props as any
         const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
@@ -223,9 +223,9 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Hard: 'text-red-500 bg-red-500/10 border-red-500/20',
 }
 
-export default function IDEClient({ 
-  problem, 
-  initialCode, 
+export default function IDEClient({
+  problem,
+  initialCode,
   initialLanguage = 'cpp',
   settings = { sound_enabled: true, hide_unsolved_tags: false },
   isSolved: initialIsSolved = false
@@ -253,12 +253,12 @@ export default function IDEClient({
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor
-    
+
     // Load draft if exists (prioritize draft over template/last submission)
     const draft = localStorage.getItem(`draft_${problem.id}`)
     if (draft) {
       editor.setValue(draft)
-      
+
       // Also restore language if saved in draft
       const draftLang = localStorage.getItem(`draft_lang_${problem.id}`)
       if (draftLang && (draftLang === 'cpp' || draftLang === 'python' || draftLang === 'java' || draftLang === 'rust')) {
@@ -335,7 +335,7 @@ export default function IDEClient({
       .eq('problem_id', problem.id)
       .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
       .order('created_at', { ascending: false })
-    
+
     if (!error && data) {
       setSubmissionHistory(data as Submission[])
     }
@@ -421,15 +421,15 @@ export default function IDEClient({
     const newState = !isFlagged
     setIsFlagged(newState)
     localStorage.setItem(`flagged_${problem.id}`, String(newState))
-    
+
     const flaggedListRaw = localStorage.getItem('flagged_problems_list')
     let flaggedList: FlaggedProblem[] = flaggedListRaw ? JSON.parse(flaggedListRaw) : []
-    
+
     if (newState) {
       if (!flaggedList.find((p) => p.id === problem.id)) {
-        flaggedList.push({ 
-          id: problem.id, 
-          title: problem.title, 
+        flaggedList.push({
+          id: problem.id,
+          title: problem.title,
           difficulty: problem.difficulty,
           requirements: problem.requirements
         })
@@ -744,8 +744,8 @@ export default function IDEClient({
               onClick={toggleFlag}
               className={cn(
                 "transition-all",
-                isFlagged 
-                  ? 'bg-amber-400/10 border-amber-400/50 text-amber-400' 
+                isFlagged
+                  ? 'bg-amber-400/10 border-amber-400/50 text-amber-400'
                   : 'text-muted-foreground'
               )}
               title={isFlagged ? "Remove Flag" : "Flag Problem"}
@@ -799,8 +799,8 @@ export default function IDEClient({
                   {problem.difficulty_rating && (
                     <div className="flex-1 max-w-[60px]">
                       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all" 
+                        <div
+                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
                           style={{ width: `${Math.min(100, (problem.difficulty_rating / 3500) * 100)}%` }}
                         />
                       </div>
@@ -844,45 +844,45 @@ export default function IDEClient({
             </div>
             <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".cpp,.c,.cc,.cxx,.py,.java,.rs" className="hidden" />
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => fileInputRef.current?.click()} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
                 title="Upload File"
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => setIsZenMode(!isZenMode)} 
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsZenMode(!isZenMode)}
                 className={cn(isZenMode && 'bg-cyan-500/10 border-cyan-500/50 text-cyan-500')}
                 title={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}
               >
                 {isZenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </Button>
-              <Button 
+              <Button
                 variant="outline"
-                onClick={handleAskMentorBtn} 
-                disabled={isMentorThinking || isSubmitting || isRunning} 
+                onClick={handleAskMentorBtn}
+                disabled={isMentorThinking || isSubmitting || isRunning}
                 className="text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20 active:scale-95 transition-all shadow-none"
               >
                 {isMentorThinking ? <span className="w-3.5 h-3.5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" /> : <Bot className="w-4 h-4 mr-1.5" />}
                 Ask Mentor
               </Button>
-              <Button 
+              <Button
                 variant="secondary"
-                onClick={() => handleSubmit()} 
-                disabled={isSubmitting || isRunning} 
+                onClick={() => handleSubmit()}
+                disabled={isSubmitting || isRunning}
                 className="gap-2 active:scale-95 shadow-none"
                 title={isMac ? "Submit (⌘ + Enter)" : "Submit (Ctrl + Enter)"}
               >
                 {isSubmitting ? 'Submitting...' : (<>Submit <span className="hidden sm:inline text-[10px] opacity-40 font-mono border border-border px-1 rounded bg-background/50">{isMac ? '⌘↵' : 'Ctrl+↵'}</span></>)}
               </Button>
-              <Button 
+              <Button
                 variant="primary"
-                onClick={handleRunCode} 
-                disabled={isRunning || isSubmitting} 
+                onClick={handleRunCode}
+                disabled={isRunning || isSubmitting}
                 className="gap-2 bg-primary hover:bg-primary/90 hover:scale-100 shadow-none active:scale-95"
                 title={isMac ? "Run (⌘ + Shift + Enter)" : "Run (Ctrl + Shift + Enter)"}
               >
@@ -939,3 +939,4 @@ export default function IDEClient({
     </div>
   )
 }
+
