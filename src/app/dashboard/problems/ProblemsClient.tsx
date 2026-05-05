@@ -3,18 +3,19 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, FilterX, Eye } from 'lucide-react'
+import { ArrowRight, FilterX, Eye, Flag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TagSelector } from './TagSelector'
+import { createClient } from '@/lib/supabase/client'
 
 type Requirements = Record<string, { level: number; weight: number }>
 
 const DIFFICULTY_CONFIG: Record<string, { badge: string; shadow: string }> = {
-  Easy:    { badge: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', shadow: 'shadow-[0_0_15px_rgba(52,211,153,0.25)]' },
-  Medium:  { badge: 'text-amber-400 bg-amber-500/10 border-amber-500/30', shadow: 'shadow-[0_0_15px_rgba(251,191,36,0.25)]' },
-  Hard:    { badge: 'text-red-400 bg-red-500/10 border-red-500/30', shadow: 'shadow-[0_0_15px_rgba(248,113,113,0.25)]' },
-  Mastery: { badge: 'text-purple-400 bg-purple-500/10 border-purple-500/30', shadow: 'shadow-[0_0_15px_rgba(192,132,252,0.25)]' },
-  Unrated: { badge: 'text-zinc-400 bg-white/5 border-white/10', shadow: '' },
+  Easy:    { badge: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', shadow: '' },
+  Medium:  { badge: 'text-amber-500 bg-amber-500/10 border-amber-500/20', shadow: '' },
+  Hard:    { badge: 'text-red-500 bg-red-500/10 border-red-500/20', shadow: '' },
+  Mastery: { badge: 'text-purple-500 bg-purple-500/10 border-purple-500/20', shadow: '' },
+  Unrated: { badge: 'text-zinc-400 bg-white/5 border-border', shadow: '' },
 }
 
 // Get dominant skill by highest weight
@@ -44,9 +45,19 @@ function sectionLabel(skill: string) {
     : skill.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } }
 }
 
 export interface Problem {
@@ -68,7 +79,7 @@ function TagGroup({ tags, isSolved, hideTagsSetting }: TagGroupProps) {
   const shouldHide = hideTagsSetting && !isSolved && !revealed
 
   if (tags.length === 0) {
-    return <span className="text-muted-foreground/60 text-[10px] font-mono">Unrated problem</span>
+    return <span className="text-gray-500 dark:text-gray-400/60 text-[10px] font-mono">Unrated problem</span>
   }
 
   return (
@@ -86,7 +97,7 @@ function TagGroup({ tags, isSolved, hideTagsSetting }: TagGroupProps) {
         <span
           key={tag}
           className={cn(
-            "bg-secondary text-muted-foreground px-2.5 py-1 rounded-md text-[9px] font-semibold border border-border uppercase tracking-wider transition-all duration-500",
+            "bg-secondary text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-md text-[9px] font-semibold border border-border uppercase tracking-wider transition-all duration-500",
             shouldHide && "blur-[4px] select-none opacity-40 group-hover/tags:opacity-60"
           )}
         >
@@ -96,8 +107,8 @@ function TagGroup({ tags, isSolved, hideTagsSetting }: TagGroupProps) {
       {shouldHide && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-background/80 backdrop-blur-sm border border-border rounded-md px-1.5 py-0.5 flex items-center gap-1 shadow-sm group-hover/tags:bg-background transition-colors">
-            <Eye className="w-2.5 h-2.5 text-muted-foreground" />
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Show Tags</span>
+            <Eye className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400" />
+            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">Show Tags</span>
           </div>
         </div>
       )}
@@ -109,14 +120,36 @@ export function ProblemsClient({
   problems, 
   hideHeader = false,
   solvedProblemIds = new Set(),
-  settings = { sound_enabled: true, hide_unsolved_tags: false }
+  settings: initialSettings = { sound_enabled: true, hide_unsolved_tags: false },
+  userId
 }: { 
   problems: Problem[]
   hideHeader?: boolean
   solvedProblemIds?: Set<string>
   settings?: { sound_enabled: boolean, hide_unsolved_tags?: boolean }
+  userId?: string
 }) {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [hideUnsolved, setHideUnsolved] = useState(!!initialSettings.hide_unsolved_tags)
+  const supabase = createClient()
+
+  const handleToggleSpoiler = async () => {
+    const newValue = !hideUnsolved
+    setHideUnsolved(newValue)
+    
+    // Persist to Supabase if userId is provided
+    if (userId) {
+      await supabase.from('profiles')
+        // @ts-ignore - Supabase generated types for JSON can be finicky
+        .update({ 
+          settings: { 
+            ...initialSettings, 
+            hide_unsolved_tags: newValue 
+          } 
+        })
+        .eq('id', userId)
+    }
+  }
 
   // Extract all unique tags
   const allTags = useMemo(() => {
@@ -160,7 +193,7 @@ export function ProblemsClient({
 
   return (
     <div className="h-full">
-      <div className="min-h-full p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
+      <div className="min-h-full px-12 pt-16 pb-12 w-full flex flex-col gap-10">
       {/* Page Header */}
       {!hideHeader && (
         <motion.header 
@@ -192,12 +225,38 @@ export function ProblemsClient({
         transition={{ duration: 0.5, delay: 0.1 }}
         className="flex flex-col gap-4"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <TagSelector 
             allTags={allTags} 
             selectedTags={selectedTags} 
             onChange={setSelectedTags} 
           />
+
+          <div 
+            onClick={handleToggleSpoiler}
+            className="flex items-center gap-3 px-4 py-2.5 bg-secondary/50 hover:bg-secondary/80 rounded-xl border border-border transition-all cursor-pointer group"
+          >
+            <Flag className={cn(
+              "w-4 h-4 transition-all", 
+              hideUnsolved ? "text-amber-500 fill-amber-500" : "text-muted-foreground"
+            )} />
+            <span className="text-[11px] font-bold font-mono text-foreground uppercase tracking-tight">
+              Spoiler Protection
+            </span>
+            <div
+              className={cn(
+                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                hideUnsolved ? "bg-amber-500" : "bg-muted"
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-block h-3 w-3 transform rounded-full bg-background transition-transform",
+                  hideUnsolved ? "translate-x-5" : "translate-x-1"
+                )}
+              />
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -213,7 +272,7 @@ export function ProblemsClient({
           </p>
           <button 
             onClick={() => setSelectedTags([])}
-            className="mt-6 text-sm font-bold text-blue-500 hover:text-blue-600 font-mono underline underline-offset-4"
+            className="mt-6 text-sm font-bold text-primary hover:text-primary/80 font-mono underline underline-offset-4"
           >
             Clear all filters
           </button>
@@ -226,7 +285,7 @@ export function ProblemsClient({
           {/* Section Header */}
           <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-1.5 h-5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+              <div className="w-1.5 h-5 bg-primary rounded-full" />
               <h2 className="text-lg font-semibold text-foreground capitalize font-mono tracking-wide">
                 {sectionLabel(skill)}
               </h2>
@@ -236,7 +295,13 @@ export function ProblemsClient({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "50px" }}
+          >
             {groupProblems.map((problem) => {
               const displayTags = problem.tags && problem.tags.length > 0 
                 ? problem.tags.slice(0, 3) 
@@ -249,52 +314,47 @@ export function ProblemsClient({
                 <motion.div 
                   key={problem.id} 
                   variants={itemVariants}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, margin: "50px" }}
                 >
                   <Link
                     href={`/dashboard/problems/${problem.id}`}
-                    className="group flex flex-col justify-between h-[180px] bg-card border border-border rounded-2xl p-5 hover:border-primary/30 hover:bg-secondary/20 hover:-translate-y-[2px] transition-all duration-300 cursor-pointer overflow-hidden relative shadow-sm hover:shadow-md"
+                    className="group flex flex-col items-center text-center justify-center h-[240px] bg-card border border-border rounded-2xl p-8 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-primary/50 shadow-sm hover:shadow-xl cursor-pointer overflow-hidden relative"
                   >
-                    {/* Top row: Title and Badge */}
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex flex-col gap-1">
-                        <h3 className="text-[15px] font-semibold text-foreground line-clamp-2 font-mono leading-relaxed group-hover:text-blue-500 transition-colors">
-                          {problem.title}
-                        </h3>
-                        {isSolved && (
-                          <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter">Solved</span>
-                        )}
-                      </div>
-                      <span className={cn(
-                        "text-[10px] font-bold px-2.5 py-1 rounded-md border shrink-0 uppercase tracking-widest",
-                        cfg.badge,
-                        cfg.shadow
-                      )}>
-                        {diff}
-                      </span>
+                    {/* Badge Centered at Top */}
+                    <span className={cn(
+                      "text-[9px] font-bold px-3 py-1 rounded-full border uppercase tracking-[0.2em] mb-4",
+                      cfg.badge,
+                      cfg.shadow
+                    )}>
+                      {diff}
+                    </span>
+
+                    <div className="flex flex-col items-center gap-2 mb-4">
+                      <h3 className="text-lg font-bold text-foreground line-clamp-2 font-mono tracking-tight group-hover:text-primary transition-colors">
+                        {problem.title}
+                      </h3>
+                      {isSolved && (
+                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">Solved</span>
+                      )}
                     </div>
 
-                    {/* Bottom row: Tags and Solve button */}
-                    <div className="flex items-end justify-between mt-auto gap-2">
+                    <div className="mb-6">
                       <TagGroup 
                         tags={displayTags} 
                         isSolved={isSolved} 
-                        hideTagsSetting={!!settings.hide_unsolved_tags} 
+                        hideTagsSetting={hideUnsolved} 
                       />
-                      
-                      {/* Premium Solve CTA */}
-                      <span className="px-3.5 py-2 rounded-xl text-[11px] font-bold border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.1)] dark:group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all duration-300 flex items-center uppercase tracking-widest shrink-0">
-                        {isSolved ? 'Review' : 'Solve'}
-                        <ArrowRight className="w-3.5 h-3.5 ml-1.5 group-hover:translate-x-1 transition-transform" />
-                      </span>
+                    </div>
+                    
+                    {/* Solve Button Centered at Bottom */}
+                    <div className="px-6 py-2.5 rounded-xl font-sans text-xs font-bold tracking-widest border border-border bg-foreground text-background hover:bg-primary hover:border-primary hover:text-white transition-all flex items-center gap-2 uppercase">
+                      {isSolved ? 'Review' : 'Solve Now'}
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </Link>
                 </motion.div>
               )
             })}
-          </div>
+          </motion.div>
         </section>
       ))}
       </div>

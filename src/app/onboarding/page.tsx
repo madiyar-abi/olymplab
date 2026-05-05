@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -74,7 +75,7 @@ export default function OnboardingPage() {
                 <button
                   key={s}
                   onClick={() => { setSubject(s); setStep(2); }}
-                  className="p-8 rounded-xl border-2 border-border bg-secondary/30 hover:border-primary hover:bg-primary/5 text-xl font-bold text-foreground transition-all"
+                  className="p-8 rounded-xl border border-border bg-secondary/30 hover:border-primary hover:bg-primary/5 hover:scale-105 active:scale-95 text-xl font-bold text-foreground transition-all shadow-lg hover:shadow-primary/10"
                 >
                   {s}
                 </button>
@@ -94,18 +95,19 @@ export default function OnboardingPage() {
                 <button
                   key={l}
                   onClick={() => { setLevel(l); setStep(3); }}
-                  className="p-6 rounded-xl border-2 border-border bg-secondary/30 hover:border-primary hover:bg-primary/5 text-lg font-bold text-foreground transition-all"
+                  className="p-6 rounded-xl border border-border bg-secondary/30 hover:border-primary hover:bg-primary/5 hover:scale-[1.02] active:scale-95 text-lg font-bold text-foreground transition-all shadow-md"
                 >
                   {l}
                 </button>
               ))}
             </div>
-            <button 
+            <Button 
+              variant="ghost"
               onClick={() => setStep(1)} 
-              className="mt-8 text-sm text-muted-foreground hover:text-foreground mx-auto block"
+              className="mt-8 mx-auto block"
             >
               ← Back
-            </button>
+            </Button>
           </div>
         )}
 
@@ -155,19 +157,19 @@ export default function OnboardingPage() {
             </div>
 
             <div className="mt-8 flex justify-between items-center">
-              <button 
+              <Button 
+                variant="ghost"
                 onClick={() => setStep(2)} 
-                className="text-sm text-muted-foreground hover:text-foreground"
               >
                 ← Back
-              </button>
-              <button 
+              </Button>
+              <Button 
                 onClick={handleFinish}
                 disabled={loading}
-                className="px-8 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-all disabled:opacity-50"
+                className="px-10 py-6 text-base font-bold"
               >
                 {loading ? 'Configuring...' : 'Finalize Calibration'}
-              </button>
+              </Button>
             </div>
           </div>
         )}

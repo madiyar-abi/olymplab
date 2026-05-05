@@ -119,7 +119,7 @@ export default function ConvexHullVisualizer() {
         </div>
       </div>
 
-      <div className="relative h-[300px] w-full bg-muted/20 rounded-xl mb-6 flex justify-center items-center border border-border/50">
+      <div className="relative h-[300px] w-full bg-muted/20 rounded-xl mb-6 flex justify-center items-center border border-border">
         <svg width="300" height="280" viewBox="0 0 300 280" className="overflow-visible">
           {/* Points */}
           {initialPoints.map(p => (
@@ -162,7 +162,7 @@ export default function ConvexHullVisualizer() {
         </svg>
       </div>
 
-      <div className="bg-muted/30 p-4 rounded-xl border border-border/50 font-mono text-xs text-muted-foreground">
+      <div className="bg-muted/30 p-4 rounded-xl border border-border font-mono text-xs text-muted-foreground">
         <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
       </div>
     </div>

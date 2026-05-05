@@ -1,6 +1,7 @@
 "use client"
 
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, Code2, ArrowRight, Terminal, Sprout, Zap, Flame, Rocket, Crown, Library, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -17,34 +18,34 @@ interface RoadmapTopic {
 
 const STAGE_CONFIG: Record<string, { badge: string; icon: React.ReactNode; lineColor: string; dotColor: string }> = {
   'Начальный': {
-    badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     icon: <Sprout className="w-4 h-4" />,
-    lineColor: 'bg-emerald-500/30',
-    dotColor: 'bg-emerald-400 shadow-emerald-400/60',
+    lineColor: 'bg-emerald-500/20',
+    dotColor: 'bg-emerald-500',
   },
   'Базовый': {
-    badge: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+    badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20',
     icon: <Zap className="w-4 h-4" />,
-    lineColor: 'bg-sky-500/30',
-    dotColor: 'bg-sky-400 shadow-sky-400/60',
+    lineColor: 'bg-sky-500/20',
+    dotColor: 'bg-sky-500',
   },
   'Средний': {
-    badge: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
+    badge: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
     icon: <Flame className="w-4 h-4" />,
-    lineColor: 'bg-violet-500/30',
-    dotColor: 'bg-violet-400 shadow-violet-400/60',
+    lineColor: 'bg-violet-500/20',
+    dotColor: 'bg-violet-500',
   },
   'Продвинутый': {
-    badge: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    badge: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
     icon: <Rocket className="w-4 h-4" />,
-    lineColor: 'bg-orange-500/30',
-    dotColor: 'bg-orange-400 shadow-orange-400/60',
+    lineColor: 'bg-orange-500/20',
+    dotColor: 'bg-orange-500',
   },
   'Мастер': {
-    badge: 'bg-red-500/15 text-red-400 border-red-500/30',
+    badge: 'bg-red-500/10 text-red-500 border-red-500/20',
     icon: <Crown className="w-4 h-4" />,
-    lineColor: 'bg-red-500/30',
-    dotColor: 'bg-red-400 shadow-red-400/60',
+    lineColor: 'bg-red-500/20',
+    dotColor: 'bg-red-500',
   },
 }
 
@@ -81,186 +82,182 @@ export function RoadmapClient({
   topics: RoadmapTopic[], 
   mastery?: Record<string, { total: number; solved: number }> 
 }) {
-  const grouped: Record<string, RoadmapTopic[]> = {}
-  STAGE_ORDER.forEach(s => { grouped[s] = [] })
+  const [activeLevel, setActiveLevel] = useState(STAGE_ORDER[0])
 
-  topics.forEach((t) => {
-    if (grouped[t.stage]) grouped[t.stage].push(t)
-  })
+  const stageTopics = topics.filter(t => t.stage === activeLevel)
+  const cfg = STAGE_CONFIG[activeLevel]
 
-  let globalNum = 0
+  // Calculate global number prefix for current stage
+  let previousTopicsCount = 0
+  for (let i = 0; i < STAGE_ORDER.indexOf(activeLevel); i++) {
+    previousTopicsCount += topics.filter(t => t.stage === STAGE_ORDER[i]).length
+  }
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-8 pb-24">
-      {/* Empty state */}
-      {topics.length === 0 && (
-        <div className="text-center py-24 flex flex-col items-center">
-          <Library className="w-12 h-12 text-zinc-600 mb-4" />
-          <p className="text-zinc-400 text-sm">Темы ещё не загружены.</p>
-          <p className="text-zinc-500 text-xs mt-1 font-mono">Запустите: npx ts-node scripts/seed_roadmap.ts</p>
-        </div>
-      )}
-
-      {/* Roadmap timeline */}
-      <div className="space-y-12">
-        {STAGE_ORDER.map((stage, stageIdx) => {
-          const stageTopics = grouped[stage]
-          if (!stageTopics || stageTopics.length === 0) return null
-          const cfg = STAGE_CONFIG[stage]
+    <div className="px-12 pb-24 w-full">
+      {/* Tabs Header (Telegram Folder Style) */}
+      <div className="flex items-center gap-8 border-b border-white/5 mb-10 overflow-x-auto hide-scrollbar">
+        {STAGE_ORDER.map((stage) => {
+          const isActive = activeLevel === stage
+          const count = topics.filter(t => t.stage === stage).length
+          if (count === 0) return null
 
           return (
-            <motion.div 
+            <button
               key={stage}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-50px" }}
-              variants={containerVariants}
-            >
-              {/* Stage header */}
-              <motion.div variants={itemVariants} className="flex items-center gap-4 mb-6">
-                <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-widest", cfg.badge)}>
-                  <span>{cfg.icon}</span>
-                  <span>{stage}</span>
-                </div>
-                <div className="flex-1 h-px bg-white/5" />
-                <span className="text-xs text-white/20 font-mono">{stageTopics.length} тем</span>
-              </motion.div>
-
-              {/* Topics timeline */}
-              <div className="relative pl-7 space-y-4">
-                {/* Vertical line */}
-                <div className={cn("absolute left-[5px] top-2 w-0.5", cfg.lineColor)} style={{ height: 'calc(100% - 10px)' }} />
-
-                {stageTopics.map((topic, topicIdx) => {
-                  globalNum++
-                  const num = globalNum
-                  
-                  const progress = mastery[topic.id] || { total: 0, solved: 0 }
-                  const percentage = progress.total > 0 ? Math.round((progress.solved / progress.total) * 100) : 0
-
-                  return (
-                    <motion.div 
-                      key={topic.id} 
-                      variants={itemVariants}
-                      className="relative"
-                    >
-                      {/* Dot */}
-                      <div className={cn("absolute -left-[22px] top-[24px] w-3 h-3 rounded-full shadow-lg border-2 border-background", cfg.dotColor)} />
-
-                      {/* Card - Pro Max Aceternity/Shadcn Look */}
-                      <div className="group rounded-xl bg-card border border-border p-5 transition-all duration-300 hover:border-primary/40 hover:bg-secondary/10 shadow-sm hover:shadow-primary/5">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex items-start gap-4 flex-1 min-w-0">
-                            {/* Top Left Icon */}
-                            <div className="flex-shrink-0 mt-0.5 bg-primary/10 text-primary p-2.5 rounded-xl border border-primary/20 shadow-[0_0_15px_rgba(59,130,246,0.1)] dark:shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                              <Terminal className="w-5 h-5" />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="flex-shrink-0 w-5 h-5 rounded-md bg-secondary border border-border flex items-center justify-center text-[10px] font-bold font-mono text-muted-foreground">
-                                  {num}
-                                </span>
-                                <h3 className="text-base font-medium text-white leading-snug truncate">
-                                  {topic.title}
-                                </h3>
-                              </div>
-                              
-                              {topic.prerequisites && topic.prerequisites.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {topic.prerequisites.map((prereq) => (
-                                    <span
-                                      key={prereq}
-                                      className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground"
-                                    >
-                                      ↳ {prereq.split(' (')[0].split(' /')[0].substring(0, 30)}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-muted-foreground font-mono mt-1">Основы темы</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Action buttons */}
-                          <div className="flex items-center gap-2 flex-shrink-0 mt-3 md:mt-0">
-                            <Link
-                              href={`/dashboard/learning/${topic.id}`}
-                              className="px-3 py-2 rounded-lg text-xs font-semibold border border-border bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground transition-all duration-200 flex items-center gap-2"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                              Статья
-                            </Link>
-                            <Link
-                              href={`/dashboard/learning/${topic.id}/practice`}
-                              className="px-3 py-2 rounded-lg text-xs font-semibold border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 flex items-center group/btn"
-                            >
-                              <Code2 className="w-3.5 h-3.5 mr-1.5" />
-                              Практика
-                              <ArrowRight className="w-3.5 h-3.5 ml-1.5 group-hover/btn:translate-x-1 transition-transform" />
-                            </Link>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar (Mastery) */}
-                        {progress.total > 0 && (
-                          <div className="mt-4 pt-4 border-t border-border/50">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70">Уровень освоения</span>
-                              <span className={cn(
-                                "text-[10px] font-bold font-mono",
-                                percentage === 100 ? "text-emerald-500" : percentage > 50 ? "text-sky-500" : "text-muted-foreground"
-                              )}>
-                                {progress.solved} / {progress.total} задач ({percentage}%)
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${percentage}%` }}
-                                transition={{ duration: 1, ease: "easeOut" }}
-                                className={cn(
-                                  "h-full rounded-full transition-all shadow-[0_0_10px_rgba(var(--primary),0.3)]",
-                                  percentage === 100 ? "bg-emerald-500 shadow-emerald-500/20" : 
-                                  percentage > 0 ? "bg-sky-500 shadow-sky-500/20" : "bg-muted"
-                                )}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </div>
-
-              {/* Connector arrow */}
-              {stageIdx < STAGE_ORDER.length - 1 && grouped[STAGE_ORDER[stageIdx + 1]]?.length > 0 && (
-                <div className="flex flex-col items-start gap-0 ml-[4px] mt-8 mb-4 opacity-20">
-                  <div className="w-0.5 h-8 bg-white/40" />
-                  <span className="text-white text-[10px] -ml-[3px]">▼</span>
-                </div>
+              onClick={() => setActiveLevel(stage)}
+              className={cn(
+                "pb-4 px-1 text-sm font-bold transition-all relative whitespace-nowrap group",
+                isActive 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-foreground"
               )}
-            </motion.div>
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-sans uppercase tracking-widest text-xs">{stage}</span>
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-full border transition-colors font-mono",
+                  isActive ? "bg-primary/10 border-primary/20" : "bg-secondary border-border"
+                )}>
+                  {count}
+                </span>
+              </div>
+              {isActive && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                />
+              )}
+            </button>
           )
         })}
-
-        {/* Trophy finish */}
-        {topics && topics.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="flex items-center gap-3 ml-[4px] mt-6"
-          >
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/30">
-              <Trophy className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-xs text-zinc-500 font-mono">Финиш — вы прошли весь курс!</span>
-          </motion.div>
-        )}
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeLevel}
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="space-y-6"
+        >
+          {stageTopics.length > 0 && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {stageTopics.map((topic, idx) => {
+                const num = previousTopicsCount + idx + 1
+                
+                const progress = mastery[topic.id] || { total: 0, solved: 0 }
+                const percentage = progress.total > 0 ? Math.round((progress.solved / progress.total) * 100) : 0
+
+                return (
+                  <motion.div 
+                    key={topic.id} 
+                    variants={itemVariants}
+                    className="relative"
+                  >
+                    {/* Card - Centered Symmetry Style */}
+                    <div className="group h-full rounded-2xl bg-card border border-white/5 p-8 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-white/10 hover:bg-white/[0.02] shadow-sm hover:shadow-xl flex flex-col items-center text-center">
+                      {/* Top Icon */}
+                      <div className="flex-shrink-0 mb-6 bg-secondary text-muted-foreground p-3.5 rounded-2xl border border-border shadow-sm group-hover:text-primary group-hover:border-primary/30 transition-colors">
+                        <Terminal className="w-6 h-6" />
+                      </div>
+
+                      <div className="flex flex-col items-center gap-2 mb-6 flex-1">
+                        <div className="flex items-center gap-2 justify-center">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-md bg-secondary border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                            {num}
+                          </span>
+                          <h3 className="text-lg font-bold text-foreground tracking-tight leading-snug font-sans">
+                            {topic.title}
+                          </h3>
+                        </div>
+                        
+                        {topic.prerequisites && topic.prerequisites.length > 0 ? (
+                          <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+                            {topic.prerequisites.map((prereq) => (
+                              <span
+                                key={prereq}
+                                className="text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-secondary border border-border text-muted-foreground"
+                              >
+                                ↳ {prereq.split(' (')[0].split(' /')[0].substring(0, 30)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold mt-1">Fundamental Topic</p>
+                        )}
+                      </div>
+
+                      {/* Action buttons - Centered Row */}
+                      <div className="flex items-center justify-center gap-3 flex-wrap mb-8 w-full">
+                        <Link
+                          href={`/dashboard/learning/${topic.id}`}
+                          className="px-4 py-2 rounded-md text-[11px] font-bold font-sans uppercase tracking-[0.1em] border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground transition-all flex items-center gap-2"
+                        >
+                          <BookOpen className="w-3 h-3" />
+                          READ
+                        </Link>
+                        <Link
+                          href={`/dashboard/learning/${topic.id}/practice`}
+                          className="px-4 py-2 rounded-md text-[11px] font-bold font-sans uppercase tracking-[0.1em] border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground transition-all flex items-center gap-2"
+                        >
+                          <Code2 className="w-3 h-3" />
+                          PRACTICE
+                        </Link>
+                      </div>
+
+                      {/* Progress Bar (Mastery) - Centered */}
+                      {progress.total > 0 && (
+                        <div className="pt-6 border-t border-border w-full">
+                          <div className="flex items-center justify-between mb-2.5">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Mastery</span>
+                            <span className={cn(
+                              "text-[9px] font-bold font-mono tracking-wider",
+                              percentage === 100 ? "text-emerald-500" : percentage > 50 ? "text-sky-500" : "text-muted-foreground"
+                            )}>
+                              {progress.solved}/{progress.total} Solved ({percentage}%)
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${percentage}%` }}
+                              transition={{ duration: 1, ease: "easeOut" }}
+                              className={cn(
+                                "h-full rounded-full transition-all",
+                                percentage === 100 ? "bg-emerald-500" : 
+                                percentage > 0 ? "bg-sky-500" : "bg-muted"
+                              )}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Trophy finish (only show on last level) */}
+          {activeLevel === STAGE_ORDER[STAGE_ORDER.length - 1] && stageTopics.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="flex flex-col items-center gap-4 py-12"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg transform rotate-12">
+                <Trophy className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-center">
+                <span className="text-sm text-foreground font-bold font-mono uppercase tracking-[0.3em]">Course Complete</span>
+                <p className="text-xs text-muted-foreground mt-1">Вы прошли весь путь мастерства!</p>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

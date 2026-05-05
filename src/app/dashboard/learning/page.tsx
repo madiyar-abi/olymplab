@@ -58,24 +58,22 @@ export default async function LearningPage() {
 
   return (
     <div className="min-h-full bg-background text-foreground">
-      {/* ... (header same) */}
-      <div className="border-b border-border/50 px-8 py-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-sky-500 flex items-center justify-center text-sm shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-              <BookOpen className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight">Structured Syllabi</h1>
+      {/* Page Header */}
+      <div className="px-12 pt-16 pb-8">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-sky-500 flex items-center justify-center text-sm">
+            <BookOpen className="w-4 h-4 text-white" />
           </div>
-          <p className="text-xs text-white/30 font-mono mt-1">
-            Competitive programming roadmap — от основ до продвинутых техник
-          </p>
+          <h1 className="text-xl font-bold tracking-tight">Structured Syllabi</h1>
         </div>
+        <p className="text-xs text-white/30 font-mono mt-1">
+          Competitive programming roadmap — от основ до продвинутых техник
+        </p>
       </div>
 
       {/* Migration warning */}
       {error && (
-        <div className="max-w-3xl mx-auto px-8 mt-8">
+        <div className="px-12 mt-8">
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 font-mono flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>Таблица roadmap_topics не найдена. Создайте её в Supabase SQL Editor.</span>

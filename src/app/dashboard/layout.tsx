@@ -24,15 +24,19 @@ export default async function DashboardLayout({
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Sidebar - hidden on very small screens, visible on md+ */}
-      <div className="hidden md:flex">
+      <div className="hidden md:flex h-full animate-in fade-in slide-in-from-left duration-700 ease-out">
         <Sidebar username={username} email={user?.email || ''} />
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex flex-col min-h-full">
+          <div className="flex-1">
+            {children}
+          </div>
+        </div>
       </main>
     </div>
   )

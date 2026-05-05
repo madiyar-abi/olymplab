@@ -150,6 +150,9 @@ export class CSESJudge {
     } else if (langLower.includes('rust')) {
       csesLang = 'Rust'
       csesOption = ''
+    } else if (langLower.includes('go')) {
+      csesLang = 'Go'
+      csesOption = ''
     } else if (langLower.includes('node') || langLower.includes('js') || langLower.includes('javascript')) {
       csesLang = 'Node.js'
       csesOption = ''
@@ -159,7 +162,7 @@ export class CSESJudge {
     formData.append('option', csesOption)
     
     // 3. Add file
-    const extension = langLower.includes('python') ? 'py' : langLower.includes('java') ? 'java' : langLower.includes('rust') ? 'rs' : langLower.includes('node') ? 'js' : 'cpp'
+    const extension = langLower.includes('python') ? 'py' : langLower.includes('java') ? 'java' : langLower.includes('rust') ? 'rs' : langLower.includes('go') ? 'go' : langLower.includes('node') ? 'js' : 'cpp'
     const blob = new Blob([code], { type: 'text/plain' })
     formData.append('file', blob, `solution.${extension}`)
 

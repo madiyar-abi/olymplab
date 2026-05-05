@@ -119,9 +119,8 @@ export default function SieveVisualizer({ limit = 40 }) {
         ))}
       </div>
 
-      <div className="bg-muted/30 p-4 rounded-xl border border-border/50 font-mono text-xs text-muted-foreground">
-        <span className="text-sky-500 font-bold mr-2">LOG:</span>
-        {step.msg}
+      <div className="bg-muted/30 p-4 rounded-xl border border-border font-mono text-xs text-muted-foreground">
+        <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
       </div>
     </div>
   )

@@ -232,18 +232,18 @@ export default function WhiteboardClient() {
 
           <div className="h-px w-8 bg-border my-2" />
           
-          <div className="flex flex-col items-center gap-3">
-            <span className="text-[10px] font-bold font-mono text-muted-foreground uppercase">Size</span>
-            {[2, 4, 8].map((s) => (
-              <button
-                key={s}
-                onClick={() => setLineWidth(s)}
-                className={cn(
-                  "rounded-full bg-muted transition-all",
-                  lineWidth === s ? "w-4 h-4 bg-primary" : "w-2 h-2 hover:bg-muted-foreground"
-                )}
+          <div className="flex flex-col items-center">
+            <div className="h-32 w-8 flex items-center justify-center">
+              <input 
+                type="range" 
+                min="1" 
+                max="20" 
+                value={lineWidth} 
+                onChange={(e) => setLineWidth(Number(e.target.value))}
+                className="appearance-none w-24 h-1.5 bg-white/10 rounded-full outline-none cursor-pointer -rotate-90 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
               />
-            ))}
+            </div>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-4">Size</span>
           </div>
         </div>
 

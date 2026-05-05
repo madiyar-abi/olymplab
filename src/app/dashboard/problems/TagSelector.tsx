@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Check, ChevronsUpDown, Search } from 'lucide-react'
+import { X, Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface TagSelectorProps {

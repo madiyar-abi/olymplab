@@ -44,15 +44,24 @@ ALTER TABLE public.problems ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 
 -- Policies for Profiles
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
 CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Policies for Problems
+DROP POLICY IF EXISTS "Anyone can view problems" ON public.problems;
 CREATE POLICY "Anyone can view problems" ON public.problems FOR SELECT USING (true);
 
 -- Policies for Submissions
+DROP POLICY IF EXISTS "Users can view their own submissions" ON public.submissions;
 CREATE POLICY "Users can view their own submissions" ON public.submissions FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own submissions" ON public.submissions;
 CREATE POLICY "Users can insert their own submissions" ON public.submissions FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Trigger for auto-creating profile on signup (optional but recommended)

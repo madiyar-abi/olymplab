@@ -107,7 +107,7 @@ export default function TwoPointersVisualizer({ initialArray = [1, 3, 2, 5, 1, 1
                   borderColor: step.found && inWindow ? '#10b981' : inWindow ? '#0ea5e9' : '#3f3f46',
                   color: step.found && inWindow ? '#ffffff' : 'inherit'
                 }}
-                className="w-12 h-12 flex items-center justify-center rounded-lg border-2 text-sm font-mono font-bold transition-colors"
+                className="w-12 h-12 flex items-center justify-center rounded-lg border text-sm font-mono font-bold transition-colors"
               >
                 {val}
               </motion.div>

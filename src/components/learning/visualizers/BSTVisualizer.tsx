@@ -174,7 +174,7 @@ export default function BSTVisualizer() {
         </svg>
       </div>
 
-      <div className="bg-muted/30 p-3 rounded-xl border border-border/50 font-mono text-[11px] text-muted-foreground">
+      <div className="bg-muted/30 p-3 rounded-xl border border-border font-mono text-[11px] text-muted-foreground">
         <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
       </div>
     </div>

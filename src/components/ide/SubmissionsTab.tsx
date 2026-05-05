@@ -47,7 +47,7 @@ export function SubmissionsTab({ currentSubmission }: SubmissionsTabProps) {
                   )}
                 </div>
                 {(currentSubmission.status === 'TESTING' || currentSubmission.status === 'COMPLETED') &&
-                  currentSubmission.test_case !== undefined && (
+                  currentSubmission.test_case != null && (
                     <span className="text-[10px] text-muted-foreground font-mono">
                       on test {currentSubmission.test_case}
                     </span>
@@ -62,13 +62,13 @@ export function SubmissionsTab({ currentSubmission }: SubmissionsTabProps) {
                   <VerdictBadge verdict={currentSubmission.verdict} size="lg" />
                 </div>
                 <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground bg-secondary/50 px-2 py-1 rounded border border-border">
-                  {currentSubmission.time_ms !== undefined && (
+                  {currentSubmission.time_ms != null && (
                     <div className="flex items-center gap-1">
                       <TimerIcon className="w-3 h-3 text-amber-500/70" />
                       {currentSubmission.time_ms} ms
                     </div>
                   )}
-                  {currentSubmission.memory_kb !== undefined && (
+                  {currentSubmission.memory_kb != null && (
                     <div className="flex items-center gap-1">
                       <Cpu className="w-3 h-3 text-blue-500/70" />
                       {currentSubmission.memory_kb < 1024

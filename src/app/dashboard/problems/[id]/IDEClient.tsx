@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, ChangeEvent } from 'react'
+import { useEffect, useRef, useState, useCallback, ChangeEvent, useMemo } from 'react'
 import Editor from '@monaco-editor/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import { Clock, Cpu, Flag, Maximize2, Minimize2, Timer as TimerIcon, Bot, Paperclip, Eye, History } from 'lucide-react'
+import { Clock, Cpu, Flag, Maximize2, Minimize2, Timer as TimerIcon, Bot, Paperclip, History } from 'lucide-react'
 import { MentorTab } from '@/components/ide/MentorTab'
 import { SubmissionsTab } from '@/components/ide/SubmissionsTab'
 import { HistoryTab } from '@/components/ide/HistoryTab'
@@ -18,7 +18,8 @@ import { playSuccessSound } from '@/lib/audio'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { VerdictBadge } from '@/components/ui/VerdictBadge'
+import { Button } from '@/components/ui/Button'
+import { Textarea } from '@/components/ui/Textarea'
 
 export interface SkillReq {
   level: number
@@ -37,12 +38,16 @@ export interface Problem {
   external_id: string | null
   time_limit?: string
   memory_limit?: string
+  difficulty_rating?: number
+  submission_stats?: {
+    solved_count: number
+  }
 }
 
 export interface IDEClientProps {
   problem: Problem
   initialCode?: string
-  initialLanguage?: 'cpp' | 'python' | 'java' | 'rust'
+  initialLanguage?: string
   settings?: {
     sound_enabled: boolean
     hide_unsolved_tags?: boolean
@@ -94,6 +99,53 @@ const Timer = () => {
   )
 }
 
+const MarkdownRenderer = ({ content }: { content: string }) => (
+  <ReactMarkdown 
+    remarkPlugins={[remarkGfm, remarkMath]}
+    rehypePlugins={[[rehypeKatex, { strict: false }]]}
+    components={{
+      p: ({children}) => <div className="mb-5 last:mb-0 leading-[1.8] text-foreground/90">{children}</div>,
+      strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+      ul: ({children}) => <ul className="list-disc pl-5 mb-5 space-y-2">{children}</ul>,
+      ol: ({children}) => <ol className="list-decimal pl-5 mb-5 space-y-2">{children}</ol>,
+      li: ({children}) => <li className="pl-1">{children}</li>,
+      pre: ({children}) => <div className="not-prose my-6">{children}</div>,
+      code: (props) => {
+        const { children, className, ...rest } = props as any
+        const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
+        const contentString = String(children).replace(/\n$/, '')
+        const isInline = !match && !contentString.includes('\n')
+
+        if (isInline) {
+          return (
+            <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-cyan-600 dark:text-cyan-400 text-[0.9em] border border-border" {...rest}>
+              {children}
+            </code>
+          )
+        }
+
+        return (
+          <div className="relative group my-4 rounded-xl overflow-hidden border border-border bg-muted/20">
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border">
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+                {match ? match[1] : 'code'}
+              </span>
+              <CopyButton value={contentString} showText />
+            </div>
+            <pre className="p-4 overflow-x-auto font-mono text-[13px] leading-relaxed">
+              <code className={className} {...rest}>
+                {children}
+              </code>
+            </pre>
+          </div>
+        )
+      }
+    }}
+  >
+    {content}
+  </ReactMarkdown>
+)
+
 const CPP_BOILERPLATE = `#include <bits/stdc++.h>
 using namespace std;
 
@@ -137,17 +189,38 @@ fn main() {
 }
 `
 
+const GO_BOILERPLATE = `package main
+
+import "fmt"
+
+func main() {
+    // Your code here
+}
+`
+
+const JS_BOILERPLATE = `const fs = require('fs');
+
+function solve() {
+    const input = fs.readFileSync(0, 'utf8');
+    // Your code here
+}
+
+solve();
+`
+
 const LANGUAGE_BOILERPLATES: Record<string, string> = {
   cpp: CPP_BOILERPLATE,
   python: PYTHON_BOILERPLATE,
   java: JAVA_BOILERPLATE,
   rust: RUST_BOILERPLATE,
+  go: GO_BOILERPLATE,
+  javascript: JS_BOILERPLATE,
 }
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  Easy: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-  Medium: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-  Hard: 'text-red-400 bg-red-400/10 border-red-400/20',
+  Easy: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+  Medium: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+  Hard: 'text-red-500 bg-red-500/10 border-red-500/20',
 }
 
 export default function IDEClient({ 
@@ -158,11 +231,25 @@ export default function IDEClient({
   isSolved: initialIsSolved = false
 }: IDEClientProps) {
   const { resolvedTheme } = useTheme()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<{ getValue: () => string; setValue: (v: string) => void } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const processDescription = (text: string) => {
+    if (!text) return '';
+    return text
+      // Фикс кавычек
+      .replace(/\$«/g, '«$')
+      .replace(/»\$/g, '$»')
+      .replace(/\$\$«/g, '«$$')
+      .replace(/»\$\$/g, '$$»')
+      // Фикс сносок Codeforces (оборачиваем в инлайн-математику)
+      .replace(/\\^\{\\text\{\\ast\}\}/g, '$^{\\\\ast}$')
+      .replace(/\\^\{\\text\{\\dagger\}\}/g, '$^{\\\\dagger}$')
+      .replace(/\\^\{\\text\{\\ddagger\}\}/g, '$^{\\\\ddagger}$');
+  };
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor
@@ -199,54 +286,16 @@ export default function IDEClient({
     })
   }
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate size (256 KB)
-    if (file.size > 256 * 1024) {
-      alert('File is too large. Maximum size is 256 KB.')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const content = event.target?.result as string
-      if (editorRef.current) {
-        editorRef.current.setValue(content)
-      }
-
-      // Auto-detect language
-      const ext = file.name.split('.').pop()?.toLowerCase()
-      if (ext === 'cpp' || ext === 'c' || ext === 'cc' || ext === 'cxx') {
-        setLanguage('cpp')
-      } else if (ext === 'py') {
-        setLanguage('python')
-      } else if (ext === 'java') {
-        setLanguage('java')
-      } else if (ext === 'rs') {
-        setLanguage('rust')
-      }
-    }
-    reader.onerror = () => {
-      alert('Failed to read file.')
-    }
-    reader.readAsText(file)
-    
-    // Reset input
-    e.target.value = ''
-  }
-
   // Extract sample input from description (look for "Input" section patterns)
   const extractSampleInput = useCallback(() => {
     const desc = problem.description || ''
-    // More robust matching for sample input blocks in description
-    const inputMatch = desc.match(/input\s*[\n:]\s*([\s\S]+?)(?=output|$)/i)
+    // More robust matching for sample input blocks in description (with unicode flag)
+    const inputMatch = desc.match(/input\\s*[\\n:]\\s*([\\s\\S]+?)(?=output|$)/iu)
     if (inputMatch) return inputMatch[1].trim()
     return '// Paste your test input here'
   }, [problem.description])
 
-  const [language, setLanguage] = useState<'cpp' | 'python' | 'java' | 'rust'>(initialLanguage)
+  const [language, setLanguage] = useState<string>(initialLanguage)
   const [activeConsoleTab, setActiveConsoleTab] = useState<'testcases' | 'results' | 'submissions' | 'history' | 'mentor'>('testcases')
   const [isMentorThinking, setIsMentorThinking] = useState(false)
   const [mentorHistory, setMentorHistory] = useState<{ role: 'user' | 'model', text: string }[]>([])
@@ -304,13 +353,11 @@ export default function IDEClient({
 
   // Fetch history on mount and when tab is clicked
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHistory()
   }, [fetchHistory])
 
   useEffect(() => {
     if (activeConsoleTab === 'history') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchHistory()
     }
   }, [activeConsoleTab, fetchHistory])
@@ -343,12 +390,12 @@ export default function IDEClient({
   const shouldHideTags = !!settings.hide_unsolved_tags && !isSolved && !tagsRevealed
 
   // Update editor content when language changes (if current content is just boilerplate)
-  const handleLanguageChange = (newLang: 'cpp' | 'python' | 'java' | 'rust') => {
+  const handleLanguageChange = (newLang: string) => {
     if (editorRef.current) {
       const currentVal = editorRef.current.getValue()
       const currentBoilerplate = LANGUAGE_BOILERPLATES[language]
-      if (currentVal.trim() === currentBoilerplate.trim()) {
-        editorRef.current.setValue(LANGUAGE_BOILERPLATES[newLang])
+      if (currentVal.trim() === currentBoilerplate?.trim()) {
+        editorRef.current.setValue(LANGUAGE_BOILERPLATES[newLang] || '')
       }
     }
     setLanguage(newLang)
@@ -367,7 +414,6 @@ export default function IDEClient({
 
   useEffect(() => {
     const flagged = localStorage.getItem(`flagged_${problem.id}`)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsFlagged(flagged === 'true')
   }, [problem.id])
 
@@ -400,8 +446,7 @@ export default function IDEClient({
   const isDraggingHorizontal = useRef(false)
   const isDraggingVertical = useRef(false)
   const [isDraggingHorizontalState, setIsDraggingHorizontalState] = useState(false)
-  const [, setIsDraggingVerticalState] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const CONTAINER_REF_REPLACEMENT = useRef<HTMLDivElement>(null)
   const rightPanelRef = useRef<HTMLDivElement>(null)
 
   // Horizontal resizer (left/right panels)
@@ -415,13 +460,12 @@ export default function IDEClient({
   const handleVerticalMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
     isDraggingVertical.current = true
-    setIsDraggingVerticalState(true)
   }
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
-      if (isDraggingHorizontal.current && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
+      if (isDraggingHorizontal.current && CONTAINER_REF_REPLACEMENT.current) {
+        const rect = CONTAINER_REF_REPLACEMENT.current.getBoundingClientRect()
         const newLeft = ((e.clientX - rect.left) / rect.width) * 100
         setLeftWidth(Math.min(Math.max(newLeft, 20), 75))
       }
@@ -435,7 +479,6 @@ export default function IDEClient({
       isDraggingHorizontal.current = false
       isDraggingVertical.current = false
       setIsDraggingHorizontalState(false)
-      setIsDraggingVerticalState(false)
     }
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
@@ -469,9 +512,9 @@ export default function IDEClient({
       if (data.stdout && data.stdout.trim()) {
         setOutput(data.stdout)
       } else if (data.stderr && data.stderr.trim()) {
-        setOutput(`Compilation / Runtime Error:\n\n${data.stderr}`)
+        setOutput(`Compilation / Runtime Error:\\n\\n${data.stderr}`)
       } else if (data.code !== undefined && data.code !== 0) {
-        setOutput(`Process exited with code ${data.code}.\n${data.stderr || ''}`)
+        setOutput(`Process exited with code ${data.code}.\\n${data.stderr || ''}`)
       } else {
         setOutput('(No output)')
       }
@@ -482,21 +525,20 @@ export default function IDEClient({
     }
   }, [language, stdin])
 
-  const handleSubmit = useCallback(async () => {
-    if (!editorRef.current) return
-    const code = editorRef.current.getValue()
+  const handleSubmit = useCallback(async (overrideCode?: string, overrideLang?: 'cpp' | 'python' | 'java' | 'rust') => {
+    const code = overrideCode ?? editorRef.current?.getValue()
+    if (!code) return
+
+    const lang = overrideLang ?? language
     setIsSubmitting(true)
     setActiveConsoleTab('submissions')
     setCurrentSubmission({ status: 'PENDING', verdict: null })
-
-    // 3. Error Bubbling Trace:
-    console.log('Submitting problemId:', problem.id, 'language:', language)
 
     try {
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problemId: problem.id, code, language }),
+        body: JSON.stringify({ problemId: problem.id, code, language: lang }),
       })
       const data = await res.json()
 
@@ -507,12 +549,21 @@ export default function IDEClient({
       }
 
       const submissionId = data.submission_id
-      console.log('[IDE] Received submissionId:', submissionId)
+      const startTime = Date.now()
+      const TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
       // Poll for status
       const interval = setInterval(async () => {
         try {
-          console.log('[IDE] Polling for submissionId:', submissionId)
+          if (Date.now() - startTime > TIMEOUT_MS) {
+            clearInterval(interval)
+            pollingIntervalRef.current = null
+            setCurrentSubmission(prev => prev ? { ...prev, status: 'ERROR', verdict: 'System Unavailable or Timeout' } : { status: 'ERROR', verdict: 'System Unavailable or Timeout' })
+            setIsSubmitting(false)
+            fetchHistory()
+            return
+          }
+
           const pollRes = await fetch(`/api/submissions/${submissionId}`)
           const pollData = await pollRes.json() as Submission
 
@@ -524,7 +575,7 @@ export default function IDEClient({
               setIsSubmitting(false)
               fetchHistory() // Refresh history
 
-              // ─── Celebration (Confetti & Sound) ───
+              // Celebration
               if (pollData.verdict === 'Accepted' || pollData.verdict === 'AC') {
                 setIsSolved(true)
                 if (settings.sound_enabled) {
@@ -551,18 +602,45 @@ export default function IDEClient({
     }
   }, [language, problem.id, settings.sound_enabled, fetchHistory])
 
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 256 * 1024) {
+      alert('File is too large. Maximum size is 256 KB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = event.target?.result as string
+      if (editorRef.current) {
+        editorRef.current.setValue(content)
+      }
+      localStorage.setItem(`draft_${problem.id}`, content)
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      let detectedLang: 'cpp' | 'python' | 'java' | 'rust' = language as 'cpp' | 'python' | 'java' | 'rust'
+      if (ext === 'cpp' || ext === 'c' || ext === 'cc' || ext === 'cxx') {
+        detectedLang = 'cpp'
+      } else if (ext === 'py') {
+        detectedLang = 'python'
+      } else if (ext === 'java') {
+        detectedLang = 'java'
+      } else if (ext === 'rs') {
+        detectedLang = 'rust'
+      }
+      setLanguage(detectedLang)
+      handleSubmit(content, detectedLang)
+    }
+    reader.onerror = () => alert('Failed to read file.')
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
   const handleSubmitRef = useRef(handleSubmit)
   const handleRunRef = useRef(handleRunCode)
-
-  useEffect(() => {
-    handleSubmitRef.current = handleSubmit
-  }, [handleSubmit])
-
-  useEffect(() => {
-    handleRunRef.current = handleRunCode
-  }, [handleRunCode])
-
-
+  useEffect(() => { handleSubmitRef.current = handleSubmit }, [handleSubmit])
+  useEffect(() => { handleRunRef.current = handleRunCode }, [handleRunCode])
 
   const handleSendMentorMessage = async (isInitial = false) => {
     if (!editorRef.current) return
@@ -616,35 +694,22 @@ export default function IDEClient({
     }
   }
 
-  // Refs for state used in global listeners to avoid re-adding listener on every state change
   const isZenModeRef = useRef(isZenMode)
   const isSubmittingRef = useRef(isSubmitting)
   const isRunningRef = useRef(isRunning)
-
   useEffect(() => { isZenModeRef.current = isZenMode }, [isZenMode])
   useEffect(() => { isSubmittingRef.current = isSubmitting }, [isSubmitting])
   useEffect(() => { isRunningRef.current = isRunning }, [isRunning])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Zen mode toggle
-      if (e.key === 'Escape' && isZenModeRef.current) {
-        setIsZenMode(false)
-      }
-
-      // Keyboard shortcuts for Submit and Run
+      if (e.key === 'Escape' && isZenModeRef.current) setIsZenMode(false)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault()
         if (e.shiftKey) {
-          // Ctrl+Shift+Enter = Run
-          if (!isRunningRef.current && !isSubmittingRef.current) {
-            handleRunRef.current()
-          }
+          if (!isRunningRef.current && !isSubmittingRef.current) handleRunRef.current()
         } else {
-          // Ctrl+Enter = Submit
-          if (!isSubmittingRef.current && !isRunningRef.current) {
-            handleSubmitRef.current()
-          }
+          if (!isSubmittingRef.current && !isRunningRef.current) handleSubmitRef.current()
         }
       }
     }
@@ -657,470 +722,220 @@ export default function IDEClient({
 
   return (
     <div
-      ref={containerRef}
+      ref={CONTAINER_REF_REPLACEMENT}
       className={`flex h-full overflow-hidden relative ${isZenMode ? 'z-50 bg-background' : ''}`}
       style={{ cursor: horizontalCursor }}
     >
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* LEFT PANEL — Problem Description */}
-      {/* ═══════════════════════════════════════════════════════════ */}
       <div
         className="h-full flex flex-col overflow-hidden border-r border-border bg-card select-text"
         style={{ width: `${leftWidth}%` }}
       >
-        {/* Problem header */}
         <div className="px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-foreground font-mono leading-tight">{problem.title}</h1>
+              <h1 className="text-lg font-bold text-foreground font-mono leading-tight">${problem.title}</h1>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${diffColor}`}>
-                {problem.difficulty}
+                ${problem.difficulty}
               </span>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={toggleFlag}
-              className={`p-2 rounded-lg border transition-all ${
+              className={cn(
+                "transition-all",
                 isFlagged 
                   ? 'bg-amber-400/10 border-amber-400/50 text-amber-400' 
-                  : 'border-border text-muted-foreground hover:text-foreground hover:border-border'
-              }`}
+                  : 'text-muted-foreground'
+              )}
               title={isFlagged ? "Remove Flag" : "Flag Problem"}
             >
               <Flag className={`w-4 h-4 ${isFlagged ? 'fill-amber-400' : ''}`} />
-            </button>
+            </Button>
           </div>
 
-          {/* Limits */}
           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground font-medium">
             {problem.time_limit && (
-              <div className="flex items-center gap-1.5 bg-secondary/40 px-2 py-1 rounded-md border border-border/80">
+              <div className="flex items-center gap-1.5 bg-secondary px-2 py-1 rounded-lg border border-border">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground/60" />
-                <span>{problem.time_limit}</span>
+                <span>${problem.time_limit}</span>
               </div>
             )}
             {problem.memory_limit && (
-              <div className="flex items-center gap-1.5 bg-secondary/40 px-2 py-1 rounded-md border border-border/80">
+              <div className="flex items-center gap-1.5 bg-secondary px-2 py-1 rounded-lg border border-border">
                 <Cpu className="w-3.5 h-3.5 text-muted-foreground/60" />
-                <span>{problem.memory_limit}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Skill tags */}
-          <div className="flex flex-wrap gap-2 mt-3 relative group/tags">
-            {problem.requirements &&
-              Object.entries(problem.requirements).map(([skill]) => (
-                <span
-                  key={skill}
-                  onClick={() => shouldHideTags && setTagsRevealed(true)}
-                  className={cn(
-                    "bg-secondary/60 text-muted-foreground px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-border/50 uppercase tracking-wide transition-all duration-500",
-                    shouldHideTags && "blur-[4px] select-none opacity-40 cursor-pointer hover:opacity-60"
-                  )}
-                >
-                  {skill.replace('_', ' ')}
-                </span>
-              ))}
-            {shouldHideTags && (
-              <div 
-                className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                onClick={() => setTagsRevealed(true)}
-              >
-                <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-2 py-0.5 flex items-center gap-1.5 shadow-sm hover:bg-background transition-colors">
-                  <Eye className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Show Tags</span>
-                </div>
+                <span>${problem.memory_limit}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Problem content (scrollable) */}
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 text-[15px] text-foreground/90 leading-relaxed scrollbar-thin selection:bg-cyan-500/30 select-text">
-          {/* Description section */}
-          <div className="prose dark:prose-invert prose-sm max-w-none prose-pre:whitespace-pre-wrap">
-            <ReactMarkdown 
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[[rehypeKatex, { strict: 'ignore' }]]}
-              components={{
-                p: ({children}) => <div className="mb-5 last:mb-0 leading-[1.8] text-foreground/90">{children}</div>,
-                h1: ({children}) => <h2 className="text-lg font-bold text-foreground border-b border-border pb-2 mt-10 mb-4">{children}</h2>,
-                h2: ({children}) => <h2 className="text-lg font-bold text-foreground border-b border-border pb-2 mt-10 mb-4">{children}</h2>,
-                h3: ({children}) => <h3 className="text-md font-bold text-foreground mt-8 mb-3">{children}</h3>,
-                strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                ul: ({children}) => <ul className="list-disc pl-5 mb-5 space-y-2">{children}</ul>,
-                ol: ({children}) => <ol className="list-decimal pl-5 mb-5 space-y-2">{children}</ol>,
-                li: ({children}) => <li className="pl-1">{children}</li>,
-                pre: ({children}) => <div className="not-prose my-6">{children}</div>,
-                code: (props) => {
-                  const { children, className, ...rest } = props as any
-                  const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
-                  const contentString = String(children).replace(/\n$/, '')
-                  const isInline = !match && !contentString.includes('\n')
-
-                  if (isInline) {
-                    return (
-                      <code className="bg-secondary/80 px-1.5 py-0.5 rounded font-mono text-cyan-600 dark:text-cyan-400 text-[0.9em] border border-border/30" {...rest}>
-                        {children}
-                      </code>
-                    )
-                  }
-
-                  return (
-                    <div className="relative group my-4 rounded-xl overflow-hidden border border-border bg-secondary/20">
-                      <div className="flex items-center justify-between px-4 py-2 bg-secondary/30 border-b border-border/50">
-                        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                          {match ? match[1] : 'code'}
-                        </span>
-                        <CopyButton value={contentString} showText />
-                      </div>
-                      <pre className="p-4 overflow-x-auto font-mono text-[13px] leading-relaxed">
-                        <code className={className} {...rest}>
-                          {children}
-                        </code>
-                      </pre>
-                    </div>
-                  )
-                }
-              }}
-            >
-              {problem.description
-                  .replace(/\$\$\$/g, '$')
-                  .replace(/∗/g, '$\\ast$')
-                  .replace(/†/g, '$\\dagger$')
-                  .replace(/‡/g, '$\\ddagger$')}
-            </ReactMarkdown>
-          </div>
-
-          {/* Sample Input/Output Section */}
-          <div className="space-y-6 pt-6 border-t border-border/50">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">Sample Input</h3>
-                <div className="relative group">
-                  <pre className="bg-secondary/30 border border-border/60 p-4 rounded-xl font-mono text-[13px] text-foreground/90 overflow-x-auto whitespace-pre-wrap leading-normal">
-                    {problem.sample_input || extractSampleInput()}
-                  </pre>
-                  <CopyButton 
-                    value={problem.sample_input || extractSampleInput()} 
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">Sample Output</h3>
-                <div className="relative group">
-                  <pre className="bg-secondary/30 border border-border/60 p-4 rounded-xl font-mono text-[13px] text-foreground/90 overflow-x-auto whitespace-pre-wrap leading-normal">
-                    {problem.sample_output || '// No sample output.'}
-                  </pre>
-                  <CopyButton 
-                    value={problem.sample_output || ''} 
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                </div>
-              </div>
+          {problem.description && (
+            <div className="prose dark:prose-invert max-w-none [&>h2]:bg-muted/50 dark:[&>h2]:bg-muted/30 [&>h2]:inline-block [&>h2]:px-3 [&>h2]:py-1.5 [&>h2]:rounded-lg [&>h2]:text-sm [&>h2]:uppercase [&>h2]:tracking-wider [&>h2]:text-muted-foreground dark:[&>h2]:text-muted-foreground [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-4 [&>h3]:bg-muted/50 dark:[&>h3]:bg-muted/30 [&>h3]:inline-block [&>h3]:px-3 [&>h3]:py-1.5 [&>h3]:rounded-lg [&>h3]:text-sm [&>h3]:uppercase [&>h3]:tracking-wider [&>h3]:text-muted-foreground dark:[&>h3]:text-muted-foreground [&>h3]:font-bold [&>h3]:mt-6 [&>h3]:mb-3">
+              <MarkdownRenderer content={processDescription(problem.description)} />
             </div>
-          </div>
+          )}
 
-          {/* Note Section (Codeforces style) */}
           {problem.note && (
-            <div className="space-y-3 pt-6 border-t border-border/50">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">Note</h3>
+            <div className="space-y-3 pt-6 border-t border-border">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Notes</h3>
               <div className="bg-cyan-500/5 border-l-4 border-cyan-500/50 p-4 rounded-r-xl prose dark:prose-invert prose-sm max-w-none prose-pre:whitespace-pre-wrap">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[[rehypeKatex, { strict: 'ignore' }]]}
-                >
-                  {problem.note
-                    .replace(/\$\$\$/g, '$')
-                    .replace(/∗/g, '$\\ast$')
-                    .replace(/†/g, '$\\dagger$')
-                    .replace(/‡/g, '$\\ddagger$')}
-                </ReactMarkdown>
+                <MarkdownRenderer content={processDescription(problem.note)} />
               </div>
             </div>
           )}
 
-          {/* Skill requirements breakdown */}
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Skill Requirements</h3>
-            <div className="space-y-2.5">
-              {problem.requirements &&
-                Object.entries(problem.requirements).map(([skill, req]) => (
-                  <div key={skill}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground capitalize font-medium">{skill.replace('_', ' ')}</span>
-                      <span className="text-muted-foreground/60">{req.level}/100</span>
+          {problem.submission_stats && (
+            <div className="pt-6 border-t border-border grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Solved by</span>
+                <p className="text-xl font-mono font-bold text-foreground">${problem.submission_stats.solved_count}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Difficulty</span>
+                <div className="flex items-center gap-2">
+                  <p className="text-xl font-mono font-bold text-foreground">${problem.difficulty_rating || '---'}</p>
+                  {problem.difficulty_rating && (
+                    <div className="flex-1 max-w-[60px]">
+                      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all" 
+                          style={{ width: `${Math.min(100, (problem.difficulty_rating / 3500) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
-                        style={{ width: `${req.level}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* HORIZONTAL DRAG HANDLE */}
-      {/* ═══════════════════════════════════════════════════════════ */}
       <div
         className="w-1 cursor-col-resize bg-border hover:bg-cyan-500/60 transition-colors shrink-0 active:bg-cyan-500"
         onMouseDown={handleHorizontalMouseDown}
       />
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* RIGHT PANEL — Editor + Console */}
-      {/* ═══════════════════════════════════════════════════════════ */}
       <div
         ref={rightPanelRef}
         className="flex-1 h-full flex flex-col overflow-hidden"
       >
-        {/* Editor Panel */}
         <div
           className="flex flex-col overflow-hidden border-b border-border"
           style={{ height: `${editorHeight}%` }}
         >
-          {/* Editor header bar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-card shrink-0">
             <div className="flex items-center gap-3">
-              {/* Language selection */}
               <select
                 value={language}
-                onChange={(e) => handleLanguageChange(e.target.value as 'cpp' | 'python' | 'java' | 'rust')}
-                className="bg-secondary border border-border rounded-md px-2 py-1 text-[11px] font-mono font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="bg-secondary border border-border rounded-lg px-2 py-1 text-[11px] font-mono font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
               >
                 <option value="cpp">C++17</option>
                 <option value="python">Python 3</option>
                 <option value="java">Java 17</option>
                 <option value="rust">Rust 1.75</option>
+                <option value="go">Go 1.21</option>
+                <option value="javascript">JavaScript (Node.js)</option>
               </select>
               <Timer />
             </div>
             <div className="flex items-center gap-2">
-              {/* Hidden file input */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".cpp,.c,.cc,.cxx,.py,.java,.rs"
-                className="hidden"
-              />
-
-              {/* Upload File button */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border transition-all"
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".cpp,.c,.cc,.cxx,.py,.java,.rs" className="hidden" />
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => fileInputRef.current?.click()} 
                 title="Upload File"
               >
                 <Paperclip className="w-4 h-4" />
-              </button>
-
-              {/* Zen Mode toggle */}
-              <button
-                onClick={() => setIsZenMode(!isZenMode)}
-                className={`p-1.5 rounded-lg border transition-all ${
-                  isZenMode 
-                    ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-500' 
-                    : 'border-border text-muted-foreground hover:text-foreground hover:border-border'
-                }`}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setIsZenMode(!isZenMode)} 
+                className={cn(isZenMode && 'bg-cyan-500/10 border-cyan-500/50 text-cyan-500')}
                 title={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}
               >
                 {isZenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
-
-              {/* AI Mentor button */}
-              <button
-                onClick={handleAskMentorBtn}
-                disabled={isMentorThinking || isSubmitting || isRunning}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleAskMentorBtn} 
+                disabled={isMentorThinking || isSubmitting || isRunning} 
+                className="text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20 active:scale-95 transition-all shadow-none"
               >
-                {isMentorThinking ? (
-                  <span className="w-3.5 h-3.5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-                ) : (
-                  <Bot className="w-4 h-4" />
-                )}
+                {isMentorThinking ? <span className="w-3.5 h-3.5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" /> : <Bot className="w-4 h-4 mr-1.5" />}
                 Ask Mentor
-              </button>
-
-              {/* Submit button */}
-              <button 
-                onClick={handleSubmit}
-                disabled={isSubmitting || isRunning}
-                className="px-4 py-1.5 text-sm font-semibold text-foreground bg-secondary border border-border rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              </Button>
+              <Button 
+                variant="secondary"
+                onClick={() => handleSubmit()} 
+                disabled={isSubmitting || isRunning} 
+                className="gap-2 active:scale-95 shadow-none"
                 title={isMac ? "Submit (⌘ + Enter)" : "Submit (Ctrl + Enter)"}
               >
-                {isSubmitting ? 'Submitting...' : (
-                  <>
-                    Submit
-                    <span className="hidden sm:inline text-[10px] opacity-40 font-mono border border-border px-1 rounded bg-background/50">
-                      {isMac ? '⌘↵' : 'Ctrl+↵'}
-                    </span>
-                  </>
-                )}
-              </button>
-              {/* Run button */}
-              <button
-                onClick={handleRunCode}
-                disabled={isRunning || isSubmitting}
-                className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                {isSubmitting ? 'Submitting...' : (<>Submit <span className="hidden sm:inline text-[10px] opacity-40 font-mono border border-border px-1 rounded bg-background/50">{isMac ? '⌘↵' : 'Ctrl+↵'}</span></>)}
+              </Button>
+              <Button 
+                variant="primary"
+                onClick={handleRunCode} 
+                disabled={isRunning || isSubmitting} 
+                className="gap-2 bg-primary hover:bg-primary/90 hover:scale-100 shadow-none active:scale-95"
                 title={isMac ? "Run (⌘ + Shift + Enter)" : "Run (Ctrl + Shift + Enter)"}
               >
-                {isRunning ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    Running…
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                    <span>Run Code</span>
-                    <span className="hidden sm:inline text-[10px] opacity-60 font-mono border border-white/20 px-1 rounded bg-white/10">
-                      {isMac ? '⇧⌘↵' : 'Ctrl+⇧+↵'}
-                    </span>
-                  </>
-                )}
-              </button>
+                {isRunning ? (<><span className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Running…</>) : (<><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg><span>Run Code</span> <span className="hidden sm:inline text-[10px] opacity-60 font-mono border border-border px-1 rounded bg-white/10">{isMac ? '⇧⌘↵' : 'Ctrl+⇧+↵'}</span></>)}
+              </Button>
             </div>
           </div>
-
-          {/* Monaco Editor container */}
           <div className="flex-1 relative overflow-hidden bg-background">
             <Editor
               height="100%"
-              language={language === 'python' ? 'python' : language === 'java' ? 'java' : language === 'rust' ? 'rust' : 'cpp'}
+              language={language}
               defaultValue={initialCode || LANGUAGE_BOILERPLATES[language]}
               theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
               onMount={handleEditorDidMount}
-              loading={
-                <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
-                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <span className="w-6 h-6 border-2 border-muted-foreground/30 border-t-cyan-500 rounded-full animate-spin" />
-                    <span className="text-xs font-mono">Loading editor…</span>
-                  </div>
-                </div>
-              }
-              options={{
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
-                fontLigatures: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                padding: { top: 16, bottom: 16 },
-                lineNumbers: 'on',
-                glyphMargin: false,
-                folding: true,
-                wordWrap: 'off',
-                cursorBlinking: 'smooth',
-                smoothScrolling: true,
-                renderLineHighlight: 'line',
-                bracketPairColorization: { enabled: true },
-              }}
+              loading={<div className="absolute inset-0 flex items-center justify-center bg-background z-10"><div className="flex flex-col items-center gap-3 text-muted-foreground"><span className="w-6 h-6 border-2 border-muted-foreground/30 border-t-cyan-500 rounded-full animate-spin" /><span className="text-xs font-mono">Loading editor…</span></div></div>}
+              options={{ fontSize: 14, fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, scrollBeyondLastLine: false, automaticLayout: true, padding: { top: 16, bottom: 16 }, lineNumbers: 'on', glyphMargin: false, folding: true, wordWrap: 'off', cursorBlinking: 'smooth', smoothScrolling: true, renderLineHighlight: 'line', bracketPairColorization: { enabled: true } }}
             />
           </div>
         </div>
-
-        {/* VERTICAL DRAG HANDLE */}
-        <div
-          className="h-1 cursor-row-resize bg-border hover:bg-cyan-500/60 transition-colors shrink-0 active:bg-cyan-500"
-          onMouseDown={handleVerticalMouseDown}
-        />
-
-        {/* Console Panel */}
+        <div className="h-1 cursor-row-resize bg-border hover:bg-cyan-500/60 transition-colors shrink-0 active:bg-cyan-500" onMouseDown={handleVerticalMouseDown} />
         <div className="flex-1 flex flex-col overflow-hidden bg-card min-h-0">
-          {/* Console tab bar */}
           <div className="flex items-center border-b border-border shrink-0 px-2 overflow-x-auto">
             {(['testcases', 'results', 'submissions', 'history', 'mentor'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveConsoleTab(tab)}
-                className={`px-4 py-2.5 text-xs font-semibold capitalize transition-colors border-b-2 whitespace-nowrap ${
-                  activeConsoleTab === tab
-                    ? tab === 'mentor' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab === 'testcases' ? 'Test Cases' : 
-                 tab === 'results' ? 'Test Results' : 
-                 tab === 'mentor' ? <div className="flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" /> Mentor</div> : 
-                 tab === 'history' ? <div className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" /> My Submissions</div> : 
-                 'Current'}
+              <button key={tab} onClick={() => setActiveConsoleTab(tab)} className={`px-4 py-2.5 text-xs font-semibold capitalize transition-colors border-b whitespace-nowrap ${activeConsoleTab === tab ? tab === 'mentor' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+                {tab === 'testcases' ? 'Test Cases' : tab === 'results' ? 'Test Results' : tab === 'mentor' ? <div className="flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" /> Mentor</div> : tab === 'history' ? <div className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" /> My Submissions</div> : 'Current'}
               </button>
             ))}
           </div>
-
-          {/* Console content */}
           <div className="flex-1 overflow-hidden p-4">
             {activeConsoleTab === 'mentor' ? (
-              <MentorTab
-                mentorHistory={mentorHistory}
-                isMentorThinking={isMentorThinking}
-                chatInput={chatInput}
-                setChatInput={setChatInput}
-                onSendMessage={handleSendMentorMessage}
-              />
+              <MentorTab mentorHistory={mentorHistory} isMentorThinking={isMentorThinking} chatInput={chatInput} setChatInput={setChatInput} onSendMessage={handleSendMentorMessage} />
             ) : activeConsoleTab === 'submissions' ? (
               <SubmissionsTab currentSubmission={currentSubmission} />
             ) : activeConsoleTab === 'history' ? (
-              <HistoryTab
-                isLoadingHistory={isLoadingHistory}
-                submissionHistory={submissionHistory}
-                onViewSubmission={setViewingSubmission}
-              />
+              <HistoryTab isLoadingHistory={isLoadingHistory} submissionHistory={submissionHistory} onViewSubmission={setViewingSubmission} />
             ) : activeConsoleTab === 'testcases' ? (
               <div className="h-full flex flex-col gap-2">
-                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Custom Input (stdin)
-                </label>
-                <textarea
-                  value={stdin}
-                  onChange={(e) => setStdin(e.target.value)}
-                  className="flex-1 w-full bg-secondary/50 border border-border rounded-lg p-3 text-xs font-mono text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-colors placeholder:text-muted-foreground"
-                  placeholder="Enter your test input here…"
-                  spellCheck={false}
-                />
+                <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Custom Input (stdin)</label>
+                <Textarea value={stdin} onChange={(e) => setStdin(e.target.value)} className="flex-1 font-mono text-xs border-border bg-background focus:ring-0 focus:border-cyan-500/50" placeholder="Enter your test input here…" spellCheck={false} />
               </div>
             ) : (
               <div className="h-full flex flex-col gap-2">
                 <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Output</label>
                 <div className="flex-1 relative group overflow-hidden rounded-lg">
-                  <pre className="h-full w-full bg-secondary/50 border border-border p-3 text-xs font-mono text-foreground overflow-auto whitespace-pre-wrap">
-                    {isRunning ? (
-                      <span className="text-cyan-600 dark:text-cyan-400 animate-pulse">Executing…</span>
-                    ) : output !== null ? (
-                      output
-                    ) : (
-                      <span className="text-muted-foreground">Run your code to see results here.</span>
-                    )}
-                  </pre>
-                  {output !== null && !isRunning && (
-                    <CopyButton 
-                      value={output} 
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  )}
+                  <pre className="h-full w-full bg-muted border border-border p-3 text-xs font-mono text-foreground overflow-auto whitespace-pre-wrap">{isRunning ? <span className="text-cyan-600 dark:text-cyan-400 animate-pulse">Executing…</span> : output !== null ? output : <span className="text-muted-foreground">Run your code to see results here.</span>}</pre>
+                  {output !== null && !isRunning && <CopyButton value={output} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />}
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {viewingSubmission && (
-        <SubmissionModal
-          submission={viewingSubmission}
-          onClose={() => setViewingSubmission(null)}
-          onRestore={handleRestoreCode}
-        />
-      )}
+      {viewingSubmission && <SubmissionModal submission={viewingSubmission} onClose={() => setViewingSubmission(null)} onRestore={handleRestoreCode} />}
     </div>
   )
 }

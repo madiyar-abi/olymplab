@@ -133,7 +133,7 @@ export default function DSUVisualizer() {
 
         {/* Info & History */}
         <div className="space-y-4">
-          <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+          <div className="bg-muted/30 p-4 rounded-xl border border-border">
             <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
               <Info className="w-3 h-3" />
               Подсказка
@@ -144,7 +144,7 @@ export default function DSUVisualizer() {
             </p>
           </div>
 
-          <div className="bg-muted/30 p-4 rounded-xl border border-border/50 flex-1">
+          <div className="bg-muted/30 p-4 rounded-xl border border-border flex-1">
             <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3">История операций</h5>
             <div className="space-y-2">
               <AnimatePresence initial={false}>
@@ -153,7 +153,7 @@ export default function DSUVisualizer() {
                     key={i}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="text-[11px] font-mono text-muted-foreground border-l-2 border-sky-500/30 pl-2 py-1"
+                    className="text-[11px] font-mono text-muted-foreground border-l border-sky-500/30 pl-2 py-1"
                   >
                     {item}
                   </motion.div>

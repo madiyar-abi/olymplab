@@ -1,3 +1,5 @@
+import { Skeleton } from "@/components/ui/Skeleton"
+
 export default function ArticleLoading() {
   return (
     <div className="h-full overflow-y-auto bg-background text-foreground relative">
@@ -5,11 +7,11 @@ export default function ArticleLoading() {
       <div className="sticky top-0 z-20 border-b border-border px-8 py-4 backdrop-blur-md bg-background/80">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-4 w-20 bg-muted/40 rounded-md animate-pulse" />
-            <div className="h-4 w-4 bg-muted/20 rounded-md" />
-            <div className="h-4 w-32 bg-muted/30 rounded-md animate-pulse" />
+            <Skeleton className="h-4 w-20" />
+            <div className="h-4 w-4 bg-white/5 rounded-md" />
+            <Skeleton className="h-4 w-32" />
           </div>
-          <div className="h-6 w-32 bg-muted/20 rounded-full animate-pulse" />
+          <Skeleton className="h-6 w-32 rounded-full" />
         </div>
       </div>
 
@@ -18,43 +20,43 @@ export default function ArticleLoading() {
         {/* Badges */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-7 w-28 bg-muted/30 rounded-lg animate-pulse" />
-            <div className="h-4 w-16 bg-muted/20 rounded-md animate-pulse" />
+            <Skeleton className="h-7 w-28 rounded-lg" />
+            <Skeleton className="h-4 w-16" />
           </div>
-          <div className="h-6 w-32 bg-muted/20 rounded-md animate-pulse" />
+          <Skeleton className="h-6 w-32" />
         </div>
 
         {/* Title */}
-        <div className="h-10 w-3/4 bg-muted/50 rounded-lg animate-pulse mb-6" />
+        <Skeleton className="h-10 w-3/4 rounded-lg mb-6" />
         
         <div className="flex gap-2 mb-8 mt-4">
-          <div className="h-5 w-24 bg-muted/20 rounded-md animate-pulse" />
-          <div className="h-5 w-16 bg-muted/20 rounded-md animate-pulse" />
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-5 w-16" />
         </div>
 
         <div className="border-t border-border mt-6 mb-8" />
 
         {/* Paragraphs */}
         <div className="space-y-4 mb-10">
-          <div className="h-4 w-full bg-muted/30 rounded-md animate-pulse" />
-          <div className="h-4 w-11/12 bg-muted/30 rounded-md animate-pulse" />
-          <div className="h-4 w-5/6 bg-muted/30 rounded-md animate-pulse" />
-          <div className="h-4 w-full bg-muted/30 rounded-md animate-pulse" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-full" />
         </div>
 
-        <div className="h-6 w-1/3 bg-muted/40 rounded-lg animate-pulse mb-4" />
+        <Skeleton className="h-6 w-1/3 rounded-lg mb-4" />
         <div className="space-y-4 mb-10">
-          <div className="h-4 w-full bg-muted/30 rounded-md animate-pulse" />
-          <div className="h-4 w-full bg-muted/30 rounded-md animate-pulse" />
-          <div className="h-4 w-4/6 bg-muted/30 rounded-md animate-pulse" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/6" />
         </div>
 
         {/* Code block skeleton */}
-        <div className="h-48 w-full bg-muted/10 border border-border/50 rounded-xl animate-pulse mb-10" />
+        <Skeleton className="h-48 w-full rounded-xl mb-10" />
 
         <div className="space-y-4">
-          <div className="h-4 w-11/12 bg-muted/30 rounded-md animate-pulse" />
-          <div className="h-4 w-3/4 bg-muted/30 rounded-md animate-pulse" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-3/4" />
         </div>
       </div>
     </div>

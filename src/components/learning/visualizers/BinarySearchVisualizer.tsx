@@ -309,7 +309,7 @@ export default function BinarySearchVisualizer({
             </div>
           </div>
 
-          <div className="mt-4 p-4 rounded-xl bg-muted/30 border border-border/50">
+          <div className="mt-4 p-4 rounded-xl bg-muted/30 border border-border">
             <div className="flex items-start gap-3">
               <div className="p-2 rounded-lg bg-sky-500/10 text-sky-500 mt-0.5">
                 <Info className="w-4 h-4" />
@@ -341,7 +341,7 @@ export default function BinarySearchVisualizer({
                 key={idx}
                 className={cn(
                   "py-0.5 px-2 rounded-sm transition-colors duration-200",
-                  step.codeLine === idx ? "bg-sky-500/20 text-sky-400 border-l-2 border-sky-500 -ml-2" : "text-zinc-500"
+                  step.codeLine === idx ? "bg-sky-500/20 text-sky-400 border-l border-sky-500 -ml-2" : "text-zinc-500"
                 )}
               >
                 <span className="inline-block w-4 text-zinc-700 mr-2 select-none">{idx + 1}</span>

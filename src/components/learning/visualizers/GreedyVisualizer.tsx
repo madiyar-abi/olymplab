@@ -119,7 +119,7 @@ export default function GreedyVisualizer() {
       </div>
 
       <div className="relative pt-6 pb-6 w-full overflow-x-auto">
-        <div className="min-w-[500px] border-l-2 border-r-2 border-border/50 relative" style={{ height: `${step.intervals.length * 40 + 40}px` }}>
+        <div className="min-w-[500px] border-l border-r border-border relative" style={{ height: `${step.intervals.length * 40 + 40}px` }}>
           {/* Time axis */}
           <div className="absolute top-0 left-0 w-full flex justify-between px-2 text-[10px] font-mono text-muted-foreground">
             {Array.from({ length: maxTime + 1 }).map((_, i) => (
@@ -151,7 +151,7 @@ export default function GreedyVisualizer() {
                     }}
                   >
                     <div className={cn(
-                      "w-full h-6 rounded-md border-2 text-[10px] font-bold flex items-center justify-center font-mono shadow-sm transition-colors",
+                      "w-full h-6 rounded-md border text-[10px] font-bold flex items-center justify-center font-mono shadow-sm transition-colors",
                       isSelected ? "bg-emerald-500/20 border-emerald-500 text-emerald-500" :
                       isActive ? "bg-amber-500/20 border-amber-500 text-amber-500" :
                       "bg-secondary border-border text-muted-foreground"
@@ -166,7 +166,7 @@ export default function GreedyVisualizer() {
         </div>
       </div>
 
-      <div className="mt-4 bg-muted/30 p-4 rounded-xl border border-border/50 font-mono text-xs text-muted-foreground">
+      <div className="mt-4 bg-muted/30 p-4 rounded-xl border border-border font-mono text-xs text-muted-foreground">
         <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
       </div>
     </div>

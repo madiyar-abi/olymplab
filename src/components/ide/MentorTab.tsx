@@ -7,6 +7,8 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { Bot } from 'lucide-react'
 import { CopyButton } from '@/components/ui/CopyButton'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 export interface MentorMessage {
   role: 'user' | 'model'
@@ -45,12 +47,13 @@ export function MentorTab({
             Застряли? Нажмите &quot;Ask Mentor&quot;, чтобы получить подсказку без раскрытия полного решения.
             Ментор проанализирует вашу логику и направит в нужную сторону!
           </p>
-          <button
+          <Button
             onClick={() => onSendMessage(true)}
-            className="px-4 py-2 mt-2 text-xs font-semibold text-purple-600 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors"
+            variant="outline"
+            className="mt-2 text-purple-600 bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20"
           >
             Начать анализ кода
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -127,7 +130,7 @@ export function MentorTab({
 
           <div className="pt-3 border-t border-border mt-2 shrink-0">
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -138,16 +141,16 @@ export function MentorTab({
                   }
                 }}
                 placeholder="Ответьте ментору или задайте вопрос..."
-                className="flex-1 bg-secondary border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                className="flex-1 focus:ring-purple-500/50"
                 disabled={isMentorThinking}
               />
-              <button
+              <Button
                 onClick={() => onSendMessage(false)}
                 disabled={!chatInput.trim() || isMentorThinking}
-                className="px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 Отправить
-              </button>
+              </Button>
             </div>
           </div>
         </>

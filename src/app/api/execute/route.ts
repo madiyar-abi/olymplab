@@ -13,8 +13,9 @@ export async function POST(request: Request) {
     const langLower = language.toLowerCase()
     if (langLower.includes('python')) compiler = 'cpython-head'
     else if (langLower.includes('java')) compiler = 'openjdk-head'
-    else if (langLower.includes('node') || langLower.includes('js')) compiler = 'nodejs-head'
+    else if (langLower.includes('node') || langLower.includes('js') || langLower.includes('javascript')) compiler = 'nodejs-head'
     else if (langLower.includes('rust')) compiler = 'rust-head'
+    else if (langLower.includes('go')) compiler = 'go-head'
 
     // Wandbox API
     const response = await fetch('https://wandbox.org/api/compile.json', {

@@ -73,7 +73,7 @@ export default function StackQueueVisualizer({ type = 'stack' }: StackQueueVisua
       </div>
 
       <div className={cn(
-        "flex min-h-[200px] border-2 border-dashed border-border/50 rounded-xl p-8 items-center justify-center",
+        "flex min-h-[200px] border border-dashed border-border rounded-xl p-8 items-center justify-center",
         type === 'stack' ? "flex-col-reverse" : "flex-row"
       )}>
         <AnimatePresence mode="popLayout">
@@ -91,7 +91,7 @@ export default function StackQueueVisualizer({ type = 'stack' }: StackQueueVisua
                 transition: { duration: 0.2 } 
               }}
               className={cn(
-                "w-16 h-16 flex items-center justify-center rounded-xl border-2 font-mono font-bold text-lg shadow-lg bg-background relative",
+                "w-16 h-16 flex items-center justify-center rounded-xl border font-mono font-bold text-lg shadow-lg bg-background relative",
                 idx === items.length - 1 && type === 'stack' ? "border-amber-500 text-amber-500 shadow-amber-500/20" : 
                 idx === 0 && type === 'queue' ? "border-amber-500 text-amber-500 shadow-amber-500/20" : "border-primary/50 text-foreground"
               )}

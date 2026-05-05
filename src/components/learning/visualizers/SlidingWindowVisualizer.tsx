@@ -166,7 +166,7 @@ export default function SlidingWindowVisualizer() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-muted/30 border border-border/50 md:col-span-2">
+        <div className="p-4 rounded-xl bg-muted/30 border border-border md:col-span-2">
           <div className="flex items-start gap-3">
             <Info className="w-4 h-4 text-sky-500 mt-1" />
             <p className="text-sm text-foreground leading-relaxed">{step.explanation}</p>

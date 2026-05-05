@@ -81,7 +81,7 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
                 <div
                   key={idx}
                   className={cn(
-                    "w-12 h-12 flex items-center justify-center rounded-lg border-2 font-mono font-bold transition-all relative",
+                    "w-12 h-12 flex items-center justify-center rounded-lg border font-mono font-bold transition-all relative",
                     inRange ? "border-amber-500 bg-amber-500/20 text-amber-500 scale-105 z-10" :
                     idx === currentStep ? "border-amber-500 bg-amber-500/10 text-amber-500 scale-110" : 
                     idx < currentStep ? "border-emerald-500/50 text-emerald-500/70" : "border-border text-muted-foreground"
@@ -115,7 +115,7 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
                     color: idx === currentStep || isR || isLminus1 ? '#ffffff' : 'inherit'
                   }}
                   className={cn(
-                    "w-12 h-12 flex flex-col items-center justify-center rounded-lg border-2 font-mono font-bold transition-all relative"
+                    "w-12 h-12 flex flex-col items-center justify-center rounded-lg border font-mono font-bold transition-all relative"
                   )}
                 >
                   <span className="text-[8px] opacity-50 absolute -top-5">{idx}</span>

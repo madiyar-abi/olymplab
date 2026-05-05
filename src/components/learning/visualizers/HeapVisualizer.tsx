@@ -165,7 +165,7 @@ export default function HeapVisualizer() {
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg border border-border/50">
+        <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg border border-border">
           <span className="text-[10px] font-bold text-muted-foreground uppercase mr-2 self-center">Массив:</span>
           {step.array.map((val, idx) => (
             <div 
@@ -181,7 +181,7 @@ export default function HeapVisualizer() {
             </div>
           ))}
         </div>
-        <div className="bg-muted/30 p-3 rounded-xl border border-border/50 font-mono text-[11px] text-muted-foreground">
+        <div className="bg-muted/30 p-3 rounded-xl border border-border font-mono text-[11px] text-muted-foreground">
           <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
         </div>
       </div>

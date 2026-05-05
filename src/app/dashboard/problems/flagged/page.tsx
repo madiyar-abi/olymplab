@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { ProblemsClient, Problem } from '../ProblemsClient'
 import { motion } from 'framer-motion'
 import { Flag } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const subscribe = () => () => {}
 const getSnapshot = () => true
@@ -11,13 +12,21 @@ const getServerSnapshot = () => false
 
 export default function FlaggedProblemsPage() {
   const [flaggedProblems, setFlaggedProblems] = useState<Problem[]>([])
+  const [userId, setUserId] = useState<string | undefined>()
   const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const supabase = createClient()
 
   useEffect(() => {
     const list = JSON.parse(localStorage.getItem('flagged_problems_list') || '[]')
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFlaggedProblems(list)
-  }, [])
+
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) setUserId(user.id)
+    }
+    fetchUser()
+  }, [supabase])
 
   if (!isMounted) {
     return null
@@ -57,7 +66,7 @@ export default function FlaggedProblemsPage() {
           </div>
         </motion.header>
 
-        <ProblemsClient problems={flaggedProblems} hideHeader={true} />
+        <ProblemsClient problems={flaggedProblems} hideHeader={true} userId={userId} />
       </div>
     </div>
   )

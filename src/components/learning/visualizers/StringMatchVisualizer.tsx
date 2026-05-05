@@ -114,7 +114,7 @@ export default function StringMatchVisualizer({ text = "ABABDABACDABABCABAB", pa
               
               return (
                 <div key={`p-${idx}`} className={cn(
-                  "w-8 h-10 flex-shrink-0 flex items-center justify-center rounded border-2 font-mono font-bold text-sm transition-all",
+                  "w-8 h-10 flex-shrink-0 flex items-center justify-center rounded border font-mono font-bold text-sm transition-all",
                   isCompared 
                     ? (isMatch ? "border-emerald-500 bg-emerald-500/20 text-emerald-500" : "border-rose-500 bg-rose-500/20 text-rose-500") 
                     : "border-primary/30 bg-primary/5 text-primary",
@@ -128,7 +128,7 @@ export default function StringMatchVisualizer({ text = "ABABDABACDABABCABAB", pa
         </div>
       </div>
 
-      <div className="mt-6 bg-muted/30 p-4 rounded-xl border border-border/50 font-mono text-xs text-muted-foreground">
+      <div className="mt-6 bg-muted/30 p-4 rounded-xl border border-border font-mono text-xs text-muted-foreground">
         <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
       </div>
     </div>

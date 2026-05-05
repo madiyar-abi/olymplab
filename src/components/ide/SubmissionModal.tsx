@@ -72,9 +72,9 @@ export function SubmissionModal({ submission, onClose, onRestore }: SubmissionMo
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-            {submission.test_case !== undefined && <span>Test: {submission.test_case}</span>}
-            {submission.time_ms !== undefined && <span>Time: {submission.time_ms}ms</span>}
-            {submission.memory_kb !== undefined && (
+            {submission.test_case != null && <span>Test: {submission.test_case}</span>}
+            {submission.time_ms != null && <span>Time: {submission.time_ms}ms</span>}
+            {submission.memory_kb != null && (
               <span>
                 Memory:{' '}
                 {submission.memory_kb < 1024

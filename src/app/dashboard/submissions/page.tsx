@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Clock, Code2, ExternalLink, Hash, Zap, Cpu } from 'lucide-react'
 import { VerdictBadge } from '@/components/ui/VerdictBadge'
 
+import { StaggerTableBody, StaggerTableRow } from '@/components/shared/Stagger'
+
 interface Submission {
   id: string
   problem_id: string
@@ -76,7 +78,7 @@ export default async function SubmissionsPage() {
           </p>
         </header>
 
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm overflow-hidden transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)]">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -89,9 +91,9 @@ export default async function SubmissionsPage() {
                   <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <StaggerTableBody>
                 {!submissions || submissions.length === 0 ? (
-                  <tr>
+                  <tr className="hover:bg-transparent">
                     <td colSpan={6} className="px-6 py-24 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <div className="w-16 h-16 rounded-full bg-secondary/50 border border-border flex items-center justify-center text-muted-foreground">
@@ -114,7 +116,7 @@ export default async function SubmissionsPage() {
                   </tr>
                 ) : (
                   (submissions as unknown as Submission[]).map((sub) => (
-                    <tr key={sub.id} className="hover:bg-secondary/30 transition-colors">
+                    <StaggerTableRow key={sub.id} className="hover:bg-secondary/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-[10px] text-muted-foreground font-mono mb-1">#{sub.id.slice(0, 8)}</span>
@@ -140,7 +142,7 @@ export default async function SubmissionsPage() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <VerdictBadge verdict={sub.verdict || sub.status} />
-                          {sub.test_case !== null && (
+                          {sub.test_case != null && (
                             <span className="text-[10px] text-muted-foreground font-mono">
                               on test {sub.test_case}
                             </span>
@@ -174,10 +176,10 @@ export default async function SubmissionsPage() {
                           <ExternalLink className="w-3 h-3" />
                         </Link>
                       </td>
-                    </tr>
+                    </StaggerTableRow>
                   ))
                 )}
-              </tbody>
+              </StaggerTableBody>
             </table>
           </div>
         </div>

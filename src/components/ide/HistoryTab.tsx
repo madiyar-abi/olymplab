@@ -34,7 +34,7 @@ export function HistoryTab({ isLoadingHistory, submissionHistory, onViewSubmissi
                 <th className="py-2 px-2 text-right">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className="divide-y divide-white/5">
               {submissionHistory.map((sub) => (
                 <tr
                   key={sub.id}
@@ -44,7 +44,7 @@ export function HistoryTab({ isLoadingHistory, submissionHistory, onViewSubmissi
                   <td className="py-3 px-2">
                     <div className="flex flex-col gap-0.5">
                       <VerdictBadge verdict={sub.verdict} size="sm" />
-                      {sub.test_case !== undefined && (
+                      {sub.test_case != null && (
                         <span className="text-[9px] text-muted-foreground font-mono">
                           test {sub.test_case}
                         </span>
@@ -55,10 +55,10 @@ export function HistoryTab({ isLoadingHistory, submissionHistory, onViewSubmissi
                     {sub.language}
                   </td>
                   <td className="py-3 px-2 text-xs font-mono text-muted-foreground">
-                    {sub.time_ms !== undefined ? `${sub.time_ms}ms` : '—'}
+                    {sub.time_ms != null ? `${sub.time_ms}ms` : '—'}
                   </td>
                   <td className="py-3 px-2 text-xs font-mono text-muted-foreground">
-                    {sub.memory_kb !== undefined
+                    {sub.memory_kb != null
                       ? sub.memory_kb < 1024
                         ? `${sub.memory_kb}KB`
                         : `${(sub.memory_kb / 1024).toFixed(1)}MB`

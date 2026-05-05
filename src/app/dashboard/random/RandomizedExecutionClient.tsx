@@ -97,7 +97,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
         )}
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-card border border-border rounded-2xl shadow-sm text-center relative overflow-hidden min-h-[500px]">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-card/80 backdrop-blur-sm border border-border rounded-2xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)] text-center relative overflow-hidden min-h-[500px]">
         {/* Background decorative elements */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded bg-primary/5 blur-3xl animate-pulse" />
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded bg-accent/5 blur-3xl animate-pulse" />
@@ -165,7 +165,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
           <h3 className="text-xs font-bold text-muted-foreground mb-4 font-mono uppercase tracking-[0.2em] opacity-60">Previous Execution</h3>
           <div 
             onClick={() => router.push(`/dashboard/problems/${lastProblem.id}`)}
-            className="flex items-center p-5 bg-secondary/20 border border-border/50 rounded-xl hover:border-primary/40 hover:bg-secondary/40 transition-all cursor-pointer group"
+            className="flex items-center p-6 bg-card/80 backdrop-blur-sm border border-border rounded-2xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)] cursor-pointer group"
           >
             <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 mr-5 border border-emerald-500/20 group-hover:scale-110 transition-transform">
               <Trophy className="w-6 h-6" />

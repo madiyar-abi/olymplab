@@ -33,13 +33,14 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
   // Fetch user's code template and settings
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('code_template, settings')
+    .select('code_template, settings, preferred_language')
     .eq('id', user.id)
     .single()
 
   const profile = profileData as { 
     code_template: string | null;
     settings: { sound_enabled: boolean; hide_unsolved_tags?: boolean } | null;
+    preferred_language: string | null;
   } | null
 
   // Check if problem is already solved
@@ -54,7 +55,7 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
   const isSolved = (solvedData?.length ?? 0) > 0
 
   let initialCode = profile?.code_template || undefined
-  let initialLanguage: 'cpp' | 'python' | 'java' | 'rust' = 'cpp'
+  let initialLanguage = (profile?.preferred_language || 'cpp') as any
 
   // If viewing a specific submission, fetch that code instead
   if (submissionId) {
@@ -67,7 +68,7 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
 
     if (subData) {
       initialCode = subData.code || initialCode
-      initialLanguage = (subData.language as 'cpp' | 'python' | 'java' | 'rust') || initialLanguage
+      initialLanguage = subData.language || initialLanguage
     }
   } else {
     // Fetch latest submission for this problem to restore last code
@@ -82,7 +83,7 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
 
     if (latestSub) {
       initialCode = latestSub.code || initialCode
-      initialLanguage = (latestSub.language as 'cpp' | 'python' | 'java' | 'rust') || initialLanguage
+      initialLanguage = latestSub.language || initialLanguage
     }
   }
 

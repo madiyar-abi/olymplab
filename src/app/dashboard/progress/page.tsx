@@ -32,7 +32,7 @@ export default function ProgressPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Skills Overview */}
-        <section className="rounded-xl border border-border bg-card p-6 md:p-8 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-6 md:p-8 transition-all duration-500 ease-out hover:-translate-y-1 shadow-sm hover:shadow-md">
           <h2 className="text-lg font-bold text-foreground mb-6 flex items-center font-mono uppercase tracking-widest">
             <span className="text-primary mr-3 text-lg">■</span>
             Skill Mastery
@@ -57,7 +57,7 @@ export default function ProgressPage() {
         </section>
 
         {/* Recent Activity */}
-        <section className="rounded-xl border border-border bg-card p-6 md:p-8 shadow-sm">
+        <section className="rounded-xl border border-border bg-card p-6 md:p-8 transition-all duration-500 ease-out hover:-translate-y-1 shadow-sm hover:shadow-md">
           <h2 className="text-lg font-bold text-foreground mb-6 flex items-center font-mono uppercase tracking-widest">
             <span className="text-primary mr-3 text-lg">▶</span>
             Execution Log
@@ -68,10 +68,10 @@ export default function ProgressPage() {
               <div key={index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                 <div className="flex items-center justify-center w-10 h-10 rounded border border-border bg-background text-muted-foreground shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 shadow-sm">
                   <div className={`w-2 h-2 rounded-sm ${
-                    activity.type === 'solve' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)] dark:shadow-[0_0_8px_rgba(34,197,94,0.5)]' :
-                    activity.type === 'achievement' ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.3)] dark:shadow-[0_0_8px_rgba(234,179,8,0.5)]' :
-                    activity.type === 'streak' ? 'bg-accent shadow-[0_0_8px_rgba(168,85,247,0.3)] dark:shadow-[0_0_8px_rgba(168,85,247,0.5)]' :
-                    'bg-primary shadow-[0_0_8px_rgba(59,130,246,0.3)] dark:shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                    activity.type === 'solve' ? 'bg-green-500 shadow-sm' :
+                    activity.type === 'achievement' ? 'bg-yellow-500 shadow-sm' :
+                    activity.type === 'streak' ? 'bg-accent shadow-sm' :
+                    'bg-primary shadow-sm'
                   }`} />
                 </div>
                 

@@ -86,7 +86,7 @@ function intensityClass(count: number, isEmpty: boolean) {
   if (count <= 2)  return 'bg-[#0e4429] border-[#006d32]/30'
   if (count <= 5)  return 'bg-[#006d32] border-[#26a641]/40'
   if (count <= 8)  return 'bg-[#26a641] border-[#39d353]/50'
-  return 'bg-[#39d353] border-[#39d353]/60 shadow-[0_0_8px_rgba(57,211,83,0.15)] dark:shadow-[0_0_8px_rgba(57,211,83,0.25)]'
+  return 'bg-[#39d353] border-[#39d353]/60 shadow-sm'
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────

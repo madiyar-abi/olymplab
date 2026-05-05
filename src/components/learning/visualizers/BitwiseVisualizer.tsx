@@ -86,7 +86,7 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
                   borderColor: bit === '1' ? 'rgba(56, 189, 248, 0.5)' : 'rgba(63, 63, 70, 0.5)',
                   color: bit === '1' ? '#38bdf8' : '#71717a'
                 }}
-                className="w-10 h-12 flex flex-col items-center justify-center rounded-lg border-2 text-base font-bold shadow-sm"
+                className="w-10 h-12 flex flex-col items-center justify-center rounded-lg border text-base font-bold shadow-sm"
               >
                 {bit}
                 <span className="text-[7px] opacity-40 mt-1">{Math.pow(2, 7-i)}</span>
@@ -115,7 +115,7 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
               </div>
               <div className="flex justify-center gap-1.5">
                 {binB.map((bit, i) => (
-                  <div key={`b-${i}`} className={cn("w-10 h-12 flex flex-col items-center justify-center rounded-lg border-2 text-base font-bold transition-all shadow-sm", bit === '1' ? "bg-purple-500/10 border-purple-500/40 text-purple-400" : "bg-muted/50 border-border/50 text-muted-foreground")}>
+                  <div key={`b-${i}`} className={cn("w-10 h-12 flex flex-col items-center justify-center rounded-lg border text-base font-bold transition-all shadow-sm", bit === '1' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-muted/50 border-border text-muted-foreground")}>
                     {bit}
                     <span className="text-[7px] opacity-40 mt-1">{Math.pow(2, 7-i)}</span>
                   </div>
@@ -154,8 +154,8 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: i * 0.03 }}
                   className={cn(
-                    "w-10 h-12 flex flex-col items-center justify-center rounded-lg border-2 text-base font-bold shadow-lg transition-all", 
-                    bit === '1' ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-emerald-500/10" : "bg-muted/30 border-border text-muted-foreground"
+                    "w-10 h-12 flex flex-col items-center justify-center rounded-lg border text-base font-bold shadow-lg transition-all", 
+                    bit === '1' ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-emerald-500/10" : "bg-muted/30 border-border text-muted-foreground"
                   )}
                 >
                   {bit}

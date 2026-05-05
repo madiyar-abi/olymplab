@@ -1,3 +1,5 @@
+import { Skeleton } from "@/components/ui/Skeleton"
+
 export default function ProblemsLoading() {
   return (
     <div className="h-full overflow-y-auto p-8 max-w-7xl mx-auto w-full">
@@ -5,10 +7,10 @@ export default function ProblemsLoading() {
         {/* Header Skeleton */}
         <header className="flex items-end justify-between">
           <div>
-            <div className="h-9 w-64 bg-muted/50 rounded-lg animate-pulse mb-2" />
-            <div className="h-4 w-48 bg-muted/30 rounded-md animate-pulse" />
+            <Skeleton className="h-9 w-64 rounded-lg mb-2" />
+            <Skeleton className="h-4 w-48" />
           </div>
-          <div className="h-7 w-24 bg-muted/40 rounded-lg animate-pulse" />
+          <Skeleton className="h-7 w-24 rounded-lg" />
         </header>
 
         {/* Sections Skeletons */}
@@ -17,10 +19,10 @@ export default function ProblemsLoading() {
             {/* Section Header */}
             <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="w-1.5 h-5 bg-muted rounded-full animate-pulse" />
-                <div className="h-6 w-40 bg-muted/50 rounded-md animate-pulse" />
+                <Skeleton className="w-1.5 h-5 rounded-full" />
+                <Skeleton className="h-6 w-40" />
               </div>
-              <div className="h-4 w-20 bg-muted/30 rounded-md animate-pulse" />
+              <Skeleton className="h-4 w-20" />
             </div>
 
             {/* Grid Skeletons */}
@@ -28,18 +30,18 @@ export default function ProblemsLoading() {
               {[1, 2, 3].map((item) => (
                 <div 
                   key={item}
-                  className="h-[180px] bg-card border border-border rounded-2xl p-5 flex flex-col justify-between"
+                  className="h-[180px] bg-white/[0.02] border-none rounded-2xl p-5 flex flex-col justify-between"
                 >
                   <div className="flex justify-between items-start gap-4">
-                    <div className="h-5 w-3/4 bg-muted/50 rounded-md animate-pulse" />
-                    <div className="h-6 w-16 bg-muted/40 rounded-md animate-pulse" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-6 w-16" />
                   </div>
                   <div className="flex items-end justify-between mt-auto gap-2">
                     <div className="flex gap-1.5">
-                      <div className="h-6 w-12 bg-muted/30 rounded-md animate-pulse" />
-                      <div className="h-6 w-16 bg-muted/30 rounded-md animate-pulse" />
+                      <Skeleton className="h-6 w-12" />
+                      <Skeleton className="h-6 w-16" />
                     </div>
-                    <div className="h-9 w-20 bg-muted/40 rounded-xl animate-pulse" />
+                    <Skeleton className="h-9 w-20 rounded-xl" />
                   </div>
                 </div>
               ))}

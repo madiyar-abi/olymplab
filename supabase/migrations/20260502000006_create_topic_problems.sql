@@ -40,5 +40,6 @@ CREATE INDEX IF NOT EXISTS idx_topic_problems_diff     ON topic_problems (cf_rat
 -- Enable RLS (read-only for authenticated users, full access via service role)
 ALTER TABLE topic_problems ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "topic_problems_read" ON topic_problems;
 CREATE POLICY "topic_problems_read" ON topic_problems
   FOR SELECT USING (true);

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Volume2, VolumeX, Save, Check, Flag } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 
 type ProfileSettings = {
   sound_enabled: boolean
@@ -47,14 +49,14 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
             Customize your interaction experience.
           </p>
         </div>
-        <button
+        <Button
           onClick={saveSettings}
           disabled={isSaving}
-          className={`flex items-center gap-2 px-4 py-2 rounded font-mono text-sm transition-all border ${
-            hasSaved 
-              ? 'bg-green-500/10 border-green-500/50 text-green-500' 
-              : 'bg-primary text-primary-foreground hover:bg-primary/90 border-transparent'
-          } disabled:opacity-50`}
+          className={cn(
+            "gap-2 px-6",
+            hasSaved && 'bg-green-500/10 border-green-500/50 text-green-500 hover:bg-green-500/20 shadow-none scale-100'
+          )}
+          variant={hasSaved ? "outline" : "primary"}
         >
           {isSaving ? (
             <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
@@ -64,7 +66,7 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
             <Save className="w-4 h-4" />
           )}
           {hasSaved ? 'Saved' : 'Save Changes'}
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
@@ -88,31 +90,6 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                 settings.sound_enabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Spoiler Protection Toggle */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors group">
-          <div className="flex items-center gap-4">
-            <div className={`p-2 rounded-lg transition-colors ${settings.hide_unsolved_tags ? 'bg-amber-500/10 text-amber-500' : 'bg-muted text-muted-foreground'}`}>
-              <Flag className={`w-5 h-5 ${settings.hide_unsolved_tags ? 'fill-amber-500' : ''}`} />
-            </div>
-            <div>
-              <p className="font-bold text-foreground font-mono text-sm">Spoiler Protection</p>
-              <p className="text-xs text-muted-foreground font-mono">Hide problem tags until you solve the problem.</p>
-            </div>
-          </div>
-          <button
-            onClick={() => handleToggle('hide_unsolved_tags')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-              settings.hide_unsolved_tags ? 'bg-amber-500' : 'bg-zinc-700'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                settings.hide_unsolved_tags ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

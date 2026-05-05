@@ -198,7 +198,7 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#10b981]" /> Выбран для суммы</div>
           <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#3f3f46] opacity-30" /> Пропущен</div>
         </div>
-        <div className="bg-muted/30 p-3 rounded-xl border border-border/50 font-mono text-[11px] text-muted-foreground">
+        <div className="bg-muted/30 p-3 rounded-xl border border-border font-mono text-[11px] text-muted-foreground">
           <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
         </div>
       </div>

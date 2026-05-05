@@ -215,7 +215,7 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
         </svg>
       </div>
 
-      <div className="flex items-center gap-4 text-[10px] font-mono text-muted-foreground border-t border-border/50 pt-4 flex-wrap">
+      <div className="flex items-center gap-4 text-[10px] font-mono text-muted-foreground border-t border-border pt-4 flex-wrap">
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#18181b] border border-[#3f3f46]" /> Не посещено</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0891b2]" /> В очереди</div>
         <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" /> Активна</div>

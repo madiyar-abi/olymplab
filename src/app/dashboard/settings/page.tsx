@@ -17,16 +17,18 @@ export default async function SettingsPage() {
   // Fetch username, code_template, and settings from profiles table
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('code_template, settings')
+    .select('code_template, settings, preferred_language')
     .eq('id', user.id)
     .single()
 
   const profile = profileData as { 
     code_template: string | null;
     settings: { sound_enabled: boolean } | null;
+    preferred_language: string | null;
   } | null
   const codeTemplate = profile?.code_template || ''
   const settings = profile?.settings || { sound_enabled: true }
+  const preferredLanguage = profile?.preferred_language || 'cpp'
 
   return (
     <div className="min-h-full p-4 md:p-8 space-y-8">
@@ -45,8 +47,11 @@ export default async function SettingsPage() {
           <h3 className="text-lg font-bold text-foreground pt-4 font-mono uppercase tracking-widest text-muted-foreground">
             Code Template
           </h3>
-          <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-            <CodeTemplateEditor initialTemplate={codeTemplate} />
+          <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-8 transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)]">
+            <CodeTemplateEditor 
+              initialTemplate={codeTemplate} 
+              initialLanguage={preferredLanguage}
+            />
           </div>
         </div>
 
@@ -55,7 +60,7 @@ export default async function SettingsPage() {
           <h3 className="text-lg font-bold text-foreground pt-4 font-mono uppercase tracking-widest text-muted-foreground">
             Preferences
           </h3>
-          <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-8 transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)]">
             <SettingsEditor initialSettings={settings} userId={user.id} />
           </div>
         </div>

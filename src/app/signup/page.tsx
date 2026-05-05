@@ -6,6 +6,9 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
 
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+
 export default function SignupPage() {
   const supabase = createClient()
   const [email, setEmail] = useState('')
@@ -93,11 +96,12 @@ export default function SignupPage() {
                 </div>
               )}
               
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleGoogleSignup}
                 disabled={oauthLoading}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground shadow-sm hover:bg-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 transition-all duration-200"
+                className="w-full gap-3 py-6"
               >
                 {oauthLoading ? (
                   <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></span>
@@ -110,7 +114,7 @@ export default function SignupPage() {
                   </svg>
                 )}
                 <span className="font-medium">Sign up with Google</span>
-              </button>
+              </Button>
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -123,11 +127,10 @@ export default function SignupPage() {
 
               <div>
                 <label className="sr-only" htmlFor="username">Username</label>
-                <input
+                <Input
                   id="username"
                   type="text"
                   required
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                   placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -136,11 +139,10 @@ export default function SignupPage() {
 
               <div>
                 <label className="sr-only" htmlFor="email">Email address</label>
-                <input
+                <Input
                   id="email"
                   type="email"
                   required
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                   placeholder="Email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -149,24 +151,23 @@ export default function SignupPage() {
 
               <div>
                 <label className="sr-only" htmlFor="password">Password</label>
-                <input
+                <Input
                   id="password"
                   type="password"
                   required
-                  className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 transition-all duration-200 hover:scale-[1.02]"
+                className="w-full py-6 text-base font-bold"
               >
                 {loading ? 'Creating account...' : 'Create account'}
-              </button>
+              </Button>
             </form>
           )}
 

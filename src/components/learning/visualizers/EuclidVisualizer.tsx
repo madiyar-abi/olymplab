@@ -75,7 +75,7 @@ export default function EuclidVisualizer({ initialA = 105, initialB = 35 }) {
             <span>Число A</span>
             <span className="text-sky-400">{step.a}</span>
           </div>
-          <div className="h-8 w-full bg-muted/30 rounded-lg overflow-hidden border border-border/50 relative">
+          <div className="h-8 w-full bg-muted/30 rounded-lg overflow-hidden border border-border relative">
             <motion.div
               initial={false}
               animate={{ 
@@ -93,7 +93,7 @@ export default function EuclidVisualizer({ initialA = 105, initialB = 35 }) {
             <span>Число B</span>
             <span className="text-purple-400">{step.b}</span>
           </div>
-          <div className="h-8 w-full bg-muted/30 rounded-lg overflow-hidden border border-border/50 relative">
+          <div className="h-8 w-full bg-muted/30 rounded-lg overflow-hidden border border-border relative">
             <motion.div
               initial={false}
               animate={{ 
