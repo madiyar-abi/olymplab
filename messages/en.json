@@ -1,0 +1,32 @@
+{
+  "Syllabi": {
+    "title": "Structured Syllabi",
+    "subtitle": "Competitive programming roadmap — from basics to advanced techniques",
+    "beginner": "Beginner",
+    "basic": "Basic",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "master": "Master",
+    "algorithmAnalysis": "Algorithm Analysis",
+    "mastery": "Mastery",
+    "solved": "Solved",
+    "read": "READ",
+    "practice": "PRACTICE",
+    "fundamentalTopic": "Fundamental Topic",
+    "courseComplete": "Course Complete",
+    "courseCompleteDesc": "You have completed the entire path of mastery!"
+  },
+  "Navbar": {
+    "problems": "Problems",
+    "submissions": "Submissions",
+    "dashboard": "Dashboard",
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out"
+  },
+  "LanguageSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "ru": "Russian"
+  }
+}

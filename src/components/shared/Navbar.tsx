@@ -1,15 +1,17 @@
 'use client'
 
-import Link from 'next/link'
+import { Link, useRouter, usePathname } from '@/i18n/routing'
 import Image from 'next/image'
-import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { ThemeToggle } from './ThemeToggle'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { Button } from '@/components/ui/Button'
+import { useTranslations } from 'next-intl'
 
 export function Navbar() {
+  const t = useTranslations('Navbar')
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
@@ -37,11 +39,11 @@ export function Navbar() {
     router.refresh()
   }
 
-  if (pathname === '/') {
-    return null
+  // Handle case where we might be at root or specific locale root
+  if (pathname === '/' || pathname === '/en' || pathname === '/ru') {
+    // Note: next-intl usePathname returns path WITHOUT locale prefix
+    // So if we are on /en, usePathname returns /
   }
-
-  const isDashboard = pathname?.startsWith('/dashboard')
 
   return (
     <nav className="border-b border-white/5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
@@ -59,6 +61,7 @@ export function Navbar() {
 
         <div className="flex flex-1 items-center justify-end space-x-3">
           <nav className="flex items-center space-x-4">
+            <LanguageSwitcher />
             <ThemeToggle />
             {user ? (
               <>
@@ -66,7 +69,7 @@ export function Navbar() {
                   href="/dashboard"
                   className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
                 >
-                  Dashboard
+                  {t('dashboard')}
                 </Link>
                 <Button
                   id="logout-btn"
@@ -74,7 +77,7 @@ export function Navbar() {
                   variant="secondary"
                   size="sm"
                 >
-                  Log out
+                  {t('logout')}
                 </Button>
               </>
             ) : (
@@ -83,11 +86,11 @@ export function Navbar() {
                   href="/login"
                   className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground"
                 >
-                  Log in
+                  {t('login')}
                 </Link>
                 <Link href="/signup">
                   <Button size="sm">
-                    Sign up
+                    {t('signup')}
                   </Button>
                 </Link>
               </>

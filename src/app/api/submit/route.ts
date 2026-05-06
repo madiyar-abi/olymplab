@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { Problem } from '@/app/dashboard/problems/[id]/IDEClient'
+import { Problem } from '@/app/[locale]/dashboard/problems/[id]/IDEClient'
 
 import { Verdict } from '@/types/verdict'
 

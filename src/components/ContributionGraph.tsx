@@ -171,69 +171,88 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
   const handleMouseLeave = useCallback(() => setTooltip(null), [])
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const COL_W = CELL + GAP   // column width including gap
+  const totalWeeks = weeks.length
+  // SVG dimensions: dynamic width, fixed row heights
+  const CELL_SIZE = 13
+  const CELL_GAP = 2
+  const STRIDE = CELL_SIZE + CELL_GAP
+  const LABEL_W = 28
+  const HEADER_H = 20
+  const GRID_H = 7 * STRIDE - CELL_GAP
+  const SVG_H = HEADER_H + GRID_H + 8
 
   return (
     <>
       <TooltipPortal tip={tooltip} />
-
-      <div className="w-full overflow-x-auto pb-4 pt-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-        <div className="inline-flex flex-col min-w-max px-1">
-
+      <div className="w-full overflow-hidden">
+        <svg
+          viewBox={`0 0 ${LABEL_W + totalWeeks * STRIDE} ${SVG_H}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="w-full h-auto"
+          style={{ display: 'block' }}
+        >
           {/* Month labels */}
-          <div className="flex mb-2 ml-[28px]" style={{ position: 'relative', height: 16 }}>
-            {monthLabels.map((m, i) => (
-              <span
-                key={i}
-                className="absolute text-[11px] text-muted-foreground font-mono"
-                style={{ left: m.colIndex * COL_W }}
-              >
-                {m.label}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex gap-0.5">
-            {/* Day-of-week labels — Mon / Wed / Fri */}
-            <div
-              className="flex flex-col mr-1.5"
-              style={{ gap: GAP, width: 24 }}
+          {monthLabels.map((m, i) => (
+            <text
+              key={i}
+              x={LABEL_W + m.colIndex * STRIDE}
+              y={12}
+              className="fill-muted-foreground"
+              style={{ fontSize: 9, fontFamily: 'monospace' }}
             >
-              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((day, i) => (
-                <div
-                  key={day}
-                  className="text-[10px] text-muted-foreground font-mono text-right leading-none flex items-center justify-end"
-                  style={{ height: CELL }}
-                >
-                  {/* Show Mon (1), Wed (3), Fri (5) */}
-                  {(i === 1 || i === 3 || i === 5) ? day : ''}
-                </div>
-              ))}
-            </div>
+              {m.label}
+            </text>
+          ))}
 
-            {/* Columns (weeks) */}
-            <div className="flex" style={{ gap: GAP }}>
-              {weeks.map((week, wIdx) => (
-                <div key={wIdx} className="flex flex-col" style={{ gap: GAP }}>
-                  {week.map((day, dIdx) => (
-                    <div
-                      key={dIdx}
-                      onMouseEnter={day.isEmpty ? undefined : (e) => handleMouseEnter(e, day)}
-                      onMouseLeave={day.isEmpty ? undefined : handleMouseLeave}
-                      className={cn(
-                        'rounded-sm border transition-all duration-200',
-                        !day.isEmpty && 'cursor-default hover:scale-110 hover:border-primary/40',
-                        intensityClass(day.count, day.isEmpty)
-                      )}
-                      style={{ width: CELL, height: CELL }}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Day of week labels */}
+          {['S','M','T','W','T','F','S'].map((d, i) => (
+            (i === 1 || i === 3 || i === 5) ? (
+              <text
+                key={i}
+                x={LABEL_W - 4}
+                y={HEADER_H + i * STRIDE + CELL_SIZE / 2 + 3}
+                textAnchor="end"
+                className="fill-muted-foreground"
+                style={{ fontSize: 8, fontFamily: 'monospace' }}
+              >
+                {d}
+              </text>
+            ) : null
+          ))}
 
-        </div>
+          {/* Cells */}
+          {weeks.map((week, wIdx) =>
+            week.map((day, dIdx) => {
+              const x = LABEL_W + wIdx * STRIDE
+              const y = HEADER_H + dIdx * STRIDE
+              const color =
+                day.isEmpty ? 'transparent' :
+                day.count === 0 ? 'rgba(255,255,255,0.05)' :
+                day.count <= 2 ? '#0e4429' :
+                day.count <= 5 ? '#006d32' :
+                day.count <= 8 ? '#26a641' : '#39d353'
+              return (
+                <rect
+                  key={`${wIdx}-${dIdx}`}
+                  x={x}
+                  y={y}
+                  width={CELL_SIZE}
+                  height={CELL_SIZE}
+                  rx={2}
+                  fill={color}
+                  onMouseEnter={day.isEmpty ? undefined : (e) => {
+                    const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect()
+                    const tasksText = day.count === 1 ? '1 задача' : `${day.count} задач`
+                    const dateText = day.date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
+                    setTooltip({ anchorX: rect.left + rect.width / 2, anchorY: rect.top, tasksText, dateText })
+                  }}
+                  onMouseLeave={day.isEmpty ? undefined : handleMouseLeave}
+                  style={{ cursor: day.isEmpty ? 'default' : 'pointer' }}
+                />
+              )
+            })
+          )}
+        </svg>
       </div>
     </>
   )

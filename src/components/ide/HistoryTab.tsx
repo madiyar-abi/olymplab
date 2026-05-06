@@ -2,7 +2,7 @@
 
 import { History } from 'lucide-react'
 import { VerdictBadge } from '@/components/ui/VerdictBadge'
-import type { Submission } from '@/app/dashboard/problems/[id]/IDEClient'
+import type { Submission } from '@/app/[locale]/dashboard/problems/[id]/IDEClient'
 
 interface HistoryTabProps {
   isLoadingHistory: boolean

@@ -4,7 +4,7 @@ import Editor from '@monaco-editor/react'
 import { History, RotateCcw, X } from 'lucide-react'
 import { VerdictBadge } from '@/components/ui/VerdictBadge'
 import { useTheme } from '@/components/shared/ThemeProvider'
-import type { Submission } from '@/app/dashboard/problems/[id]/IDEClient'
+import type { Submission } from '@/app/[locale]/dashboard/problems/[id]/IDEClient'
 
 interface SubmissionModalProps {
   submission: Submission

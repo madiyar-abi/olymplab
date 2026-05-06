@@ -45,3 +45,4 @@ test_*.js
 test_*.png
 fix_*.js
 cf_api_help.html
+.env*.local

@@ -5,7 +5,7 @@ import { UserSkills, ProblemCandidate } from '@/lib/adaptive/matching'
 
 export async function POST(req: Request) {
   try {
-    const { difficulty: selectedDifficulty = 'auto' } = await req.json().catch(() => ({}));
+    const { minRating, maxRating, tags = [] } = await req.json().catch(() => ({}));
     const supabase = await createClient()
 
     // 1. Получаем пользователя
@@ -45,14 +45,19 @@ export async function POST(req: Request) {
     // 4. Получаем доступные задачи из таблицы problems
     let query = supabase
       .from('problems')
-      .select('id, title, description, difficulty, rating, requirements')
+      .select('id, title, description, difficulty, rating, tags, requirements')
 
-    // Если выбрана конкретная сложность (рейтинг)
-    if (selectedDifficulty !== 'auto') {
-      const ratingValue = parseInt(selectedDifficulty)
-      if (!isNaN(ratingValue)) {
-        query = query.eq('rating', ratingValue)
-      }
+    // Filter by rating range
+    if (minRating !== undefined && !isNaN(parseInt(minRating))) {
+      query = query.gte('rating', parseInt(minRating))
+    }
+    if (maxRating !== undefined && !isNaN(parseInt(maxRating))) {
+      query = query.lte('rating', parseInt(maxRating))
+    }
+
+    // Filter by tags (using overlaps array operator for Postgres)
+    if (tags && tags.length > 0) {
+      query = query.overlaps('tags', tags)
     }
 
     const { data: allProblems, error: dbError } = await query
@@ -64,9 +69,7 @@ export async function POST(req: Request) {
 
     if (!allProblems || allProblems.length === 0) {
       return NextResponse.json({ 
-        error: selectedDifficulty === 'auto' 
-          ? 'No problems found in database' 
-          : `No problems found with rating ${selectedDifficulty}` 
+        error: 'No problems found matching your selected rating range and tags.' 
       }, { status: 404 })
     }
 
@@ -79,8 +82,8 @@ export async function POST(req: Request) {
       }, { status: 404 })
     }
 
-    // 6. Если выбрана конкретная сложность, возвращаем случайную из кандидатов
-    if (selectedDifficulty !== 'auto') {
+    // 6. Если выбраны фильтры, возвращаем случайную из кандидатов, подходящую под фильтры
+    if (minRating !== undefined || maxRating !== undefined || tags.length > 0) {
       const randomIndex = Math.floor(Math.random() * candidates.length)
       return NextResponse.json({
         problem: candidates[randomIndex],

@@ -1,0 +1,32 @@
+{
+  "Syllabi": {
+    "title": "Учебные программы",
+    "subtitle": "Дорожная карта спортивного программирования — от основ до продвинутых техник",
+    "beginner": "Начальный",
+    "basic": "Базовый",
+    "intermediate": "Средний",
+    "advanced": "Продвинутый",
+    "master": "Мастер",
+    "algorithmAnalysis": "Анализ алгоритмов",
+    "mastery": "Мастерство",
+    "solved": "Решено",
+    "read": "ЧИТАТЬ",
+    "practice": "ПРАКТИКА",
+    "fundamentalTopic": "Фундаментальная тема",
+    "courseComplete": "Курс завершен",
+    "courseCompleteDesc": "Вы прошли весь путь мастерства!"
+  },
+  "Navbar": {
+    "problems": "Задачи",
+    "submissions": "Посылки",
+    "dashboard": "Панель",
+    "login": "Вход",
+    "signup": "Регистрация",
+    "logout": "Выход"
+  },
+  "LanguageSwitcher": {
+    "label": "Язык",
+    "en": "English",
+    "ru": "Русский"
+  }
+}
