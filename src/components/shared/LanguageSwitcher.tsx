@@ -31,7 +31,7 @@ export function LanguageSwitcher() {
     setIsOpen(false);
     startTransition(() => {
       router.replace(
-        // @ts-ignore
+        // @ts-expect-error
         { pathname, params },
         { locale: nextLocale }
       );

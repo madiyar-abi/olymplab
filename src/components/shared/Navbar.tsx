@@ -40,9 +40,10 @@ export function Navbar() {
   }
 
   // Handle case where we might be at root or specific locale root
-  if (pathname === '/' || pathname === '/en' || pathname === '/ru') {
+  if (pathname === '/') {
     // Note: next-intl usePathname returns path WITHOUT locale prefix
     // So if we are on /en, usePathname returns /
+    return null
   }
 
   return (

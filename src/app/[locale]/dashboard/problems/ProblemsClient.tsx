@@ -76,26 +76,36 @@ interface TagGroupProps {
   tags: string[]
   isSolved: boolean
   hideTagsSetting: boolean
+  problemId: string
+  userId?: string
+  isInitiallyRevealed: boolean
 }
 
-function TagGroup({ tags, isSolved, hideTagsSetting }: TagGroupProps) {
-  const [revealed, setRevealed] = useState(false)
+function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitiallyRevealed }: TagGroupProps) {
+  const [revealed, setRevealed] = useState(isInitiallyRevealed)
+  const supabase = createClient()
   const shouldHide = hideTagsSetting && !isSolved && !revealed
 
   if (tags.length === 0) {
     return <span className="text-gray-500 dark:text-gray-400/60 text-[10px] font-mono">Unrated problem</span>
   }
 
+  const handleReveal = async (e: React.MouseEvent) => {
+    if (shouldHide) {
+      e.preventDefault()
+      e.stopPropagation()
+      setRevealed(true)
+      if (userId) {
+        // @ts-expect-error - Supabase generated types don't have revealed_problems yet
+        await supabase.from('revealed_problems').insert({ user_id: userId, problem_id: problemId })
+      }
+    }
+  }
+
   return (
     <div 
       className="flex flex-wrap gap-1.5 relative group/tags"
-      onClick={(e) => {
-        if (shouldHide) {
-          e.preventDefault()
-          e.stopPropagation()
-          setRevealed(true)
-        }
-      }}
+      onClick={handleReveal}
     >
       {tags.map(tag => (
         <span
@@ -109,7 +119,7 @@ function TagGroup({ tags, isSolved, hideTagsSetting }: TagGroupProps) {
         </span>
       ))}
       {shouldHide && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center cursor-pointer">
           <div className="bg-background/80 backdrop-blur-sm border border-border rounded-md px-1.5 py-0.5 flex items-center gap-1 shadow-sm group-hover/tags:bg-background transition-colors">
             <Eye className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400" />
             <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">Show Tags</span>
@@ -124,6 +134,7 @@ export function ProblemsClient({
   problems, 
   hideHeader = false,
   solvedProblemIds = new Set(),
+  revealedProblemIds = new Set(),
   settings: initialSettings = { sound_enabled: true, hide_unsolved_tags: false },
   userId,
   initialView = 'grid'
@@ -131,6 +142,7 @@ export function ProblemsClient({
   problems: Problem[]
   hideHeader?: boolean
   solvedProblemIds?: Set<string>
+  revealedProblemIds?: Set<string>
   settings?: { sound_enabled: boolean, hide_unsolved_tags?: boolean }
   userId?: string
   initialView?: ViewMode
@@ -158,7 +170,7 @@ export function ProblemsClient({
     // Persist to Supabase if userId is provided
     if (userId) {
       await supabase.from('profiles')
-        // @ts-ignore - Supabase generated types for JSON can be finicky
+        // @ts-expect-error - Supabase generated types for JSON can be finicky
         .update({ 
           settings: { 
             ...initialSettings, 
@@ -358,6 +370,9 @@ export function ProblemsClient({
                           tags={displayTags} 
                           isSolved={isSolved} 
                           hideTagsSetting={hideUnsolved} 
+                          problemId={problem.id}
+                          userId={userId}
+                          isInitiallyRevealed={revealedProblemIds.has(problem.id)}
                         />
                       </div>
                       
@@ -376,7 +391,9 @@ export function ProblemsClient({
               <ProblemTable 
                 problems={groupProblems} 
                 solvedProblemIds={solvedProblemIds}
+                revealedProblemIds={revealedProblemIds}
                 hideTagsSetting={hideUnsolved}
+                userId={userId}
               />
             </div>
           )}

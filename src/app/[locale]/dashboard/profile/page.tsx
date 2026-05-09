@@ -40,8 +40,6 @@ export default async function ProfilePage() {
     percentage: totalSubmissions > 0 ? (s.count / totalSubmissions) * 100 : 0
   }))
 
-  const solvedCount = stats.find(s => s.verdict === Verdict.AC)?.count || 0
-
   // Fetch real contribution data for the heatmap
   const { data: contributionsData } = await supabase
     .from('submissions')
@@ -62,18 +60,22 @@ export default async function ProfilePage() {
 
   const streakCount = calculateStreak((contributionsData as { created_at: string }[])?.map(c => c.created_at) || [])
 
-  // Fetch username from profiles table
+  // Fetch username and stats from profiles table
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('username')
+    .select('username, solved_count, level')
     .eq('id', user.id)
     .single()
 
   const profile = profileData as { 
     username: string; 
+    solved_count?: number;
+    level?: number;
   } | null
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
   const initial = username.charAt(0).toUpperCase()
+  const solvedCount = profile?.solved_count || 0
+  const level = profile?.level || 1
 
   return (
     <div className="min-h-full p-4 md:p-8 space-y-8">

@@ -6,11 +6,14 @@ import { CheckCircle2, Circle, Eye, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Problem } from '@/app/[locale]/dashboard/problems/ProblemsClient'
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface ProblemTableProps {
   problems: Problem[]
   solvedProblemIds: Set<string>
+  revealedProblemIds: Set<string>
   hideTagsSetting: boolean
+  userId?: string
 }
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -21,7 +24,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Unrated: 'text-zinc-500',
 }
 
-export function ProblemTable({ problems, solvedProblemIds, hideTagsSetting }: ProblemTableProps) {
+export function ProblemTable({ problems, solvedProblemIds, revealedProblemIds, hideTagsSetting, userId }: ProblemTableProps) {
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
       <table className="w-full border-collapse text-left text-sm font-mono">
@@ -41,6 +44,8 @@ export function ProblemTable({ problems, solvedProblemIds, hideTagsSetting }: Pr
               problem={problem} 
               isSolved={solvedProblemIds.has(problem.id)}
               hideTagsSetting={hideTagsSetting}
+              isInitiallyRevealed={revealedProblemIds.has(problem.id)}
+              userId={userId}
             />
           ))}
         </tbody>
@@ -49,10 +54,21 @@ export function ProblemTable({ problems, solvedProblemIds, hideTagsSetting }: Pr
   )
 }
 
-function ProblemRow({ problem, isSolved, hideTagsSetting }: { problem: Problem, isSolved: boolean, hideTagsSetting: boolean }) {
-  const [revealed, setRevealed] = useState(false)
+function ProblemRow({ problem, isSolved, hideTagsSetting, isInitiallyRevealed, userId }: { problem: Problem, isSolved: boolean, hideTagsSetting: boolean, isInitiallyRevealed: boolean, userId?: string }) {
+  const [revealed, setRevealed] = useState(isInitiallyRevealed)
+  const supabase = createClient()
   const shouldHide = hideTagsSetting && !isSolved && !revealed
   const tags = problem.tags || []
+
+  const handleReveal = async () => {
+    if (shouldHide) {
+      setRevealed(true)
+      if (userId) {
+        // @ts-expect-error - Supabase generated types don't have revealed_problems yet
+        await supabase.from('revealed_problems').insert({ user_id: userId, problem_id: problem.id })
+      }
+    }
+  }
 
   return (
     <tr className="group hover:bg-white/5 transition-colors duration-150">
@@ -77,7 +93,7 @@ function ProblemRow({ problem, isSolved, hideTagsSetting }: { problem: Problem, 
           
           <div 
             className="flex flex-wrap gap-1 items-center"
-            onClick={() => shouldHide && setRevealed(true)}
+            onClick={handleReveal}
           >
             {tags.length > 0 ? (
               tags.map(tag => (

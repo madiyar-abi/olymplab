@@ -37,10 +37,10 @@ export const useAutoSaveCode = ({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCode(savedCode);
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setCode(initialCode);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setIsHydrated(true);
   }, [storageKey, initialCode]);
 

@@ -140,7 +140,15 @@ function SidebarItem({ item, isActive, isCollapsed }: SidebarItemProps) {
 
 /* ── MAIN COMPONENT ────────────────────────────────────────────────────────── */
 
-export function Sidebar({ username }: { username: string; email: string }) {
+function getRank(level: number) {
+  if (level < 5) return 'Novice'
+  if (level < 10) return 'Apprentice'
+  if (level < 20) return 'Expert'
+  if (level < 30) return 'Master'
+  return 'Grandmaster'
+}
+
+export function Sidebar({ username, email, level = 1 }: { username: string; email: string; level?: number }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -176,13 +184,13 @@ export function Sidebar({ username }: { username: string; email: string }) {
     <aside
       className={cn(
         sidebarWidth,
-        'flex-shrink-0 flex flex-col h-full bg-[#0a0a0a] border-r border-white/5 relative transition-all duration-500 ease-in-out pb-6'
+        'flex-shrink-0 flex flex-col h-full bg-[#12141a] border-r border-white/5 relative transition-all duration-500 ease-in-out pb-6'
       )}
     >
       {/* Collapse toggle */}
       <button
         onClick={toggleCollapse}
-        className="absolute -right-3 top-8 bg-[#121212] border border-white/10 rounded-full p-1.5 hover:bg-white/5 text-neutral-500 hover:text-white transition-all z-50 shadow-2xl"
+        className="absolute -right-3 top-8 bg-[#1c1f28] border border-white/10 rounded-full p-1.5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all z-50 shadow-2xl"
       >
         <svg
           className={cn('w-3.5 h-3.5 transition-transform duration-500', isCollapsed && 'rotate-180')}
@@ -233,7 +241,7 @@ export function Sidebar({ username }: { username: string; email: string }) {
           {!isCollapsed && (
             <div className="ml-3 flex flex-col min-w-0">
               <span className="text-sm font-medium text-white truncate">{username}</span>
-              <span className="text-[10px] text-neutral-500 font-medium">Lvl 12 Expert</span>
+              <span className="text-[10px] text-neutral-500 font-medium">Lvl {level} {getRank(level)}</span>
             </div>
           )}
         </Link>

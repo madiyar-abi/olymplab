@@ -23,16 +23,18 @@ export default async function DashboardProblemsPage() {
     .order('created_at', { ascending: false })
     .limit(1000)
 
-  // Fetch user settings and solved problems
-  const [profileResult, solvedResult] = await Promise.all([
+  // Fetch user settings, solved problems, and revealed problems
+  const [profileResult, solvedResult, revealedResult] = await Promise.all([
     supabase.from('profiles').select('settings').eq('id', user.id).single(),
-    supabase.from('submissions').select('problem_id').eq('user_id', user.id).in('verdict', ['Accepted', 'AC']) as unknown as Promise<{ data: { problem_id: string }[] | null }>
+    supabase.from('submissions').select('problem_id').eq('user_id', user.id).in('verdict', ['Accepted', 'AC']) as unknown as Promise<{ data: { problem_id: string }[] | null }>,
+    supabase.from('revealed_problems').select('problem_id').eq('user_id', user.id) as unknown as Promise<{ data: { problem_id: string }[] | null }>
   ])
 
   const profile = profileResult.data as { settings: { sound_enabled: boolean; hide_unsolved_tags?: boolean } } | null
   const settings = profile?.settings || { sound_enabled: true, hide_unsolved_tags: false }
   
   const solvedProblemIds = new Set<string>((solvedResult.data || []).map(s => s.problem_id))
+  const revealedProblemIds = new Set<string>((revealedResult.data || []).map(r => r.problem_id))
 
 
   if (fetchError) {
@@ -63,6 +65,7 @@ export default async function DashboardProblemsPage() {
   return <ProblemsClient 
     problems={problemList} 
     solvedProblemIds={solvedProblemIds}
+    revealedProblemIds={revealedProblemIds}
     settings={settings}
     userId={user.id}
     initialView={initialView}

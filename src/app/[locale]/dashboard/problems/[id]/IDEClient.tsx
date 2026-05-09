@@ -277,7 +277,7 @@ export default function IDEClient({
 }: IDEClientProps) {
   const { resolvedTheme } = useTheme()
   const supabase = useMemo(() => createClient(), [])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const editorRef = useRef<{ getValue: () => string; setValue: (v: string) => void } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
