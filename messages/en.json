@@ -181,6 +181,50 @@
       "grandmaster": "Grandmaster"
     }
   },
+  "Problems": {
+    "title": "Problem Catalog",
+    "available": "{count, plural, one {# problem} other {# problems}} available · Select one to open the IDE",
+    "categories": "{count, plural, one {# category} other {# categories}}",
+    "count": "{count, plural, one {# problem} other {# problems}}",
+    "spoilerProtection": "Spoiler Protection",
+    "allProblems": "All Problems",
+    "solved": "Solved",
+    "solveNow": "Solve Now",
+    "review": "Review",
+    "unrated": "Unrated problem",
+    "showTags": "Show Tags",
+    "noMatchTitle": "No matches found",
+    "noMatchDesc": "Try removing some tags or clearing all filters to see more problems in the catalog.",
+    "clearFilters": "Clear all filters",
+    "table": {
+      "status": "Status",
+      "id": "ID",
+      "titleTags": "Title & Tags",
+      "difficulty": "Difficulty",
+      "action": "Action",
+      "noTags": "No tags",
+      "reveal": "Reveal",
+      "solve": "Solve"
+    },
+    "difficulty": {
+      "Easy": "Easy",
+      "Medium": "Medium",
+      "Hard": "Hard",
+      "Mastery": "Mastery",
+      "Unrated": "Unrated"
+    },
+    "skills": {
+      "algorithms": "Algorithms",
+      "data_structures": "Data Structures",
+      "complexity": "Complexity",
+      "coding": "Coding",
+      "debugging": "Debugging",
+      "speed": "Speed",
+      "logic": "Logic",
+      "math": "Math",
+      "graphs": "Graphs"
+    }
+  },
   "Onboarding": {
     "step": "Step",
     "of": "of",

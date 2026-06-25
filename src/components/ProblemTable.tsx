@@ -1,7 +1,7 @@
 "use client"
 
 import { Link } from '@/i18n/routing'
-import { motion } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import { CheckCircle2, Circle, Eye, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Problem } from '@/app/[locale]/dashboard/problems/ProblemsClient'
@@ -25,16 +25,17 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export function ProblemTable({ problems, solvedProblemIds, revealedProblemIds, hideTagsSetting, userId }: ProblemTableProps) {
+  const t = useTranslations('Problems')
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
       <table className="w-full border-collapse text-left text-sm font-mono">
         <thead>
           <tr className="border-b border-border bg-secondary/30">
-            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-12 text-center">Status</th>
-            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-20">ID</th>
-            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider">Title & Tags</th>
-            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-32">Difficulty</th>
-            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-24 text-right">Action</th>
+            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-12 text-center">{t('table.status')}</th>
+            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-20">{t('table.id')}</th>
+            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider">{t('table.titleTags')}</th>
+            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-32">{t('table.difficulty')}</th>
+            <th className="px-4 py-3 font-bold text-muted-foreground uppercase tracking-wider w-24 text-right">{t('table.action')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/50">
@@ -55,6 +56,7 @@ export function ProblemTable({ problems, solvedProblemIds, revealedProblemIds, h
 }
 
 function ProblemRow({ problem, isSolved, hideTagsSetting, isInitiallyRevealed, userId }: { problem: Problem, isSolved: boolean, hideTagsSetting: boolean, isInitiallyRevealed: boolean, userId?: string }) {
+  const t = useTranslations('Problems')
   const [revealed, setRevealed] = useState(isInitiallyRevealed)
   const supabase = createClient()
   const shouldHide = hideTagsSetting && !isSolved && !revealed
@@ -108,12 +110,12 @@ function ProblemRow({ problem, isSolved, hideTagsSetting, isInitiallyRevealed, u
                 </span>
               ))
             ) : (
-              <span className="text-[9px] text-muted-foreground/40 italic">No tags</span>
+              <span className="text-[9px] text-muted-foreground/40 italic">{t('table.noTags')}</span>
             )}
             {shouldHide && (
-              <span className="flex items-center gap-0.5 ml-1 text-[8px] font-bold text-primary/60 cursor-pointer hover:text-primary transition-colors">
+              <span className="flex items-center gap-0.5 ml-1 text-[8px] font-bold text-primary/60 cursor-pointer hover:text-primary transition-colors uppercase">
                 <Eye className="w-2.5 h-2.5" />
-                REVEAL
+                {t('table.reveal')}
               </span>
             )}
           </div>
@@ -124,7 +126,7 @@ function ProblemRow({ problem, isSolved, hideTagsSetting, isInitiallyRevealed, u
           "font-bold text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-secondary/50 border border-border",
           DIFFICULTY_COLORS[problem.difficulty] || DIFFICULTY_COLORS.Unrated
         )}>
-          {problem.difficulty || 'Unrated'}
+          {t.has(`difficulty.${problem.difficulty || 'Unrated'}`) ? t(`difficulty.${problem.difficulty || 'Unrated'}`) : (problem.difficulty || 'Unrated')}
         </span>
       </td>
       <td className="px-4 py-2 text-right">
@@ -132,7 +134,7 @@ function ProblemRow({ problem, isSolved, hideTagsSetting, isInitiallyRevealed, u
           href={`/dashboard/problems/${problem.id}`}
           className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors group/link"
         >
-          {isSolved ? 'Review' : 'Solve'}
+          {isSolved ? t('review') : t('table.solve')}
           <ExternalLink className="w-3 h-3 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
         </Link>
       </td>

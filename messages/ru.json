@@ -181,6 +181,50 @@
       "grandmaster": "Грандмастер"
     }
   },
+  "Problems": {
+    "title": "Каталог задач",
+    "available": "{count, plural, one {# задача} few {# задачи} many {# задач} other {# задачи}} · Выберите, чтобы открыть IDE",
+    "categories": "{count, plural, one {# категория} few {# категории} many {# категорий} other {# категории}}",
+    "count": "{count, plural, one {# задача} few {# задачи} many {# задач} other {# задачи}}",
+    "spoilerProtection": "Защита от спойлеров",
+    "allProblems": "Все задачи",
+    "solved": "Решено",
+    "solveNow": "Решить",
+    "review": "Просмотр",
+    "unrated": "Без рейтинга",
+    "showTags": "Показать теги",
+    "noMatchTitle": "Ничего не найдено",
+    "noMatchDesc": "Попробуйте убрать некоторые теги или сбросить все фильтры, чтобы увидеть больше задач.",
+    "clearFilters": "Сбросить фильтры",
+    "table": {
+      "status": "Статус",
+      "id": "ID",
+      "titleTags": "Название и теги",
+      "difficulty": "Сложность",
+      "action": "Действие",
+      "noTags": "Без тегов",
+      "reveal": "Показать",
+      "solve": "Решить"
+    },
+    "difficulty": {
+      "Easy": "Лёгкая",
+      "Medium": "Средняя",
+      "Hard": "Сложная",
+      "Mastery": "Мастерство",
+      "Unrated": "Без рейтинга"
+    },
+    "skills": {
+      "algorithms": "Алгоритмы",
+      "data_structures": "Структуры данных",
+      "complexity": "Сложность",
+      "coding": "Кодинг",
+      "debugging": "Отладка",
+      "speed": "Скорость",
+      "logic": "Логика",
+      "math": "Математика",
+      "graphs": "Графы"
+    }
+  },
   "Onboarding": {
     "step": "Шаг",
     "of": "из",
