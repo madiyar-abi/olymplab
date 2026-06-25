@@ -225,6 +225,12 @@
       "graphs": "Graphs"
     }
   },
+  "Settings": {
+    "title": "Settings",
+    "subtitle": "Configure your development environment and preferences.",
+    "codeTemplate": "Code Template",
+    "preferences": "Preferences"
+  },
   "Submissions": {
     "title": "Submission History",
     "subtitle": "A complete trace of your submissions and verdicts.",
