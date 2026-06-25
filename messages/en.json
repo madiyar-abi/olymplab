@@ -225,6 +225,14 @@
       "graphs": "Graphs"
     }
   },
+  "Progress": {
+    "title": "Your Progress",
+    "subtitle": "Your skill levels and recent activity.",
+    "skillMastery": "Skill Mastery",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No submissions yet — solve a problem to see it here.",
+    "browseProblems": "Browse problems"
+  },
   "Onboarding": {
     "step": "Step",
     "of": "of",
