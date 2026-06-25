@@ -28,6 +28,7 @@ export interface Database {
           primary_subject: string | null
           experience_level: string | null
           code_template: string | null
+          preferred_language: string | null
           settings: Json
           created_at: string
         }
@@ -38,6 +39,7 @@ export interface Database {
           primary_subject?: string | null
           experience_level?: string | null
           code_template?: string | null
+          preferred_language?: string | null
           settings?: Json
           created_at?: string
         }
@@ -48,6 +50,7 @@ export interface Database {
           primary_subject?: string | null
           experience_level?: string | null
           code_template?: string | null
+          preferred_language?: string | null
           settings?: Json
           created_at?: string
         }

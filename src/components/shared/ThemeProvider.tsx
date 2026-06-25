@@ -26,34 +26,42 @@ function getSystemTheme(): 'dark' | 'light' {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    try {
-      return (localStorage.getItem('theme') as Theme) || 'dark'
-    } catch {
-      return 'dark'
-    }
-  })
+  const [theme, setThemeState] = useState<Theme>('dark')
+  const [systemTheme, setSystemTheme] = useState<'dark' | 'light'>('dark')
+  const [mounted, setMounted] = useState(false)
 
-  // Track system preference in state so we can re-render on changes
-  const [systemTheme, setSystemTheme] = useState<'dark' | 'light'>(() => getSystemTheme())
-
-  // Update document class whenever resolved theme changes
-  const resolvedTheme = theme === 'system' ? systemTheme : theme
-
+  // After mount, read from localStorage
   useEffect(() => {
+    const initTheme = () => {
+      try {
+        const stored = (localStorage.getItem('theme') as Theme) || 'dark'
+        setThemeState(stored)
+      } catch {}
+      setSystemTheme(getSystemTheme())
+      setMounted(true)
+    }
+    const timer = setTimeout(initTheme, 0)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const resolvedTheme: 'dark' | 'light' = mounted
+    ? (theme === 'system' ? systemTheme : theme)
+    : 'dark'
+
+  // Apply class to <html> on every change after mount
+  useEffect(() => {
+    if (!mounted) return
     const root = document.documentElement
     root.classList.remove('dark', 'light')
     root.classList.add(resolvedTheme)
-  }, [resolvedTheme])
+  }, [resolvedTheme, mounted])
 
-  // Listen for system theme changes when using "system"
+  // Listen for OS preference changes when theme = 'system'
   useEffect(() => {
     if (theme !== 'system') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => {
-      const next = e.matches ? 'dark' : 'light'
-      setSystemTheme(next)
-    }
+    const handler = (e: MediaQueryListEvent) =>
+      setSystemTheme(e.matches ? 'dark' : 'light')
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [theme])

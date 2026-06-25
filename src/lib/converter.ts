@@ -117,8 +117,8 @@ export function htmlToMarkdown(html: string): string {
   
   // Basic pre-cleaning of the HTML string
   const processedHtml = html
-    .replace(/<span class="MathJax_Preview".*?<\/span>/g, '')
-    .replace(/<div class="MathJax_Display".*?<\/div>/g, '')
+    .replace(/<span class="MathJax_Preview"[\s\S]*?<\/span>/g, '')
+    .replace(/<div class="MathJax_Display"[\s\S]*?<\/div>/g, '')
     // Handle Codeforces triple-dollar math
     .replace(/\$\$\$/g, '$')
     // Handle MathJax scripts if they are still there
@@ -147,9 +147,9 @@ export function htmlToMarkdown(html: string): string {
     .replace(/∗/g, '$\\ast$')
     .replace(/†/g, '$\\dagger$')
     .replace(/‡/g, '$\\ddagger$')
-    // Fix spacing around math
-    .replace(/([^ \n])\$/g, '$1 $')
-    .replace(/\$([^ \n.,!?;:()])/g, '$ $1')
+    // Normalize inline math: trim stray inner padding so `$ x $` becomes `$x$`
+    // (required by remark-math/micromark) without corrupting `$$…$$` block math.
+    .replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, (_m, inner) => `$${inner.trim()}$`)
     .trim()
 
   return markdown

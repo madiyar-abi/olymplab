@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
+import { Link, useRouter } from '@/i18n/routing'
+import { useTranslations } from 'next-intl'
 import { ArrowRight, FilterX, Eye, Flag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TagSelector } from './TagSelector'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { ViewToggle, ViewMode } from '@/components/ViewToggle'
 import { ProblemTable } from '@/components/ProblemTable'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -82,12 +82,13 @@ interface TagGroupProps {
 }
 
 function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitiallyRevealed }: TagGroupProps) {
+  const t = useTranslations('Problems')
   const [revealed, setRevealed] = useState(isInitiallyRevealed)
   const supabase = createClient()
   const shouldHide = hideTagsSetting && !isSolved && !revealed
 
   if (tags.length === 0) {
-    return <span className="text-gray-500 dark:text-gray-400/60 text-[10px] font-mono">Unrated problem</span>
+    return <span className="text-gray-500 dark:text-gray-400/60 text-[10px] font-mono">{t('unrated')}</span>
   }
 
   const handleReveal = async (e: React.MouseEvent) => {
@@ -122,7 +123,7 @@ function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitia
         <div className="absolute inset-0 flex items-center justify-center cursor-pointer">
           <div className="bg-background/80 backdrop-blur-sm border border-border rounded-md px-1.5 py-0.5 flex items-center gap-1 shadow-sm group-hover/tags:bg-background transition-colors">
             <Eye className="w-2.5 h-2.5 text-gray-500 dark:text-gray-400" />
-            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">Show Tags</span>
+            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">{t('showTags')}</span>
           </div>
         </div>
       )}
@@ -138,7 +139,7 @@ export function ProblemsClient({
   settings: initialSettings = { sound_enabled: true, hide_unsolved_tags: false },
   userId,
   initialView = 'grid'
-}: { 
+}: {
   problems: Problem[]
   hideHeader?: boolean
   solvedProblemIds?: Set<string>
@@ -147,18 +148,23 @@ export function ProblemsClient({
   userId?: string
   initialView?: ViewMode
 }) {
+  const t = useTranslations('Problems')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [hideUnsolved, setHideUnsolved] = useState(!!initialSettings.hide_unsolved_tags)
   const [view, setView] = useState<ViewMode>(initialView)
-  
+
+  // Re-sync local spoiler state when the server sends a new value (e.g. after
+  // router.refresh()) using the render-time pattern instead of an effect.
+  const [prevSetting, setPrevSetting] = useState(initialSettings.hide_unsolved_tags)
+  if (initialSettings.hide_unsolved_tags !== prevSetting) {
+    setPrevSetting(initialSettings.hide_unsolved_tags)
+    setHideUnsolved(!!initialSettings.hide_unsolved_tags)
+  }
+
   const handleViewChange = (newView: ViewMode) => {
     setView(newView)
     document.cookie = `problems-view=${newView}; path=/; max-age=31536000`
   }
-
-  useEffect(() => {
-    setHideUnsolved(!!initialSettings.hide_unsolved_tags)
-  }, [initialSettings.hide_unsolved_tags])
 
   const supabase = createClient()
 
@@ -235,15 +241,15 @@ export function ProblemsClient({
           className="flex flex-col md:flex-row md:items-end justify-between gap-6"
         >
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground mb-1 font-mono tracking-tight">Problem Catalog</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-1 font-mono tracking-tight">{t('title')}</h1>
             <p className="text-muted-foreground font-medium">
-              {filteredProblems.length} {filteredProblems.length === 1 ? 'problem' : 'problems'} available · Select one to open the IDE
+              {t('available', { count: filteredProblems.length })}
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex gap-2 items-center">
               <span className="text-xs text-muted-foreground font-mono bg-secondary/50 backdrop-blur-md border border-border px-3 py-1.5 rounded-lg shadow-sm">
-                {Object.keys(grouped).length} categories
+                {t('categories', { count: Object.keys(grouped).length })}
               </span>
             </div>
           </div>
@@ -275,7 +281,7 @@ export function ProblemsClient({
               hideUnsolved ? "text-amber-500 fill-amber-500" : "text-muted-foreground"
             )} />
             <span className="text-[11px] font-bold font-mono text-foreground uppercase tracking-tight">
-              Spoiler Protection
+              {t('spoilerProtection')}
             </span>
             <div
               className={cn(
@@ -296,11 +302,11 @@ export function ProblemsClient({
 
       {/* Empty State */}
       {filteredProblems.length === 0 && (
-        <EmptyState 
-          title="No matches found"
-          description="Try removing some tags or clearing all filters to see more problems in the catalog."
+        <EmptyState
+          title={t('noMatchTitle')}
+          description={t('noMatchDesc')}
           icon={FilterX}
-          ctaText="Clear all filters"
+          ctaText={t('clearFilters')}
           onCtaClick={() => setSelectedTags([])}
           className="min-h-[40vh] py-12"
         />
@@ -314,11 +320,15 @@ export function ProblemsClient({
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-5 bg-primary rounded-full" />
               <h2 className="text-lg font-semibold text-foreground capitalize font-mono tracking-wide">
-                {sectionLabel(skill)}
+                {skill === 'Uncategorized'
+                  ? t('allProblems')
+                  : t.has(`skills.${skill}`)
+                    ? t(`skills.${skill}`)
+                    : sectionLabel(skill)}
               </h2>
             </div>
             <span className="text-xs font-medium text-muted-foreground font-mono">
-              {groupProblems.length} {groupProblems.length === 1 ? 'problem' : 'problems'}
+              {t('count', { count: groupProblems.length })}
             </span>
           </div>
 
@@ -353,7 +363,7 @@ export function ProblemsClient({
                         cfg.badge,
                         cfg.shadow
                       )}>
-                        {diff}
+                        {t.has(`difficulty.${diff}`) ? t(`difficulty.${diff}`) : diff}
                       </span>
 
                       <div className="flex flex-col items-center gap-2 mb-4">
@@ -361,7 +371,7 @@ export function ProblemsClient({
                           {problem.title}
                         </h3>
                         {isSolved && (
-                          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">Solved</span>
+                          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">{t('solved')}</span>
                         )}
                       </div>
 
@@ -378,7 +388,7 @@ export function ProblemsClient({
                       
                       {/* Solve Button Centered at Bottom */}
                       <div className="px-6 py-2.5 rounded-xl font-sans text-xs font-bold tracking-widest border border-border bg-foreground text-background hover:bg-primary hover:border-primary hover:text-white transition-all flex items-center gap-2 uppercase">
-                        {isSolved ? 'Review' : 'Solve Now'}
+                        {isSolved ? t('review') : t('solveNow')}
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </Link>

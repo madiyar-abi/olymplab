@@ -204,7 +204,7 @@ function TreeBranch({
           onUnion(draggedId, currId)
         }}
         draggable
-        {...({ onDragStart: (e: React.DragEvent) => e.dataTransfer.setData('nodeId', currId.toString()) } as any)}
+        {...({ onDragStart: (e: React.DragEvent<HTMLDivElement>) => e.dataTransfer.setData('nodeId', currId.toString()) } as Record<string, unknown>)}
         animate={{
           scale: isActive ? 1.2 : 1,
           backgroundColor: isActive ? '#f59e0b' : isPath ? '#0ea5e9' : '#18181b',

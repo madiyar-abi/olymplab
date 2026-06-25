@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
+import { useTranslations, useLocale } from 'next-intl'
 import { Loader2, Sparkles, Trophy, ExternalLink, Flame } from 'lucide-react'
 
 interface LastProblem {
@@ -12,6 +13,8 @@ interface LastProblem {
 }
 
 export default function RandomizedExecutionClient({ streakCount = 0 }: { streakCount?: number }) {
+  const t = useTranslations('Random')
+  const locale = useLocale()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [minRating, setMinRating] = useState<number>(800)
@@ -58,7 +61,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Failed to find a suitable problem.')
+        setError(data.error || t('errorNotFound'))
         return
       }
 
@@ -71,7 +74,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
       }
     } catch (error) {
       console.error('Failed to get recommendation:', error)
-      setError('An unexpected error occurred. Please try again.')
+      setError(t('errorUnexpected'))
     } finally {
       setIsLoading(false)
     }
@@ -85,10 +88,10 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
             <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
             </svg>
-            Randomized Execution
+            {t('title')}
           </h1>
           <p className="text-muted-foreground font-mono text-sm">
-            Trust the algorithm or set your target rating.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -98,7 +101,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
               <Flame className="w-5 h-5 fill-current animate-pulse" />
               <span className="text-2xl font-black font-mono leading-none">{streakCount}</span>
             </div>
-            <span className="text-[10px] font-bold text-orange-500/70 uppercase tracking-widest">Day Streak</span>
+            <span className="text-[10px] font-bold text-orange-500/70 uppercase tracking-widest">{t('dayStreak')}</span>
           </div>
         )}
       </header>
@@ -119,18 +122,16 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
           
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-3 font-mono tracking-tight">
-              {isLoading ? 'Analyzing Skill Matrix...' : 'Initiate Auto-Select?'}
+              {isLoading ? t('analyzing') : t('initiate')}
             </h2>
             <p className="text-muted-foreground leading-relaxed text-sm font-mono opacity-80 mb-6">
-              {isLoading 
-                ? 'Parsing solved problems and calculating your optimal flow state trajectory...' 
-                : 'Configure your target difficulty below or let the AI provision a problem engineered for your level.'}
+              {isLoading ? t('analyzingDesc') : t('initiateDesc')}
             </p>
 
             <div className="bg-secondary/30 p-5 rounded-xl border border-border/50 mb-8 space-y-6 text-left">
               <div>
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
-                  Rating Range
+                  {t('ratingRange')}
                 </label>
                 <div className="flex items-center gap-4">
                   <input
@@ -142,7 +143,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
                     onChange={(e) => setMinRating(Number(e.target.value))}
                     disabled={isLoading}
                     className="w-1/2 bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                    placeholder="Min (e.g. 800)"
+                    placeholder={t('minPlaceholder')}
                   />
                   <span className="text-muted-foreground font-mono font-bold">-</span>
                   <input
@@ -154,14 +155,14 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
                     onChange={(e) => setMaxRating(Number(e.target.value))}
                     disabled={isLoading}
                     className="w-1/2 bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                    placeholder="Max (e.g. 2000)"
+                    placeholder={t('maxPlaceholder')}
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
-                  Topics / Tags
+                  {t('topicsTags')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {allTags.map((tag) => (
@@ -195,7 +196,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
             className="group relative w-full sm:w-auto px-12 py-4 rounded-xl bg-primary text-primary-foreground font-mono font-bold text-sm hover:bg-primary/90 transition-all hover:scale-[1.05] active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
           >
             <span className="relative z-10 flex items-center gap-2">
-              {isLoading ? 'CALCULATING...' : 'EXECUTE'}
+              {isLoading ? t('calculating') : t('execute')}
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
           </button>
@@ -204,7 +205,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
 
       {lastProblem && (
         <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h3 className="text-xs font-bold text-muted-foreground mb-4 font-mono uppercase tracking-[0.2em] opacity-60">Previous Execution</h3>
+          <h3 className="text-xs font-bold text-muted-foreground mb-4 font-mono uppercase tracking-[0.2em] opacity-60">{t('previousExecution')}</h3>
           <div 
             onClick={() => router.push(`/dashboard/problems/${lastProblem.id}`)}
             className="flex items-center p-6 bg-card/80 backdrop-blur-sm border border-border rounded-2xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)] cursor-pointer group"
@@ -223,7 +224,7 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
                   {lastProblem.difficulty.toUpperCase()}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                  {new Date(lastProblem.timestamp).toLocaleDateString()}
+                  {new Date(lastProblem.timestamp).toLocaleDateString(locale)}
                 </span>
               </div>
             </div>

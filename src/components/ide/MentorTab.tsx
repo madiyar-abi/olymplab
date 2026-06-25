@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { Bot } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { CopyButton } from '@/components/ui/CopyButton'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -30,6 +31,7 @@ export function MentorTab({
   setChatInput,
   onSendMessage,
 }: MentorTabProps) {
+  const t = useTranslations('IDE')
   const chatScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,15 +46,14 @@ export function MentorTab({
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
           <Bot className="w-8 h-8 text-muted-foreground/50" />
           <p className="max-w-md text-center text-xs">
-            Застряли? Нажмите &quot;Ask Mentor&quot;, чтобы получить подсказку без раскрытия полного решения.
-            Ментор проанализирует вашу логику и направит в нужную сторону!
+            {t('mentorEmptyHint')}
           </p>
           <Button
             onClick={() => onSendMessage(true)}
             variant="outline"
             className="mt-2 text-purple-600 bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20"
           >
-            Начать анализ кода
+            {t('mentorStartAnalysis')}
           </Button>
         </div>
       ) : (
@@ -113,7 +114,7 @@ export function MentorTab({
                   )}
                 </div>
                 <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                  {msg.role === 'user' ? 'Вы' : 'ИИ Ментор'}
+                  {msg.role === 'user' ? t('mentorYou') : t('mentorName')}
                 </span>
               </div>
             ))}
@@ -122,7 +123,7 @@ export function MentorTab({
               <div className="flex flex-col items-start">
                 <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-secondary/50 border border-border rounded-bl-none flex items-center gap-3">
                   <span className="w-4 h-4 border-2 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
-                  <span className="animate-pulse text-xs font-semibold text-muted-foreground">Ментор печатает...</span>
+                  <span className="animate-pulse text-xs font-semibold text-muted-foreground">{t('mentorThinking')}</span>
                 </div>
               </div>
             )}
@@ -140,7 +141,7 @@ export function MentorTab({
                     onSendMessage(false)
                   }
                 }}
-                placeholder="Ответьте ментору или задайте вопрос..."
+                placeholder={t('mentorPlaceholder')}
                 className="flex-1 focus:ring-purple-500/50"
                 disabled={isMentorThinking}
               />
@@ -149,7 +150,7 @@ export function MentorTab({
                 disabled={!chatInput.trim() || isMentorThinking}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
               >
-                Отправить
+                {t('mentorSend')}
               </Button>
             </div>
           </div>

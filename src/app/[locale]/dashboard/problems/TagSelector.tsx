@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { X, Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +12,7 @@ interface TagSelectorProps {
 }
 
 export function TagSelector({ allTags, selectedTags, onChange }: TagSelectorProps) {
+  const t = useTranslations('Problems.filter')
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
@@ -52,7 +54,7 @@ export function TagSelector({ allTags, selectedTags, onChange }: TagSelectorProp
         onClick={() => setIsOpen(true)}
       >
         {selectedTags.length === 0 && !search && (
-          <span className="text-muted-foreground ml-2 text-sm font-mono">Filter by tags (dp, math, greedy...)</span>
+          <span className="text-muted-foreground ml-2 text-sm font-mono">{t('placeholder')}</span>
         )}
         
         {selectedTags.map(tag => (
@@ -79,7 +81,7 @@ export function TagSelector({ allTags, selectedTags, onChange }: TagSelectorProp
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          placeholder={selectedTags.length > 0 ? "" : "Type to search..."}
+          placeholder={selectedTags.length > 0 ? "" : t('search')}
         />
         
         <div className="flex items-center pr-1 text-muted-foreground">
@@ -90,7 +92,7 @@ export function TagSelector({ allTags, selectedTags, onChange }: TagSelectorProp
                 onChange([])
               }}
               className="p-1 hover:text-foreground transition-colors mr-1"
-              title="Clear all"
+              title={t('clearAll')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -115,7 +117,7 @@ export function TagSelector({ allTags, selectedTags, onChange }: TagSelectorProp
               ))
             ) : (
               <div className="px-3 py-4 text-center text-sm text-muted-foreground font-mono">
-                {search ? "No tags found" : "No more tags to select"}
+                {search ? t('noTagsFound') : t('noMoreTags')}
               </div>
             )}
           </div>

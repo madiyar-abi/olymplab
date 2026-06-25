@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { getTranslations, getFormatter } from 'next-intl/server'
+import { Link } from '@/i18n/routing'
 import { Clock, Code2, ExternalLink, Hash, Zap, Cpu } from 'lucide-react'
 import { VerdictBadge } from '@/components/ui/VerdictBadge'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -30,6 +31,9 @@ export default async function SubmissionsPage() {
   if (!user) {
     redirect('/login')
   }
+
+  const t = await getTranslations('Submissions')
+  const format = await getFormatter()
 
   // Fetch submissions with problem titles
   const { data: submissions, error } = await supabase
@@ -73,19 +77,19 @@ export default async function SubmissionsPage() {
           <header className="border-b border-white/5 pb-6">
             <h1 className="text-3xl font-bold text-foreground tracking-tight mb-2 font-mono flex items-center gap-3">
               <Hash className="w-8 h-8 text-primary" />
-              Submission History
+              {t('title')}
             </h1>
             <p className="text-muted-foreground font-mono text-sm">
-              Complete trace of your algorithmic executions and verdicts.
+              {t('subtitle')}
             </p>
           </header>
 
           <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm overflow-hidden p-12 shadow-xl">
-            <EmptyState 
-              title="No submissions yet"
-              description="Solve your first problem to start building your algorithmic history and tracking your performance."
+            <EmptyState
+              title={t('emptyTitle')}
+              description={t('emptyDesc')}
               icon={Code2}
-              ctaText="Browse Problems"
+              ctaText={t('browseProblems')}
               ctaHref="/dashboard/problems"
             />
           </div>
@@ -112,12 +116,12 @@ export default async function SubmissionsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
-                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">ID / Time</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Problem</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Verdict</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Stat</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">Lang</th>
-                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono text-right">Action</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">{t('colTime')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">{t('colProblem')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">{t('colVerdict')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">{t('colStats')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono">{t('colLang')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono text-right">{t('colAction')}</th>
                 </tr>
               </thead>
               <StaggerTableBody>
@@ -128,11 +132,11 @@ export default async function SubmissionsPage() {
                           <span className="text-[10px] text-muted-foreground font-mono mb-1">#{sub.id.slice(0, 8)}</span>
                           <div className="flex items-center gap-1.5 text-xs text-foreground font-mono">
                             <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                            {new Date(sub.created_at).toLocaleString('ru-RU', { 
-                              day: '2-digit', 
-                              month: '2-digit', 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
+                            {format.dateTime(new Date(sub.created_at), {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
                             })}
                           </div>
                         </div>
@@ -142,7 +146,7 @@ export default async function SubmissionsPage() {
                           href={`/dashboard/problems/${sub.problem_id}`}
                           className="text-sm font-bold text-foreground hover:text-primary transition-colors font-mono line-clamp-1"
                         >
-                          {sub.problems?.title || 'Unknown Problem'}
+                          {sub.problems?.title || t('unknownProblem')}
                         </Link>
                       </td>
                       <td className="px-6 py-4">
@@ -150,7 +154,7 @@ export default async function SubmissionsPage() {
                           <VerdictBadge verdict={sub.verdict || sub.status} />
                           {sub.test_case != null && (
                             <span className="text-[10px] text-muted-foreground font-mono">
-                              on test {sub.test_case}
+                              {t('onTest', { n: sub.test_case })}
                             </span>
                           )}
                         </div>
@@ -178,7 +182,7 @@ export default async function SubmissionsPage() {
                           className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline font-mono"
                         >
                           <Code2 className="w-4 h-4" />
-                          View Code
+                          {t('viewCode')}
                           <ExternalLink className="w-3 h-3" />
                         </Link>
                       </td>

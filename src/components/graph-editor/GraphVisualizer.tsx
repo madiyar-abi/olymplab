@@ -18,11 +18,12 @@ import {
   Connection,
   BackgroundVariant,
   NodeProps,
+  NodeChange,
+  EdgeMarker,
   Handle,
   Position,
   useReactFlow,
   ReactFlowProvider,
-  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -170,8 +171,8 @@ function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerPro
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialNodes, initialEdges]);
 
-  const handleNodesChange = (changes: any) => {
-    if (changes.some((c: any) => c.type === 'position' && c.dragging)) {
+  const handleNodesChange = (changes: NodeChange<Node>[]) => {
+    if (changes.some(c => c.type === 'position' && c.dragging)) {
       userMoved.current = true;
     }
     onNodesChange(changes);
@@ -224,7 +225,7 @@ function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerPro
 
       let markerEnd = e.markerEnd;
       if (typeof markerEnd === 'object' && markerEnd !== null) {
-        markerEnd = { ...(markerEnd as object), color: active ? activeColor : idleColor } as any;
+        markerEnd = { ...(markerEnd as EdgeMarker), color: active ? activeColor : idleColor };
       }
 
       return {
@@ -282,7 +283,7 @@ function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerPro
         />
         <MiniMap
           nodeColor={n => {
-            const d = n.data as any;
+            const d = n.data as { isCurrent?: boolean; isVisited?: boolean };
             if (d.isCurrent) return '#f59e0b';
             if (d.isVisited) return '#10b981';
             return '#3f3f46';
