@@ -15,6 +15,7 @@ import { parseGraphData, IndexMode } from '@/utils/graphParser'
 import { PlaybackControls } from '@/components/graph-editor/PlaybackControls'
 import { useGraphSimulation } from '@/hooks/useGraphSimulation'
 import { AlgorithmType, runBFS, runDFS, runDijkstra } from '@/utils/graphAlgorithms'
+import { useTranslations } from 'next-intl'
 
 type GraphType = 'undirected' | 'directed'
 
@@ -197,6 +198,7 @@ function FlowCanvas({ parsedNodes, parsedEdges }: FlowCanvasProps) {
 
 // ── Main exported component ───────────────────────────────────────────────────
 export default function GraphEditorClient() {
+  const tg = useTranslations('GraphEditor')
   const [graphType, setGraphType] = useState<GraphType>('undirected')
   const [indexMode, setIndexMode] = useState<IndexMode>('1-index')
   const [nodeCount, setNodeCount] = useState(5)
@@ -221,12 +223,12 @@ export default function GraphEditorClient() {
 
           {/* Graph type */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Type</p>
+            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('type')}</p>
             <div className="flex rounded-lg overflow-hidden border border-neutral-700 text-xs font-mono">
               {(['undirected', 'directed'] as GraphType[]).map(t => (
                 <button key={t} id={`graph-type-${t}`} onClick={() => setGraphType(t)}
-                  className={`flex-1 py-1.5 capitalize transition-colors ${graphType === t ? 'bg-neutral-100 text-neutral-900 font-bold' : 'bg-transparent text-neutral-400 hover:bg-neutral-800'}`}>
-                  {t}
+                  className={`flex-1 py-1.5 transition-colors ${graphType === t ? 'bg-neutral-100 text-neutral-900 font-bold' : 'bg-transparent text-neutral-400 hover:bg-neutral-800'}`}>
+                  {tg(t)}
                 </button>
               ))}
             </div>
@@ -234,7 +236,7 @@ export default function GraphEditorClient() {
 
           {/* Index mode */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Index</p>
+            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('index')}</p>
             <div className="flex rounded-lg overflow-hidden border border-neutral-700 text-xs font-mono">
               {(['0-index', '1-index'] as IndexMode[]).map(m => (
                 <button key={m} id={`index-mode-${m}`} onClick={() => setIndexMode(m)}
@@ -248,7 +250,7 @@ export default function GraphEditorClient() {
           {/* Node count */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Nodes</p>
+              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('nodes')}</p>
               <span className="text-sm font-mono font-bold text-violet-400 tabular-nums">{nodeCount}</span>
             </div>
             <input
@@ -268,8 +270,8 @@ export default function GraphEditorClient() {
         {/* Graph data textarea */}
         <div className="p-4 flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Graph Data</p>
-            <span className="text-[9px] font-mono text-neutral-600">{edgeCount} edge{edgeCount !== 1 ? 's' : ''}</span>
+            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('graphData')}</p>
+            <span className="text-[9px] font-mono text-neutral-600">{tg('edges', { count: edgeCount })}</span>
           </div>
 
           <div className="flex flex-1 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 font-mono text-[11px]">
@@ -290,12 +292,12 @@ export default function GraphEditorClient() {
               style={{ fontSize: 11 }}
             />
           </div>
-          <p className="text-[9px] text-neutral-600 font-mono">One edge per line. Weight optional.</p>
+          <p className="text-[9px] text-neutral-600 font-mono">{tg('edgeHint')}</p>
         </div>
 
         {/* Tips */}
         <div className="px-4 pb-4 space-y-1.5 border-t border-neutral-800 pt-3">
-          {['Drag nodes to rearrange', 'Scroll to zoom · Drag to pan', 'Delete key removes selected'].map(tip => (
+          {[tg('tipDrag'), tg('tipZoom'), tg('tipDelete')].map(tip => (
             <p key={tip} className="text-[9px] text-neutral-600 font-mono flex items-center gap-1.5">
               <span className="text-indigo-500">◈</span>{tip}
             </p>

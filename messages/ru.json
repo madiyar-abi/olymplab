@@ -285,6 +285,19 @@
     "noActivity": "Пока нет посылок — решите задачу, и она появится здесь.",
     "browseProblems": "К задачам"
   },
+  "GraphEditor": {
+    "type": "Тип",
+    "undirected": "Неориент.",
+    "directed": "Ориент.",
+    "index": "Индекс",
+    "nodes": "Вершины",
+    "graphData": "Данные графа",
+    "edges": "{count, plural, one {# ребро} few {# ребра} many {# рёбер} other {# ребра}}",
+    "edgeHint": "Одно ребро на строку. Вес опционален.",
+    "tipDrag": "Перетаскивайте вершины",
+    "tipZoom": "Колесо — зум · Перетаскивание — панорама",
+    "tipDelete": "Delete удаляет выбранное"
+  },
   "Onboarding": {
     "step": "Шаг",
     "of": "из",

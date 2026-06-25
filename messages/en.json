@@ -285,6 +285,19 @@
     "noActivity": "No submissions yet — solve a problem to see it here.",
     "browseProblems": "Browse problems"
   },
+  "GraphEditor": {
+    "type": "Type",
+    "undirected": "Undirected",
+    "directed": "Directed",
+    "index": "Index",
+    "nodes": "Nodes",
+    "graphData": "Graph Data",
+    "edges": "{count, plural, one {# edge} other {# edges}}",
+    "edgeHint": "One edge per line. Weight optional.",
+    "tipDrag": "Drag nodes to rearrange",
+    "tipZoom": "Scroll to zoom · Drag to pan",
+    "tipDelete": "Delete key removes selected"
+  },
   "Onboarding": {
     "step": "Step",
     "of": "of",
