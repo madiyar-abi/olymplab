@@ -196,6 +196,13 @@
     "noMatchTitle": "No matches found",
     "noMatchDesc": "Try removing some tags or clearing all filters to see more problems in the catalog.",
     "clearFilters": "Clear all filters",
+    "filter": {
+      "placeholder": "Filter by tags (dp, math, greedy…)",
+      "search": "Type to search…",
+      "clearAll": "Clear all",
+      "noTagsFound": "No tags found",
+      "noMoreTags": "No more tags to select"
+    },
     "table": {
       "status": "Status",
       "id": "ID",
@@ -224,6 +231,18 @@
       "math": "Math",
       "graphs": "Graphs"
     }
+  },
+  "Profile": {
+    "title": "Profile & Analytics",
+    "subtitle": "Your personal statistics and activity.",
+    "statusLabel": "Status",
+    "statusActive": "Active",
+    "statistics": "Statistics",
+    "solvedProblems": "Solved Problems",
+    "currentStreak": "Current Streak",
+    "days": "days",
+    "accountJoined": "Account Joined",
+    "activity": "Activity"
   },
   "Settings": {
     "title": "Settings",

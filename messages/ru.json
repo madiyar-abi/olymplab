@@ -196,6 +196,13 @@
     "noMatchTitle": "Ничего не найдено",
     "noMatchDesc": "Попробуйте убрать некоторые теги или сбросить все фильтры, чтобы увидеть больше задач.",
     "clearFilters": "Сбросить фильтры",
+    "filter": {
+      "placeholder": "Фильтр по тегам (dp, math, greedy…)",
+      "search": "Поиск…",
+      "clearAll": "Очистить",
+      "noTagsFound": "Теги не найдены",
+      "noMoreTags": "Больше нет тегов"
+    },
     "table": {
       "status": "Статус",
       "id": "ID",
@@ -224,6 +231,18 @@
       "math": "Математика",
       "graphs": "Графы"
     }
+  },
+  "Profile": {
+    "title": "Профиль и аналитика",
+    "subtitle": "Ваша статистика и активность.",
+    "statusLabel": "Статус",
+    "statusActive": "Активен",
+    "statistics": "Статистика",
+    "solvedProblems": "Решено задач",
+    "currentStreak": "Текущая серия",
+    "days": "дней",
+    "accountJoined": "Регистрация",
+    "activity": "Активность"
   },
   "Settings": {
     "title": "Настройки",
