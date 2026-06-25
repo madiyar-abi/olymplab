@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Link } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { cn } from '@/lib/utils'
 import { Sprout, Zap, Flame, Inbox } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -27,19 +28,19 @@ const SOURCE_CONFIG = {
 }
 
 const DIFFICULTY_CONFIG = {
-  easy:   { label: 'Легкая',   color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
-  medium: { label: 'Средняя',  color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
-  hard:   { label: 'Сложная',  color: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
+  easy:   { labelKey: 'diffEasy',   color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
+  medium: { labelKey: 'diffMedium', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
+  hard:   { labelKey: 'diffHard',   color: 'bg-rose-500/10 text-rose-400 border-rose-500/30' },
 }
 
-const LAYER_CONFIG: Record<string, { icon: React.ReactNode; label: string; desc: string }> = {
-  intro: { icon: <Sprout className="w-5 h-5 text-emerald-500" />, label: 'Введение и база', desc: 'Основные понятия и классические задачи на понимание темы' },
-  core:  { icon: <Zap className="w-5 h-5 text-sky-500" />, label: 'Ядро темы',        desc: 'Стандартные алгоритмы и важные модификации' },
-  mixed: { icon: <Flame className="w-5 h-5 text-violet-500" />, label: 'Продвинутые и Mix', desc: 'Сложные задачи и комбинации с другими темами' },
+const LAYER_CONFIG: Record<string, { icon: React.ReactNode; labelKey: string; descKey: string }> = {
+  intro: { icon: <Sprout className="w-5 h-5 text-emerald-500" />, labelKey: 'layerIntroLabel', descKey: 'layerIntroDesc' },
+  core:  { icon: <Zap className="w-5 h-5 text-sky-500" />,        labelKey: 'layerCoreLabel',  descKey: 'layerCoreDesc' },
+  mixed: { icon: <Flame className="w-5 h-5 text-violet-500" />,   labelKey: 'layerMixedLabel', descKey: 'layerMixedDesc' },
 }
 
 // ─── Problem Card ─────────────────────────────────────────────────────────────
-function ProblemCard({ p, isSolved }: { p: TopicProblem, isSolved: boolean }) {
+function ProblemCard({ p, isSolved, diffLabel, internalLabel }: { p: TopicProblem, isSolved: boolean, diffLabel: string, internalLabel: string }) {
   const src  = SOURCE_CONFIG[p.source] || SOURCE_CONFIG.codeforces
   const diff = DIFFICULTY_CONFIG[p.difficulty] || DIFFICULTY_CONFIG.easy
   
@@ -82,7 +83,7 @@ function ProblemCard({ p, isSolved }: { p: TopicProblem, isSolved: boolean }) {
         {p.title}
         {isInternal && (
           <span className="ml-2 text-[9px] text-cyan-600 dark:text-cyan-400 font-mono uppercase tracking-tighter bg-cyan-400/5 px-1 rounded border border-cyan-400/20">
-            Internal
+            {internalLabel}
           </span>
         )}
       </span>
@@ -96,7 +97,7 @@ function ProblemCard({ p, isSolved }: { p: TopicProblem, isSolved: boolean }) {
 
       {/* Difficulty */}
       <span className={`flex-shrink-0 text-[10px] font-bold font-mono px-2 py-0.5 rounded border ${diff.color}`}>
-        {diff.label}
+        {diffLabel}
       </span>
 
       {/* Arrow / Action Icon */}
@@ -123,6 +124,7 @@ export default async function PracticePage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const t = await getTranslations('Syllabi')
   const supabase = await createClient()
 
   // Fetch topic info
@@ -182,14 +184,14 @@ export default async function PracticePage({
       <div className="border-b border-border px-8 py-4 bg-background">
         <div className="max-w-3xl mx-auto flex items-center gap-3 flex-wrap text-sm font-mono">
           <Link href="/dashboard/learning" className="text-muted-foreground hover:text-foreground/70 transition-colors">
-            Roadmap
+            {t('roadmap')}
           </Link>
           <span className="text-muted-foreground/30">/</span>
           <Link href={`/dashboard/learning/${id}`} className="text-muted-foreground hover:text-foreground/70 transition-colors truncate max-w-[180px]">
             {topic.title}
           </Link>
           <span className="text-muted-foreground/30">/</span>
-          <span className="text-muted-foreground/80">Практика</span>
+          <span className="text-muted-foreground/80">{t('practiceCrumb')}</span>
         </div>
       </div>
 
@@ -198,11 +200,11 @@ export default async function PracticePage({
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-muted-foreground/40">Тема #{topic.order_index}</span>
+              <span className="text-xs font-mono text-muted-foreground/40">{t('topicNum', { num: topic.order_index })}</span>
             </div>
             {stats.total > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Ваш прогресс</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{t('yourProgress')}</span>
                 <div className="flex items-center gap-2 bg-secondary/50 px-2 py-1 rounded-md border border-border/50">
                    <span className={cn("text-xs font-bold font-mono", stats.percentage === 100 ? "text-emerald-400" : "text-sky-400")}>{stats.percentage}%</span>
                    <div className="w-24 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -214,29 +216,29 @@ export default async function PracticePage({
           </div>
           
           <h1 className="text-2xl font-bold text-foreground mb-1">
-            Практика — <span className="text-violet-500 dark:text-violet-400">{topic.title}</span>
+            {t('practicePrefix')}<span className="text-violet-500 dark:text-violet-400">{topic.title}</span>
           </h1>
           <p className="text-muted-foreground text-sm mt-2">
-            Задачи подобраны по теме и решаются прямо на платформе OlympLab во встроенной IDE.
+            {t('practiceDesc')}
           </p>
 
           {/* Stats row */}
           <div className="flex flex-wrap gap-3 mt-5">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border">
               <span className="text-foreground/60 text-sm font-mono">{stats.solved}/{stats.total}</span>
-              <span className="text-muted-foreground text-xs">решено</span>
+              <span className="text-muted-foreground text-xs">{t('solvedLabel')}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <span className="text-emerald-600 dark:text-emerald-400 text-sm font-mono">{stats.easy}</span>
-              <span className="text-emerald-600/50 dark:text-emerald-400/50 text-xs">лёгких</span>
+              <span className="text-emerald-600/50 dark:text-emerald-400/50 text-xs">{t('easyLabel')}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
               <span className="text-yellow-600 dark:text-yellow-400 text-sm font-mono">{stats.medium}</span>
-              <span className="text-yellow-600/50 dark:text-yellow-400/50 text-xs">средних</span>
+              <span className="text-yellow-600/50 dark:text-yellow-400/50 text-xs">{t('mediumLabel')}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20">
               <span className="text-rose-600 dark:text-rose-400 text-sm font-mono">{stats.hard}</span>
-              <span className="text-rose-600/50 dark:text-rose-400/50 text-xs">сложных</span>
+              <span className="text-rose-600/50 dark:text-rose-400/50 text-xs">{t('hardLabel')}</span>
             </div>
 
             <div className="flex items-center gap-1.5 ml-auto">
@@ -253,9 +255,9 @@ export default async function PracticePage({
 
         {/* Problem groups */}
         {all.length === 0 ? (
-          <EmptyState 
-            title="No Problems Found"
-            description="Challenges for this topic haven't been added to the database yet. Check back soon for new training material."
+          <EmptyState
+            title={t('noProblemsTitle')}
+            description={t('noProblemsDesc')}
             icon={Inbox}
             className="min-h-[40vh] py-12"
           />
@@ -273,16 +275,22 @@ export default async function PracticePage({
                     <span className="text-lg">{cfg.icon}</span>
                     <div>
                       <h2 className="text-sm font-bold text-foreground/80 font-mono uppercase tracking-widest">
-                        {cfg.label}
+                        {t(cfg.labelKey)}
                       </h2>
-                      <p className="text-xs text-muted-foreground/50 mt-0.5">{cfg.desc}</p>
+                      <p className="text-xs text-muted-foreground/50 mt-0.5">{t(cfg.descKey)}</p>
                     </div>
-                    <span className="ml-auto text-xs font-mono text-muted-foreground/40">{probs.length} задач</span>
+                    <span className="ml-auto text-xs font-mono text-muted-foreground/40">{t('problemsCount', { count: probs.length })}</span>
                   </div>
 
                   <div className="space-y-2">
                     {probs.map(p => (
-                      <ProblemCard key={p.id} p={p} isSolved={p.problem_id ? solvedProblemIds.has(p.problem_id) : false} />
+                      <ProblemCard
+                        key={p.id}
+                        p={p}
+                        isSolved={p.problem_id ? solvedProblemIds.has(p.problem_id) : false}
+                        diffLabel={t(DIFFICULTY_CONFIG[p.difficulty]?.labelKey ?? 'diffEasy')}
+                        internalLabel={t('internal')}
+                      />
                     ))}
                   </div>
                 </section>
@@ -300,13 +308,13 @@ export default async function PracticePage({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Вернуться к статье
+            {t('backToArticle')}
           </Link>
           <Link
             href="/dashboard/learning"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors font-mono"
           >
-            Roadmap →
+            {t('roadmap')} →
           </Link>
         </div>
       </div>

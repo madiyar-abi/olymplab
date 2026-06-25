@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { Navbar } from "@/components/shared/Navbar";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { Toaster } from "@/components/ui/Toast";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "../globals.css";
 
@@ -52,6 +53,7 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages}>
             <Navbar />
             <main className="flex-1 flex flex-col overflow-hidden min-h-0">{children}</main>
+            <Toaster />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

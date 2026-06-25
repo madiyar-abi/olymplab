@@ -2,6 +2,7 @@
 
 import Editor from '@monaco-editor/react'
 import { History, RotateCcw, X } from 'lucide-react'
+import { useTranslations, useLocale } from 'next-intl'
 import { VerdictBadge } from '@/components/ui/VerdictBadge'
 import { useTheme } from '@/components/shared/ThemeProvider'
 import type { Submission } from '@/app/[locale]/dashboard/problems/[id]/IDEClient'
@@ -13,6 +14,8 @@ interface SubmissionModalProps {
 }
 
 export function SubmissionModal({ submission, onClose, onRestore }: SubmissionModalProps) {
+  const t = useTranslations('IDE')
+  const locale = useLocale()
   const { resolvedTheme } = useTheme()
 
   return (
@@ -25,14 +28,14 @@ export function SubmissionModal({ submission, onClose, onRestore }: SubmissionMo
               <History className="w-5 h-5 text-cyan-500" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-foreground">Submission Code</h3>
+              <h3 className="text-sm font-bold text-foreground">{t('submissionCode')}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <VerdictBadge verdict={submission.verdict} size="sm" />
                 <span className="text-[10px] text-muted-foreground font-mono bg-secondary px-1.5 py-0.5 rounded border border-border uppercase">
                   {submission.language}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-mono">
-                  {new Date(submission.created_at).toLocaleString()}
+                  {new Date(submission.created_at).toLocaleString(locale)}
                 </span>
               </div>
             </div>
@@ -72,11 +75,11 @@ export function SubmissionModal({ submission, onClose, onRestore }: SubmissionMo
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border bg-muted/30 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-            {submission.test_case != null && <span>Test: {submission.test_case}</span>}
-            {submission.time_ms != null && <span>Time: {submission.time_ms}ms</span>}
+            {submission.test_case != null && <span>{t('test')}: {submission.test_case}</span>}
+            {submission.time_ms != null && <span>{t('time')}: {submission.time_ms}ms</span>}
             {submission.memory_kb != null && (
               <span>
-                Memory:{' '}
+                {t('memory')}:{' '}
                 {submission.memory_kb < 1024
                   ? `${submission.memory_kb}KB`
                   : `${(submission.memory_kb / 1024).toFixed(1)}MB`}
@@ -88,14 +91,14 @@ export function SubmissionModal({ submission, onClose, onRestore }: SubmissionMo
               onClick={onClose}
               className="px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
             >
-              Close
+              {t('close')}
             </button>
             <button
               onClick={() => onRestore(submission.code || '', submission.language || 'cpp')}
               className="flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
             >
               <RotateCcw className="w-4 h-4" />
-              Restore to Editor
+              {t('restoreToEditor')}
             </button>
           </div>
         </div>

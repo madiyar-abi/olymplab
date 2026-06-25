@@ -33,7 +33,7 @@ function StraightEdge({ id, sourceX, sourceY, targetX, targetY, style, markerEnd
             className="absolute nodrag nopan"
             style={{ transform: `translate(-50%,-50%) translate(${lx}px,${ly}px)` }}
           >
-            <span className="bg-neutral-900 text-neutral-300 px-2 py-0.5 rounded-md text-xs border border-neutral-700 font-mono font-semibold shadow">
+            <span className="bg-card/85 text-foreground/80 px-2 py-0.5 rounded-md text-xs border border-border font-mono font-semibold shadow-lg backdrop-blur-sm">
               {label as string}
             </span>
           </div>
@@ -153,6 +153,8 @@ function FlowCanvas({ parsedNodes, parsedEdges }: FlowCanvasProps) {
         fitView
         fitViewOptions={{ padding: 0.25 }}
         colorMode="dark"
+        snapToGrid
+        snapGrid={[16, 16]}
         panOnDrag
         zoomOnScroll
         zoomOnPinch
@@ -161,15 +163,17 @@ function FlowCanvas({ parsedNodes, parsedEdges }: FlowCanvasProps) {
         style={{ background: 'transparent' }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} color="rgba(255,255,255,0.04)" gap={24} size={1.5} />
+        <Background variant={BackgroundVariant.Dots} color="rgba(120,140,180,0.12)" gap={28} size={1} />
         <Controls
           showInteractive={false} showFitView showZoom
-          className="!bg-neutral-900/90 !border-neutral-700/50 !shadow-xl [&>button]:!bg-neutral-900 [&>button]:!text-neutral-400 [&>button:hover]:!bg-neutral-800 [&>button]:!border-neutral-700/50"
+          className="!rounded-xl !overflow-hidden !bg-card/70 !backdrop-blur-xl !border !border-border !shadow-2xl !shadow-black/40 [&>button]:!bg-transparent [&>button]:!text-muted-foreground [&>button:hover]:!bg-primary/10 [&>button:hover]:!text-primary [&>button]:!border-border/60 [&>button]:!transition-colors"
         />
         <MiniMap
-          nodeColor={n => { const d = n.data as { isCurrent?: boolean; isVisited?: boolean }; return d.isCurrent ? '#fbbf24' : d.isVisited ? '#34d399' : '#404040' }}
-          maskColor="rgba(0,0,0,0.5)"
-          style={{ background: '#171717', border: '1px solid rgba(64,64,64,0.5)', borderRadius: 8 }}
+          pannable
+          zoomable
+          nodeColor={n => { const d = n.data as { isCurrent?: boolean; isVisited?: boolean }; return d.isCurrent ? '#fbbf24' : d.isVisited ? '#34d399' : '#3b82f6' }}
+          maskColor="rgba(8,11,22,0.6)"
+          style={{ background: 'rgba(17,24,39,0.7)', backdropFilter: 'blur(12px)', border: '1px solid var(--border)', borderRadius: 12 }}
         />
       </ReactFlow>
 
@@ -213,21 +217,21 @@ export default function GraphEditorClient() {
   const edgeCount = lines.filter(l => l.trim().length > 0).length
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full bg-neutral-950 text-white overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] w-full bg-background text-foreground overflow-hidden">
 
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
-      <div className="w-72 shrink-0 border-r border-neutral-800 flex flex-col overflow-hidden">
+      <div className="w-72 shrink-0 border-r border-border flex flex-col overflow-hidden">
 
         {/* Controls */}
-        <div className="p-4 space-y-4 border-b border-neutral-800">
+        <div className="p-4 space-y-4 border-b border-border">
 
           {/* Graph type */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('type')}</p>
-            <div className="flex rounded-lg overflow-hidden border border-neutral-700 text-xs font-mono">
+            <p className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">{tg('type')}</p>
+            <div className="flex rounded-lg overflow-hidden border border-border text-xs font-mono">
               {(['undirected', 'directed'] as GraphType[]).map(t => (
                 <button key={t} id={`graph-type-${t}`} onClick={() => setGraphType(t)}
-                  className={`flex-1 py-1.5 transition-colors ${graphType === t ? 'bg-neutral-100 text-neutral-900 font-bold' : 'bg-transparent text-neutral-400 hover:bg-neutral-800'}`}>
+                  className={`flex-1 py-1.5 transition-colors ${graphType === t ? 'bg-primary text-primary-foreground font-bold' : 'bg-transparent text-muted-foreground hover:bg-secondary'}`}>
                   {tg(t)}
                 </button>
               ))}
@@ -236,11 +240,11 @@ export default function GraphEditorClient() {
 
           {/* Index mode */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('index')}</p>
-            <div className="flex rounded-lg overflow-hidden border border-neutral-700 text-xs font-mono">
+            <p className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">{tg('index')}</p>
+            <div className="flex rounded-lg overflow-hidden border border-border text-xs font-mono">
               {(['0-index', '1-index'] as IndexMode[]).map(m => (
                 <button key={m} id={`index-mode-${m}`} onClick={() => setIndexMode(m)}
-                  className={`flex-1 py-1.5 transition-colors ${indexMode === m ? 'bg-neutral-100 text-neutral-900 font-bold' : 'bg-transparent text-neutral-400 hover:bg-neutral-800'}`}>
+                  className={`flex-1 py-1.5 transition-colors ${indexMode === m ? 'bg-primary text-primary-foreground font-bold' : 'bg-transparent text-muted-foreground hover:bg-secondary'}`}>
                   {m}
                 </button>
               ))}
@@ -250,19 +254,19 @@ export default function GraphEditorClient() {
           {/* Node count */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('nodes')}</p>
-              <span className="text-sm font-mono font-bold text-violet-400 tabular-nums">{nodeCount}</span>
+              <p className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">{tg('nodes')}</p>
+              <span className="text-sm font-mono font-bold text-primary tabular-nums">{nodeCount}</span>
             </div>
             <input
               id="node-count-slider"
               type="range" min={1} max={20} value={nodeCount}
               onChange={e => setNodeCount(Number(e.target.value))}
               className="w-full h-1.5 rounded-full cursor-pointer"
-              style={{ background: `linear-gradient(to right, #7c3aed ${((nodeCount - 1) / 19) * 100}%, #404040 ${((nodeCount - 1) / 19) * 100}%)` }}
+              style={{ background: `linear-gradient(to right, #3b82f6 ${((nodeCount - 1) / 19) * 100}%, rgba(120,140,180,0.2) ${((nodeCount - 1) / 19) * 100}%)` }}
             />
             <div className="flex justify-between">
-              <span className="text-[9px] font-mono text-neutral-600">1</span>
-              <span className="text-[9px] font-mono text-neutral-600">20</span>
+              <span className="text-[9px] font-mono text-muted-foreground/60">1</span>
+              <span className="text-[9px] font-mono text-muted-foreground/60">20</span>
             </div>
           </div>
         </div>
@@ -270,43 +274,43 @@ export default function GraphEditorClient() {
         {/* Graph data textarea */}
         <div className="p-4 flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">{tg('graphData')}</p>
-            <span className="text-[9px] font-mono text-neutral-600">{tg('edges', { count: edgeCount })}</span>
+            <p className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">{tg('graphData')}</p>
+            <span className="text-[9px] font-mono text-muted-foreground/60">{tg('edges', { count: edgeCount })}</span>
           </div>
 
-          <div className="flex flex-1 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 font-mono text-[11px]">
+          <div className="flex flex-1 overflow-hidden rounded-lg border border-border bg-card font-mono text-[11px]">
             {/* Line numbers */}
-            <div className="flex flex-col py-2 px-2 text-right select-none border-r border-neutral-800 min-w-[2.25rem]"
+            <div className="flex flex-col py-2 px-2 text-right select-none border-r border-border min-w-[2.25rem]"
                  style={{ lineHeight: '1.5rem' }}>
               {lines.map((_, i) => (
-                <span key={i} className="text-neutral-600" style={{ fontSize: 10 }}>{i + 1}</span>
+                <span key={i} className="text-muted-foreground/60" style={{ fontSize: 10 }}>{i + 1}</span>
               ))}
             </div>
             <textarea
               id="edges-input"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              className="flex-1 bg-transparent text-neutral-300 resize-none outline-none p-2 leading-6"
+              className="flex-1 bg-transparent text-foreground/90 resize-none outline-none p-2 leading-6"
               spellCheck={false}
               placeholder="u v w"
               style={{ fontSize: 11 }}
             />
           </div>
-          <p className="text-[9px] text-neutral-600 font-mono">{tg('edgeHint')}</p>
+          <p className="text-[9px] text-muted-foreground/60 font-mono">{tg('edgeHint')}</p>
         </div>
 
         {/* Tips */}
-        <div className="px-4 pb-4 space-y-1.5 border-t border-neutral-800 pt-3">
+        <div className="px-4 pb-4 space-y-1.5 border-t border-border pt-3">
           {[tg('tipDrag'), tg('tipZoom'), tg('tipDelete')].map(tip => (
-            <p key={tip} className="text-[9px] text-neutral-600 font-mono flex items-center gap-1.5">
-              <span className="text-indigo-500">◈</span>{tip}
+            <p key={tip} className="text-[9px] text-muted-foreground/60 font-mono flex items-center gap-1.5">
+              <span className="text-primary">◈</span>{tip}
             </p>
           ))}
         </div>
       </div>
 
       {/* ── Canvas ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 relative bg-neutral-950">
+      <div className="flex-1 relative bg-background">
         <ReactFlowProvider>
           <FlowCanvas parsedNodes={parsedNodes} parsedEdges={parsedEdges} />
         </ReactFlowProvider>

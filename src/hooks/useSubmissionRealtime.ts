@@ -24,14 +24,15 @@ export function useSubmissionRealtime(submissionId: string | null) {
 
     // 1. Fetch initial state
     const fetchInitialState = async () => {
-      const { data, error: fetchError } = await (supabase.from('submissions') as any)
+      const { data, error: fetchError } = await (supabase
+        .from('submissions')
         .select('status, test_case, verdict, time_ms, memory_kb')
         .eq('id', submissionId)
-        .single()
+        .single() as unknown as Promise<{ data: Submission | null; error: { message: string } | null }>)
 
       if (fetchError) {
         console.error('Error fetching initial submission state:', fetchError)
-        setError(fetchError as any)
+        setError(new Error(fetchError.message))
       } else if (data) {
         setSubmission({
           status: data.status,

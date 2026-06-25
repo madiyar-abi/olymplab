@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { ProblemsClient, Problem } from './ProblemsClient'
 import { cookies } from 'next/headers'
 
@@ -8,7 +9,16 @@ import { Database } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
+type ProblemRow = {
+  id: string
+  title: string
+  difficulty: string
+  requirements: Problem['requirements']
+  topic_problems: { tags: string[] | null }[] | null
+}
+
 export default async function DashboardProblemsPage() {
+  const t = await getTranslations('Problems')
   const supabase = await createClient()
   const cookieStore = await cookies()
   const initialView = (cookieStore.get('problems-view')?.value as 'grid' | 'table') || 'grid'
@@ -41,22 +51,22 @@ export default async function DashboardProblemsPage() {
     console.error('[Problems Catalog] Fetch error:', fetchError)
   }
 
-  const problemList: Problem[] = (problemsData as any[] || []).map(p => ({
+  const problemList: Problem[] = ((problemsData as ProblemRow[] | null) || []).map(p => ({
     id: p.id,
     title: p.title,
     difficulty: p.difficulty,
     requirements: p.requirements,
-    tags: Array.from(new Set((p.topic_problems || []).flatMap((tp: any) => tp.tags || [])))
+    tags: Array.from(new Set((p.topic_problems || []).flatMap(tp => tp.tags || [])))
   }))
   console.log('[Problems Catalog] Found', problemList.length, 'problems')
 
   if (problemList.length === 0) {
     return (
-      <EmptyState 
-        title="Репозиторий пуст"
-        description="В базе данных пока нет задач. Инициализируйте каталог, запустив скрипты загрузки данных, или загляните позже."
+      <EmptyState
+        title={t('emptyRepoTitle')}
+        description={t('emptyRepoDesc')}
         icon={Database}
-        ctaText="Обновить страницу"
+        ctaText={t('refresh')}
         ctaHref="/dashboard/problems"
       />
     )

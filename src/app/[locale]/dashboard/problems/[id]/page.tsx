@@ -66,7 +66,7 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
   const initialIsRevealed = !!revealedData
 
   let initialCode = profile?.code_template || undefined
-  let initialLanguage = (profile?.preferred_language || 'cpp') as any
+  let initialLanguage = profile?.preferred_language || 'cpp'
 
   // If viewing a specific submission, fetch that code instead
   if (submissionId) {

@@ -11,6 +11,7 @@ import {
   Minus,
   MoveRight
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 type Tool = 'pencil' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow'
@@ -24,6 +25,7 @@ type Path = {
 }
 
 export default function WhiteboardClient() {
+  const t = useTranslations('Whiteboard')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [tool, setTool] = useState<Tool>('pencil')
   const [color, setColor] = useState('#3b82f6') // primary blue
@@ -173,7 +175,7 @@ export default function WhiteboardClient() {
       setIsDrawing(true)
     } else {
       setCurrentPath({
-        type: tool as any,
+        type: tool as Path['type'],
         points: [coords, coords],
         color,
         lineWidth
@@ -237,21 +239,21 @@ export default function WhiteboardClient() {
     <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4">
       <header className="flex items-center justify-between border-b border-border pb-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight font-mono">Whiteboard</h1>
-          <p className="text-muted-foreground font-mono text-xs mt-1">Sketch your logic and map out algorithms.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight font-mono">{t('title')}</h1>
+          <p className="text-muted-foreground font-mono text-xs mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-           <button 
+           <button
             onClick={downloadImage}
             className="p-2 rounded-lg bg-secondary/50 border border-border text-muted-foreground hover:text-foreground transition-colors"
-            title="Download PNG"
+            title={t('downloadPng')}
           >
             <Download className="w-5 h-5" />
           </button>
-          <button 
+          <button
             onClick={clearCanvas}
             className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all"
-            title="Clear All"
+            title={t('clearAll')}
           >
             <Trash2 className="w-5 h-5" />
           </button>
@@ -261,42 +263,42 @@ export default function WhiteboardClient() {
       <div className="flex flex-1 gap-4 overflow-hidden">
         {/* Toolbar */}
         <div className="w-16 flex flex-col items-center py-4 bg-card border border-border rounded-2xl space-y-4 shadow-sm overflow-y-auto no-scrollbar">
-          <ToolButton 
-            active={tool === 'pencil'} 
-            onClick={() => setTool('pencil')} 
-            icon={<Pencil className="w-5 h-5" />} 
-            label="Draw"
+          <ToolButton
+            active={tool === 'pencil'}
+            onClick={() => setTool('pencil')}
+            icon={<Pencil className="w-5 h-5" />}
+            label={t('draw')}
           />
-          <ToolButton 
-            active={tool === 'eraser'} 
-            onClick={() => setTool('eraser')} 
-            icon={<Eraser className="w-5 h-5" />} 
-            label="Erase"
+          <ToolButton
+            active={tool === 'eraser'}
+            onClick={() => setTool('eraser')}
+            icon={<Eraser className="w-5 h-5" />}
+            label={t('erase')}
           />
           <div className="h-px w-8 bg-border my-1" />
-          <ToolButton 
-            active={tool === 'rectangle'} 
-            onClick={() => setTool('rectangle')} 
-            icon={<Square className="w-5 h-5" />} 
-            label="Rectangle"
+          <ToolButton
+            active={tool === 'rectangle'}
+            onClick={() => setTool('rectangle')}
+            icon={<Square className="w-5 h-5" />}
+            label={t('rectangle')}
           />
-          <ToolButton 
-            active={tool === 'circle'} 
-            onClick={() => setTool('circle')} 
-            icon={<Circle className="w-5 h-5" />} 
-            label="Circle"
+          <ToolButton
+            active={tool === 'circle'}
+            onClick={() => setTool('circle')}
+            icon={<Circle className="w-5 h-5" />}
+            label={t('circle')}
           />
-          <ToolButton 
-            active={tool === 'line'} 
-            onClick={() => setTool('line')} 
-            icon={<Minus className="w-5 h-5" />} 
-            label="Line"
+          <ToolButton
+            active={tool === 'line'}
+            onClick={() => setTool('line')}
+            icon={<Minus className="w-5 h-5" />}
+            label={t('line')}
           />
-          <ToolButton 
-            active={tool === 'arrow'} 
-            onClick={() => setTool('arrow')} 
-            icon={<MoveRight className="w-5 h-5" />} 
-            label="Arrow"
+          <ToolButton
+            active={tool === 'arrow'}
+            onClick={() => setTool('arrow')}
+            icon={<MoveRight className="w-5 h-5" />}
+            label={t('arrow')}
           />
           
           <div className="h-px w-8 bg-border my-2" />
@@ -327,7 +329,7 @@ export default function WhiteboardClient() {
                 className="appearance-none w-24 h-1.5 bg-white/10 rounded-full outline-none cursor-pointer -rotate-90 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform hover:[&::-webkit-slider-thumb]:scale-125"
               />
             </div>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-4">Size</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-4">{t('size')}</span>
           </div>
         </div>
 

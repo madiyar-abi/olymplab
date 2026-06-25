@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import { Play, Pause, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { AlgorithmType } from '../../utils/graphAlgorithms';
 
 interface PlaybackControlsProps {
@@ -41,6 +44,7 @@ export function PlaybackControls({
   totalFrames,
   description
 }: PlaybackControlsProps) {
+  const t = useTranslations('GraphEditor');
   const progress = totalFrames > 0 ? ((currentFrameIndex + 1) / totalFrames) * 100 : 0;
   const accentColor = ALGO_COLORS[selectedAlgorithm];
 
@@ -73,7 +77,7 @@ export function PlaybackControls({
         {/* Algorithm selector */}
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">
-            Algorithm
+            {t('algorithm')}
           </span>
           <div className="flex rounded-lg overflow-hidden border border-zinc-700/60 text-[11px] font-mono">
             {ALGORITHMS.map(algo => (
@@ -101,7 +105,7 @@ export function PlaybackControls({
             id="playback-reset"
             onClick={onReset}
             className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 transition-all duration-200"
-            title="Reset"
+            title={t('reset')}
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -113,7 +117,7 @@ export function PlaybackControls({
             onClick={onStepBackward}
             className="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
             disabled={currentFrameIndex === 0}
-            title="Step Backward"
+            title={t('stepBackward')}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -126,7 +130,7 @@ export function PlaybackControls({
               background: `linear-gradient(135deg, ${accentColor}dd, ${accentColor})`,
               boxShadow: `0 4px 16px ${accentColor}55`,
             }}
-            title={isPlaying ? 'Pause' : 'Play'}
+            title={isPlaying ? t('pause') : t('play')}
           >
             {isPlaying
               ? <Pause className="w-4 h-4 fill-current" />
@@ -139,7 +143,7 @@ export function PlaybackControls({
             onClick={onStepForward}
             className="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
             disabled={currentFrameIndex === totalFrames - 1 || totalFrames === 0}
-            title="Step Forward"
+            title={t('stepForward')}
           >
             <ChevronRight className="w-4 h-4" />
           </button>

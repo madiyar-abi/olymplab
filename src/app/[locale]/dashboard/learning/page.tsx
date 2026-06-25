@@ -78,7 +78,7 @@ export default async function LearningPage() {
         <div className="px-8 mt-8">
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 font-mono flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>Roadmap topics table not found. Please check database schema.</span>
+            <span>{t('tableError')}</span>
           </div>
         </div>
       )}

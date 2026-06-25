@@ -22,6 +22,8 @@ import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import { useAutoSaveCode, SaveStatus } from '@/hooks/useAutoSaveCode'
+import { useTranslations } from 'next-intl'
+import { toast } from '@/components/ui/Toast'
 
 export interface SkillReq {
   level: number
@@ -29,6 +31,7 @@ export interface SkillReq {
 }
 
 const AutoSaveStatus = ({ status }: { status: SaveStatus }) => {
+  const t = useTranslations('IDE')
   if (status === 'idle') return null
 
   return (
@@ -36,15 +39,15 @@ const AutoSaveStatus = ({ status }: { status: SaveStatus }) => {
       {status === 'saving' ? (
         <>
           <Loader2 className="w-3 h-3 animate-spin text-cyan-500" />
-          <span>Saving...</span>
+          <span>{t('saving')}</span>
         </>
       ) : status === 'saved' ? (
         <>
           <Check className="w-3 h-3 text-emerald-500" />
-          <span>Saved locally</span>
+          <span>{t('savedLocally')}</span>
         </>
       ) : (
-        <span className="animate-pulse">Edited</span>
+        <span className="animate-pulse">{t('edited')}</span>
       )}
     </div>
   )
@@ -101,6 +104,7 @@ export interface FlaggedProblem {
 }
 
 const Timer = () => {
+  const t = useTranslations('IDE')
   const [seconds, setSeconds] = useState(0)
   const [isVisible, setIsVisible] = useState(true)
 
@@ -126,7 +130,7 @@ const Timer = () => {
         className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 border border-border rounded-lg font-mono text-xs text-muted-foreground hover:bg-secondary transition-colors shrink-0"
       >
         <TimerIcon className="w-4 h-4" />
-        <span>Show Timer</span>
+        <span>{t('showTimer')}</span>
       </button>
     )
   }
@@ -134,7 +138,7 @@ const Timer = () => {
   return (
     <button
       onClick={() => setIsVisible(false)}
-      title="Hide Timer"
+      title={t('hideTimer')}
       className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 border border-border rounded-lg font-mono text-sm text-foreground/80 hover:bg-secondary transition-colors shrink-0"
     >
       <TimerIcon className="w-4 h-4 text-cyan-500" />
@@ -278,6 +282,7 @@ export default function IDEClient({
   isSolved: initialIsSolved = false,
   initialIsRevealed = false
 }: IDEClientProps) {
+  const t = useTranslations('IDE')
   const { resolvedTheme } = useTheme()
   const supabase = useMemo(() => createClient(), [])
    
@@ -539,7 +544,7 @@ export default function IDEClient({
       const data = await res.json()
 
       if (!res.ok) {
-        setOutput(`Error: ${data.error || 'Execution engine unavailable.'}`)
+        setOutput(data.error || t('executionUnavailable'))
         return
       }
 
@@ -547,18 +552,18 @@ export default function IDEClient({
       if (data.stdout && data.stdout.trim()) {
         setOutput(data.stdout)
       } else if (data.stderr && data.stderr.trim()) {
-        setOutput(`Compilation / Runtime Error:\n\n${data.stderr}`)
+        setOutput(`${t('compileRuntimeError')}\n\n${data.stderr}`)
       } else if (data.code !== undefined && data.code !== 0) {
-        setOutput(`Process exited with code ${data.code}.\n${data.stderr || ''}`)
+        setOutput(`${t('processExited', { code: data.code })}\n${data.stderr || ''}`)
       } else {
-        setOutput('(No output)')
+        setOutput(t('noOutput'))
       }
     } catch {
-      setOutput('Network Error: Failed to connect to execution engine.')
+      setOutput(t('networkExecError'))
     } finally {
       setIsRunning(false)
     }
-  }, [language, stdin])
+  }, [language, stdin, t])
 
   const handleSubmit = useCallback(async (overrideCode?: string, overrideLang?: 'cpp' | 'python' | 'java' | 'rust' | 'go' | 'javascript') => {
     const code = overrideCode ?? editorRef.current?.getValue()
@@ -578,7 +583,8 @@ export default function IDEClient({
       const data = await res.json()
 
       if (!res.ok) {
-        setCurrentSubmission({ status: 'ERROR', verdict: data.error || 'Submission failed' })
+        setCurrentSubmission({ status: 'ERROR', verdict: data.error || t('submissionFailed') })
+        toast.error(t('toastFailed'), data.error || undefined)
         setIsSubmitting(false)
         return
       }
@@ -594,7 +600,8 @@ export default function IDEClient({
           if (Date.now() - startTime > TIMEOUT_MS) {
             clearInterval(interval)
             pollingIntervalRef.current = null
-            setCurrentSubmission(prev => prev ? { ...prev, status: 'ERROR', verdict: 'System Unavailable or Timeout' } : { status: 'ERROR', verdict: 'System Unavailable or Timeout' })
+            setCurrentSubmission(prev => prev ? { ...prev, status: 'ERROR', verdict: t('timeout') } : { status: 'ERROR', verdict: t('timeout') })
+            toast.error(t('toastFailed'), t('timeout'))
             setIsSubmitting(false)
             fetchHistory()
             return
@@ -611,13 +618,14 @@ export default function IDEClient({
               setIsSubmitting(false)
               fetchHistory() // Refresh history
 
-              // Celebration
+              // Celebration / feedback
               if (pollData.verdict === 'Accepted' || pollData.verdict === 'AC') {
                 setIsSolved(true)
                 clearDraft() // Clear draft on success
                 if (settings.sound_enabled) {
                   playSuccessSound()
                 }
+                toast.success(t('toastAccepted'))
                 confetti({
                   particleCount: 150,
                   spread: 70,
@@ -625,6 +633,10 @@ export default function IDEClient({
                   colors: ['#10b981', '#3b82f6', '#06b6d4', '#ffffff'],
                   zIndex: 9999
                 })
+              } else if (pollData.status === 'ERROR') {
+                toast.error(t('toastFailed'), pollData.verdict || undefined)
+              } else {
+                toast.error(t('toastRejected'), pollData.verdict || undefined)
               }
             }
           }
@@ -634,17 +646,18 @@ export default function IDEClient({
       }, 1000)
       pollingIntervalRef.current = interval
     } catch {
-      setCurrentSubmission({ status: 'ERROR', verdict: 'Network error' })
+      setCurrentSubmission({ status: 'ERROR', verdict: t('networkError') })
+      toast.error(t('toastFailed'), t('networkError'))
       setIsSubmitting(false)
     }
-  }, [language, problem.id, settings.sound_enabled, fetchHistory, clearDraft])
+  }, [language, problem.id, settings.sound_enabled, fetchHistory, clearDraft, t])
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     if (file.size > 256 * 1024) {
-      alert('File is too large. Maximum size is 256 KB.')
+      alert(t('fileTooLarge'))
       return
     }
 
@@ -673,7 +686,7 @@ export default function IDEClient({
       setLanguage(detectedLang)
       handleSubmit(content, detectedLang as 'cpp' | 'python' | 'java' | 'rust' | 'go' | 'javascript')
     }
-    reader.onerror = () => alert('Failed to read file.')
+    reader.onerror = () => alert(t('fileReadError'))
     reader.readAsText(file)
     e.target.value = ''
   }
@@ -717,12 +730,12 @@ export default function IDEClient({
 
       const data = await res.json()
       if (!res.ok) {
-        setMentorHistory(prev => [...prev, { role: 'model', text: `Ошибка: ${data.error || 'Ментор сейчас недоступен.'}` }])
+        setMentorHistory(prev => [...prev, { role: 'model', text: t('mentorError', { message: data.error || t('mentorUnavailable') }) }])
       } else {
         setMentorHistory(prev => [...prev, { role: 'model', text: data.text }])
       }
     } catch {
-      setMentorHistory(prev => [...prev, { role: 'model', text: 'Ошибка сети: Не удалось подключиться к ИИ-Ментору.' }])
+      setMentorHistory(prev => [...prev, { role: 'model', text: t('mentorNetworkError') }])
     } finally {
       setIsMentorThinking(false)
     }
@@ -786,7 +799,7 @@ export default function IDEClient({
                     ? 'bg-amber-400/10 border-amber-400/50 text-amber-400'
                     : 'text-muted-foreground'
                 )}
-                title={isFlagged ? "Remove Flag" : "Flag Problem"}
+                title={isFlagged ? t('removeFlag') : t('flagProblem')}
               >
                 <Flag className={`w-4 h-4 ${isFlagged ? 'fill-amber-400' : ''}`} />
               </Button>
@@ -819,7 +832,7 @@ export default function IDEClient({
               <div className="space-y-4 pt-6 border-t border-border">
                 {problem.sample_input && (
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Input</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">{t('input')}</h3>
                     <div className="bg-secondary/50 border border-border p-4 rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground/90">
                       {problem.sample_input}
                     </div>
@@ -827,7 +840,7 @@ export default function IDEClient({
                 )}
                 {problem.sample_output && (
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Output</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">{t('output')}</h3>
                     <div className="bg-secondary/50 border border-border p-4 rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground/90">
                       {problem.sample_output}
                     </div>
@@ -838,7 +851,7 @@ export default function IDEClient({
 
             {problem.note && (
               <div className="space-y-3 pt-6 border-t border-border">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Notes</h3>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('notes')}</h3>
                 <div className="bg-cyan-500/5 border-l-4 border-cyan-500/50 p-4 rounded-r-xl prose dark:prose-invert prose-sm max-w-none prose-pre:whitespace-pre-wrap">
                   <MarkdownRenderer content={processDescription(problem.note)} />
                 </div>
@@ -848,11 +861,11 @@ export default function IDEClient({
             {problem.submission_stats && (
               <div className="pt-6 border-t border-border grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Solved by</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">{t('solvedBy')}</span>
                   <p className="text-xl font-mono font-bold text-foreground">{problem.submission_stats.solved_count}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Difficulty</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">{t('difficulty')}</span>
                   <div className="flex items-center gap-2">
                     <p className="text-xl font-mono font-bold text-foreground">{problem.difficulty_rating || '---'}</p>
                     {problem.difficulty_rating && (
@@ -898,21 +911,21 @@ export default function IDEClient({
             </div>
             <div className="flex items-center gap-2">
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".cpp,.c,.cc,.cxx,.py,.java,.rs" className="hidden" />
-              <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} title="Upload File" className="h-8 w-8">
+              <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()} title={t('uploadFile')} className="h-8 w-8">
                 <Paperclip className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setIsZenMode(!isZenMode)} className={cn("h-8 w-8", isZenMode && 'bg-cyan-500/10 border-cyan-500/50 text-cyan-500')} title={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}>
+              <Button variant="outline" size="icon" onClick={() => setIsZenMode(!isZenMode)} className={cn("h-8 w-8", isZenMode && 'bg-cyan-500/10 border-cyan-500/50 text-cyan-500')} title={isZenMode ? t('exitZen') : t('enterZen')}>
                 {isZenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </Button>
               <Button variant="outline" onClick={handleAskMentorBtn} disabled={isMentorThinking || isSubmitting || isRunning} className="h-8 text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20 active:scale-95 transition-all shadow-none">
                 {isMentorThinking ? <span className="w-3.5 h-3.5 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" /> : <Bot className="w-3.5 h-3.5 mr-1.5" />}
-                Ask Mentor
+                {t('askMentor')}
               </Button>
-              <Button variant="secondary" onClick={() => handleSubmit()} disabled={isSubmitting || isRunning} className="h-8 text-[11px] gap-2 active:scale-95 shadow-none" title={isMac ? "Submit (⌘ + Enter)" : "Submit (Ctrl + Enter)"}>
-                {isSubmitting ? 'Submitting...' : (<>Submit <span className="hidden sm:inline text-[9px] opacity-40 font-mono border border-border px-1 rounded bg-background/50">{isMac ? '⌘↵' : 'Ctrl+↵'}</span></>)}
+              <Button variant="secondary" onClick={() => handleSubmit()} disabled={isSubmitting || isRunning} className="h-8 text-[11px] gap-2 active:scale-95 shadow-none" title={t('submitShortcut', { key: isMac ? '⌘ + Enter' : 'Ctrl + Enter' })}>
+                {isSubmitting ? t('submitting') : (<>{t('submit')} <span className="hidden sm:inline text-[9px] opacity-40 font-mono border border-border px-1 rounded bg-background/50">{isMac ? '⌘↵' : 'Ctrl+↵'}</span></>)}
               </Button>
-              <Button variant="primary" onClick={handleRunCode} disabled={isRunning || isSubmitting} className="h-8 text-[11px] gap-2 bg-primary hover:bg-primary/90 hover:scale-100 shadow-none active:scale-95" title={isMac ? "Run (⌘ + Shift + Enter)" : "Run (Ctrl + Shift + Enter)"}>
-                {isRunning ? (<><span className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Running…</>) : (<><svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg><span>Run Code</span> <span className="hidden sm:inline text-[9px] opacity-60 font-mono border border-border px-1 rounded bg-white/10">{isMac ? '⇧⌘↵' : 'Ctrl+⇧+↵'}</span></>)}
+              <Button variant="primary" onClick={handleRunCode} disabled={isRunning || isSubmitting} className="h-8 text-[11px] gap-2 bg-primary hover:bg-primary/90 hover:scale-100 shadow-none active:scale-95" title={t('runShortcut', { key: isMac ? '⌘ + Shift + Enter' : 'Ctrl + Shift + Enter' })}>
+                {isRunning ? (<><span className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> {t('running')}</>) : (<><svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg><span>{t('runCode')}</span> <span className="hidden sm:inline text-[9px] opacity-60 font-mono border border-border px-1 rounded bg-white/10">{isMac ? '⇧⌘↵' : 'Ctrl+⇧+↵'}</span></>)}
               </Button>
             </div>
           </div>
@@ -931,7 +944,7 @@ export default function IDEClient({
                   onChange={handleCodeChange}
                   theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
                   onMount={handleEditorDidMount}
-                  loading={<div className="absolute inset-0 flex items-center justify-center bg-background z-10"><div className="flex flex-col items-center gap-3 text-muted-foreground"><span className="w-6 h-6 border-2 border-muted-foreground/30 border-t-cyan-500 rounded-full animate-spin" /><span className="text-xs font-mono">Loading editor…</span></div></div>}
+                  loading={<div className="absolute inset-0 flex items-center justify-center bg-background z-10"><div className="flex flex-col items-center gap-3 text-muted-foreground"><span className="w-6 h-6 border-2 border-muted-foreground/30 border-t-cyan-500 rounded-full animate-spin" /><span className="text-xs font-mono">{t('loadingEditor')}</span></div></div>}
                   options={{ fontSize: 14, fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace", fontLigatures: true, minimap: { enabled: false }, scrollBeyondLastLine: false, automaticLayout: true, padding: { top: 16, bottom: 16 }, lineNumbers: 'on', glyphMargin: false, folding: true, wordWrap: 'off', cursorBlinking: 'smooth', smoothScrolling: true, renderLineHighlight: 'line', bracketPairColorization: { enabled: true } }}
                 />
               </Panel>
@@ -944,7 +957,7 @@ export default function IDEClient({
                 <div className="flex items-center border-b border-border shrink-0 px-2 overflow-x-auto">
                   {(['testcases', 'results', 'submissions', 'history', 'mentor'] as const).map((tab) => (
                     <button key={tab} onClick={() => setActiveConsoleTab(tab)} className={`px-4 py-2.5 text-xs font-semibold capitalize transition-colors border-b whitespace-nowrap ${activeConsoleTab === tab ? tab === 'mentor' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-                      {tab === 'testcases' ? 'Test Cases' : tab === 'results' ? 'Test Results' : tab === 'mentor' ? <div className="flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" /> Mentor</div> : tab === 'history' ? <div className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" /> My Submissions</div> : 'Current'}
+                      {tab === 'testcases' ? t('tabTestCases') : tab === 'results' ? t('tabTestResults') : tab === 'mentor' ? <div className="flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" /> {t('tabMentor')}</div> : tab === 'history' ? <div className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" /> {t('tabHistory')}</div> : t('tabCurrent')}
                     </button>
                   ))}
                 </div>
@@ -957,14 +970,14 @@ export default function IDEClient({
                     <HistoryTab isLoadingHistory={isLoadingHistory} submissionHistory={submissionHistory} onViewSubmission={setViewingSubmission} />
                   ) : activeConsoleTab === 'testcases' ? (
                     <div className="h-full flex flex-col gap-2 min-h-0">
-                      <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">Custom Input (stdin)</label>
-                      <Textarea value={stdin} onChange={(e) => setStdin(e.target.value)} className="flex-1 min-h-0 resize-none font-mono text-xs border-border bg-background focus:ring-0 focus:border-cyan-500/50" placeholder="Enter your test input here…" spellCheck={false} />
+                      <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">{t('customInput')}</label>
+                      <Textarea value={stdin} onChange={(e) => setStdin(e.target.value)} className="flex-1 min-h-0 resize-none font-mono text-xs border-border bg-background focus:ring-0 focus:border-cyan-500/50" placeholder={t('customInputPlaceholder')} spellCheck={false} />
                     </div>
                   ) : (
                     <div className="h-full flex flex-col gap-2 min-h-0">
-                      <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">Output</label>
+                      <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground shrink-0">{t('output')}</label>
                       <div className="flex-1 relative group overflow-hidden rounded-lg min-h-0">
-                        <pre className="h-full w-full bg-muted border border-border p-3 text-xs font-mono text-foreground overflow-y-auto whitespace-pre-wrap">{isRunning ? <span className="text-cyan-600 dark:text-cyan-400 animate-pulse">Executing…</span> : output !== null ? output : <span className="text-muted-foreground">Run your code to see results here.</span>}</pre>
+                        <pre className="h-full w-full bg-muted border border-border p-3 text-xs font-mono text-foreground overflow-y-auto whitespace-pre-wrap">{isRunning ? <span className="text-cyan-600 dark:text-cyan-400 animate-pulse">{t('executing')}</span> : output !== null ? output : <span className="text-muted-foreground">{t('runHint')}</span>}</pre>
                         {output !== null && !isRunning && <CopyButton value={output} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" />}
                       </div>
                     </div>
