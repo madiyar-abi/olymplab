@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, ChangeEvent, useMemo } from 'react'
-import Editor from '@monaco-editor/react'
+import { useEffect, useRef, useState, useCallback, ChangeEvent, useMemo, useSyncExternalStore, ComponentPropsWithoutRef } from 'react'
+import Editor, { OnMount } from '@monaco-editor/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -154,8 +154,8 @@ const MarkdownRenderer = ({ content }: { content: string }) => (
       ol: ({ children }) => <ol className="list-decimal pl-5 mb-5 space-y-2">{children}</ol>,
       li: ({ children }) => <li className="pl-1">{children}</li>,
       pre: ({ children }) => <div className="not-prose my-6">{children}</div>,
-      code: (props) => {
-        const { children, className, ...rest } = props as any
+      code: (props: ComponentPropsWithoutRef<'code'>) => {
+        const { children, className, ...rest } = props
         const match = /language-([a-zA-Z0-9_-]+)/.exec(className || '')
         const contentString = String(children).replace(/\n$/, '')
         const isInline = !match && !contentString.includes('\n')
@@ -267,6 +267,9 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Hard: 'text-red-500 bg-red-500/10 border-red-500/20',
 }
 
+// Stable no-op subscribe for client-only useSyncExternalStore reads (browser APIs).
+const emptySubscribe = () => () => {}
+
 export default function IDEClient({
   problem,
   initialCode,
@@ -326,7 +329,7 @@ export default function IDEClient({
       .replace(/\\^\{\\text\{\\ddagger\}\}/g, '^{\\ddagger}');
   };
 
-  const handleEditorDidMount = (editor: any, monaco: any) => {
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
 
     // Initial value is handled by the hook synchronization in IDEClient body
@@ -355,7 +358,7 @@ export default function IDEClient({
   const extractSampleInput = useCallback(() => {
     const desc = problem.description || ''
     // More robust matching for sample input blocks in description (with unicode flag)
-    const inputMatch = desc.match(/input\\s*[\\n:]\\s*([\\s\\S]+?)(?=output|$)/iu)
+    const inputMatch = desc.match(/input\s*[\n:]\s*([\s\S]+?)(?=output|$)/iu)
     if (inputMatch) return inputMatch[1].trim()
     return '// Paste your test input here'
   }, [problem.description])
@@ -400,13 +403,17 @@ export default function IDEClient({
     }
   }, [])
 
-  // Fetch history on mount and when tab is clicked
+  // Fetch history on mount and when the History tab is opened. fetchHistory sets
+  // a loading flag synchronously — intended for an on-demand fetch, so the
+  // set-state-in-effect rule is suppressed here.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHistory()
   }, [fetchHistory])
 
   useEffect(() => {
     if (activeConsoleTab === 'history') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchHistory()
     }
   }, [activeConsoleTab, fetchHistory])
@@ -424,7 +431,12 @@ export default function IDEClient({
   }
 
   const [isSolved, setIsSolved] = useState(initialIsSolved)
-  const [isMac, setIsMac] = useState(false)
+  const isMounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const isMac = useSyncExternalStore(
+    emptySubscribe,
+    () => /Mac|iPhone|iPad/i.test(navigator.userAgent),
+    () => false,
+  )
 
   // Spoiler protection: persisted in Supabase revealed_problems table
   const [tagsRevealed, setTagsRevealed] = useState(initialIsRevealed)
@@ -435,25 +447,19 @@ export default function IDEClient({
     // Persist to Supabase revealed_problems table
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await (supabase.from('revealed_problems') as any)
-        .insert({ 
-          user_id: user.id,
-          problem_id: problem.id
-        })
+      // revealed_problems isn't in the generated Database types; cast the payload.
+      await supabase.from('revealed_problems')
+        .insert({ user_id: user.id, problem_id: problem.id } as never)
         .select()
     }
   }
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const platform = navigator.platform.toUpperCase()
-      setIsMac(platform.indexOf('MAC') >= 0 || platform.indexOf('IPHONE') >= 0 || platform.indexOf('IPAD') >= 0)
-    }
-  }, [])
-
-  useEffect(() => {
+  // Re-sync reveal state from the server prop without an effect (render-time pattern).
+  const [prevRevealed, setPrevRevealed] = useState(initialIsRevealed)
+  if (initialIsRevealed !== prevRevealed) {
+    setPrevRevealed(initialIsRevealed)
     setTagsRevealed(initialIsRevealed)
-  }, [initialIsRevealed])
+  }
 
   const shouldHideTags = !!settings.hide_unsolved_tags && !isSolved && !tagsRevealed
 
@@ -482,10 +488,13 @@ export default function IDEClient({
     }
   }, [isZenMode])
 
-  useEffect(() => {
-    const flagged = localStorage.getItem(`flagged_${problem.id}`)
-    setIsFlagged(flagged === 'true')
-  }, [problem.id])
+  // Read the per-problem flagged state from localStorage after mount (guarded so
+  // it can't cause a hydration mismatch), re-reading when the problem changes.
+  const [flaggedFor, setFlaggedFor] = useState<string | null>(null)
+  if (isMounted && flaggedFor !== problem.id) {
+    setFlaggedFor(problem.id)
+    setIsFlagged(localStorage.getItem(`flagged_${problem.id}`) === 'true')
+  }
 
   const toggleFlag = () => {
     const newState = !isFlagged
@@ -538,9 +547,9 @@ export default function IDEClient({
       if (data.stdout && data.stdout.trim()) {
         setOutput(data.stdout)
       } else if (data.stderr && data.stderr.trim()) {
-        setOutput(`Compilation / Runtime Error:\\n\\n${data.stderr}`)
+        setOutput(`Compilation / Runtime Error:\n\n${data.stderr}`)
       } else if (data.code !== undefined && data.code !== 0) {
-        setOutput(`Process exited with code ${data.code}.\\n${data.stderr || ''}`)
+        setOutput(`Process exited with code ${data.code}.\n${data.stderr || ''}`)
       } else {
         setOutput('(No output)')
       }
@@ -662,7 +671,7 @@ export default function IDEClient({
         detectedLang = 'javascript'
       }
       setLanguage(detectedLang)
-      handleSubmit(content, detectedLang as any)
+      handleSubmit(content, detectedLang as 'cpp' | 'python' | 'java' | 'rust' | 'go' | 'javascript')
     }
     reader.onerror = () => alert('Failed to read file.')
     reader.readAsText(file)
