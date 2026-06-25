@@ -225,6 +225,22 @@
       "graphs": "Graphs"
     }
   },
+  "Submissions": {
+    "title": "Submission History",
+    "subtitle": "A complete trace of your submissions and verdicts.",
+    "emptyTitle": "No submissions yet",
+    "emptyDesc": "Solve your first problem to start building your submission history and tracking your performance.",
+    "browseProblems": "Browse Problems",
+    "colTime": "ID / Time",
+    "colProblem": "Problem",
+    "colVerdict": "Verdict",
+    "colStats": "Stats",
+    "colLang": "Lang",
+    "colAction": "Action",
+    "unknownProblem": "Unknown problem",
+    "onTest": "on test {n}",
+    "viewCode": "View Code"
+  },
   "Progress": {
     "title": "Your Progress",
     "subtitle": "Your skill levels and recent activity.",
