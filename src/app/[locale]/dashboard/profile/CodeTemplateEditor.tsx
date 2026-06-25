@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import Editor from '@monaco-editor/react'
 import { useTheme } from '@/components/shared/ThemeProvider'
@@ -83,6 +84,7 @@ export function CodeTemplateEditor({
   initialTemplate: string;
   initialLanguage?: string;
 }) {
+  const t = useTranslations('Settings')
   const { resolvedTheme } = useTheme()
   const [template, setTemplate] = useState(initialTemplate)
   const [language, setLanguage] = useState(initialLanguage)
@@ -106,11 +108,9 @@ export function CodeTemplateEditor({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { error } = await (supabase.from('profiles') as any)
-        .update({ 
-          code_template: template,
-          preferred_language: language
-        })
+      const { error } = await supabase
+        .from('profiles')
+        .update({ code_template: template, preferred_language: language } as never)
         .eq('id', user.id)
 
       if (error) throw error
@@ -131,11 +131,11 @@ export function CodeTemplateEditor({
           <div className="flex items-center gap-2 mb-1">
             <Code2 className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-foreground font-mono uppercase tracking-widest text-muted-foreground">
-              Code Boilerplate
+              {t('boilerplate')}
             </h3>
           </div>
           <p className="text-xs text-muted-foreground font-mono">
-            This code will be pre-filled in the IDE for every new problem.
+            {t('boilerplateDesc')}
           </p>
         </div>
         
@@ -166,7 +166,7 @@ export function CodeTemplateEditor({
                 : 'bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-sm'
             }`}
           >
-            {isSaving ? 'Saving...' : saveStatus === 'success' ? 'Saved!' : saveStatus === 'error' ? 'Error!' : 'Save Changes'}
+            {isSaving ? t('saving') : saveStatus === 'success' ? t('saved') : saveStatus === 'error' ? t('saveError') : t('save')}
           </button>
         </div>
       </div>

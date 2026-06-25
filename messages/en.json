@@ -248,7 +248,18 @@
     "title": "Settings",
     "subtitle": "Configure your development environment and preferences.",
     "codeTemplate": "Code Template",
-    "preferences": "Preferences"
+    "preferences": "Preferences",
+    "boilerplate": "Code Boilerplate",
+    "boilerplateDesc": "This code will be pre-filled in the IDE for every new problem.",
+    "save": "Save Changes",
+    "saving": "Saving…",
+    "saved": "Saved!",
+    "saveError": "Error!",
+    "interfaceSettings": "Interface Settings",
+    "interfaceSettingsDesc": "Customize your interaction experience.",
+    "savedShort": "Saved",
+    "audioTitle": "Audio Micro-interactions",
+    "audioDesc": "Enable sound effects for successful submissions."
   },
   "Submissions": {
     "title": "Submission History",

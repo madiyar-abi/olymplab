@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { Volume2, VolumeX, Save, Check, Flag } from 'lucide-react'
+import { Volume2, VolumeX, Save, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,7 @@ interface SettingsEditorProps {
 }
 
 export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps) {
+  const t = useTranslations('Settings')
   const [settings, setSettings] = useState<ProfileSettings>(initialSettings)
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
@@ -29,8 +31,9 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
 
   const saveSettings = async () => {
     setIsSaving(true)
-    const { error } = await (supabase.from('profiles') as any)
-      .update({ settings: settings })
+    const { error } = await supabase
+      .from('profiles')
+      .update({ settings } as never)
       .eq('id', userId)
 
     if (!error) {
@@ -44,9 +47,9 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-foreground font-mono uppercase tracking-widest">Interface Settings</h3>
+          <h3 className="text-lg font-bold text-foreground font-mono uppercase tracking-widest">{t('interfaceSettings')}</h3>
           <p className="text-sm text-muted-foreground font-mono mt-1">
-            Customize your interaction experience.
+            {t('interfaceSettingsDesc')}
           </p>
         </div>
         <Button
@@ -65,7 +68,7 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
           ) : (
             <Save className="w-4 h-4" />
           )}
-          {hasSaved ? 'Saved' : 'Save Changes'}
+          {hasSaved ? t('savedShort') : t('save')}
         </Button>
       </div>
 
@@ -77,8 +80,8 @@ export function SettingsEditor({ initialSettings, userId }: SettingsEditorProps)
               {settings.sound_enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </div>
             <div>
-              <p className="font-bold text-foreground font-mono text-sm">Audio Micro-interactions</p>
-              <p className="text-xs text-muted-foreground font-mono">Enable premium sound effects for successful submissions.</p>
+              <p className="font-bold text-foreground font-mono text-sm">{t('audioTitle')}</p>
+              <p className="text-xs text-muted-foreground font-mono">{t('audioDesc')}</p>
             </div>
           </div>
           <button
