@@ -1,16 +1,16 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { Link, usePathname, useRouter } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
-import { useState, useEffect, useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 /* ── TYPES ─────────────────────────────────────────────────────────────────── */
 
 interface NavItem {
-  name: string
+  key: string
   href: string
   icon: React.ReactNode
 }
@@ -19,7 +19,7 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   {
-    name: 'Problem Catalog',
+    key: 'problems',
     href: '/dashboard/problems',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -28,7 +28,7 @@ const mainNavItems: NavItem[] = [
     ),
   },
   {
-    name: 'Randomized Exec',
+    key: 'random',
     href: '/dashboard/random',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -37,7 +37,7 @@ const mainNavItems: NavItem[] = [
     ),
   },
   {
-    name: 'Structured Syllabi',
+    key: 'learning',
     href: '/dashboard/learning',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -46,7 +46,7 @@ const mainNavItems: NavItem[] = [
     ),
   },
   {
-    name: 'Flagged Problems',
+    key: 'flagged',
     href: '/dashboard/problems/flagged',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -55,7 +55,7 @@ const mainNavItems: NavItem[] = [
     ),
   },
   {
-    name: 'Submissions',
+    key: 'submissions',
     href: '/dashboard/submissions',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -64,7 +64,7 @@ const mainNavItems: NavItem[] = [
     ),
   },
   {
-    name: 'Whiteboard',
+    key: 'whiteboard',
     href: '/dashboard/whiteboard',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -73,7 +73,7 @@ const mainNavItems: NavItem[] = [
     ),
   },
   {
-    name: 'Graph Editor',
+    key: 'graphEditor',
     href: '/dashboard/graph-editor',
     icon: (
       <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -91,36 +91,31 @@ const getServerSnapshot = () => false
 
 interface SidebarItemProps {
   item: NavItem
+  name: string
   isActive: boolean
   isCollapsed: boolean
 }
 
-function SidebarItem({ item, isActive, isCollapsed }: SidebarItemProps) {
+function SidebarItem({ item, name, isActive, isCollapsed }: SidebarItemProps) {
   return (
     <Link
       href={item.href}
-      title={isCollapsed ? item.name : undefined}
+      title={isCollapsed ? name : undefined}
       className={cn(
         'group relative flex items-center py-2.5 rounded-xl text-sm transition-all duration-300 ease-in-out',
         isCollapsed ? 'justify-center px-2' : 'px-4 gap-3',
-        isActive ? 'text-white font-semibold' : 'text-neutral-400 hover:text-white hover:bg-white/5'
+        isActive ? 'text-blue-100 font-semibold' : 'text-slate-400 hover:text-slate-100 hover:bg-blue-950/40'
       )}
     >
-      {/* Magic Indicator Pill */}
       {isActive && (
         <motion.div
           layoutId="active-pill"
-          className="absolute inset-0 bg-blue-600/10 border border-blue-500/20 rounded-xl z-0"
+          className="absolute inset-0 bg-blue-500/15 border border-blue-400/25 rounded-xl z-0 shadow-[0_0_20px_rgba(59,130,246,0.08)]"
           initial={false}
-          transition={{
-            type: 'spring',
-            stiffness: 400,
-            damping: 30,
-          }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         />
       )}
 
-      {/* Icon Container - CRITICAL FOR ALIGNMENT */}
       <div className={cn(
         'relative z-10 w-5 flex justify-center flex-shrink-0 transition-colors duration-300',
         isActive ? 'text-blue-400' : 'group-hover:text-white'
@@ -128,11 +123,8 @@ function SidebarItem({ item, isActive, isCollapsed }: SidebarItemProps) {
         {item.icon}
       </div>
 
-      {/* Label */}
       {!isCollapsed && (
-        <span className="relative z-10 whitespace-nowrap overflow-hidden">
-          {item.name}
-        </span>
+        <span className="relative z-10 whitespace-nowrap overflow-hidden">{name}</span>
       )}
     </Link>
   )
@@ -140,24 +132,25 @@ function SidebarItem({ item, isActive, isCollapsed }: SidebarItemProps) {
 
 /* ── MAIN COMPONENT ────────────────────────────────────────────────────────── */
 
-function getRank(level: number) {
-  if (level < 5) return 'Novice'
-  if (level < 10) return 'Apprentice'
-  if (level < 20) return 'Expert'
-  if (level < 30) return 'Master'
-  return 'Grandmaster'
+function getRankKey(level: number) {
+  if (level < 5) return 'novice'
+  if (level < 10) return 'apprentice'
+  if (level < 20) return 'expert'
+  if (level < 30) return 'master'
+  return 'grandmaster'
 }
 
-export function Sidebar({ username, email, level = 1 }: { username: string; email: string; level?: number }) {
+export function Sidebar({ username, level = 1 }: { username: string; email: string; level?: number }) {
   const pathname = usePathname()
   const router = useRouter()
+  const t = useTranslations('Dashboard')
   const supabase = createClient()
   const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  const [isCollapsed, setIsCollapsed] = useState(false)
-
-  useEffect(() => {
-    if (localStorage.getItem('sidebarCollapsed') === 'true') setIsCollapsed(true)
-  }, [])
+  // Lazy init from localStorage (client only). The isMounted guard below renders
+  // a placeholder during hydration, so this can't cause a mismatch.
+  const [isCollapsed, setIsCollapsed] = useState(
+    () => typeof window !== 'undefined' && localStorage.getItem('sidebarCollapsed') === 'true'
+  )
 
   const toggleCollapse = () => {
     const next = !isCollapsed
@@ -172,25 +165,23 @@ export function Sidebar({ username, email, level = 1 }: { username: string; emai
   }
 
   if (!isMounted) {
-    return (
-      <aside className="w-64 flex-shrink-0 bg-background/60 backdrop-blur-xl border-r border-white/5 h-full" />
-    )
+    return <aside className="w-64 flex-shrink-0 bg-[#0b0f1e] border-r border-[#1e2a4a]/60 h-full" />
   }
 
-  const sidebarWidth = isCollapsed ? 'w-20' : 'w-64'
   const paddingX = isCollapsed ? 'px-3' : 'px-4'
 
   return (
     <aside
       className={cn(
-        sidebarWidth,
-        'flex-shrink-0 flex flex-col h-full bg-[#12141a] border-r border-white/5 relative transition-all duration-500 ease-in-out pb-6'
+        isCollapsed ? 'w-20' : 'w-64',
+        'flex-shrink-0 flex flex-col h-full bg-[#0b0f1e] border-r border-[#1e2a4a]/60 relative transition-all duration-500 ease-in-out pb-6'
       )}
     >
       {/* Collapse toggle */}
       <button
         onClick={toggleCollapse}
-        className="absolute -right-3 top-8 bg-[#1c1f28] border border-white/10 rounded-full p-1.5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all z-50 shadow-2xl"
+        aria-label="Toggle sidebar"
+        className="absolute -right-3 top-8 bg-[#131929] border border-[#1e3a6e]/50 rounded-full p-1.5 hover:bg-blue-900/30 text-slate-400 hover:text-blue-300 transition-all z-50 shadow-2xl"
       >
         <svg
           className={cn('w-3.5 h-3.5 transition-transform duration-500', isCollapsed && 'rotate-180')}
@@ -200,25 +191,23 @@ export function Sidebar({ username, email, level = 1 }: { username: string; emai
         </svg>
       </button>
 
-      <div className="h-4" /> {/* Spacer */}
-
+      <div className="h-4" />
 
       {/* ── NAVIGATION ───────────────────────────────────────────────────────── */}
       <nav className={cn('flex-1 space-y-1', paddingX)}>
         {mainNavItems.map((item) => {
-          const isActive = (() => {
-            if (item.href === '/dashboard/problems') {
-              return pathname === '/dashboard/problems' || 
+          const isActive =
+            item.href === '/dashboard/problems'
+              ? pathname === '/dashboard/problems' ||
                 (pathname.startsWith('/dashboard/problems/') && !pathname.startsWith('/dashboard/problems/flagged'))
-            }
-            return pathname === item.href || pathname.startsWith(item.href + '/')
-          })()
+              : pathname === item.href || pathname.startsWith(item.href + '/')
           return (
-            <SidebarItem 
-              key={item.href} 
-              item={item} 
-              isActive={isActive} 
-              isCollapsed={isCollapsed} 
+            <SidebarItem
+              key={item.href}
+              item={item}
+              name={t(`nav.${item.key}`)}
+              isActive={isActive}
+              isCollapsed={isCollapsed}
             />
           )
         })}
@@ -231,24 +220,25 @@ export function Sidebar({ username, email, level = 1 }: { username: string; emai
           href="/dashboard/profile"
           className={cn(
             'group flex items-center rounded-xl transition-all duration-300 ease-in-out',
-            isCollapsed ? 'justify-center p-2' : 'p-2.5 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05]',
-            pathname === '/dashboard/profile' && 'border-blue-500/30 bg-blue-500/5'
+            isCollapsed ? 'justify-center p-2' : 'p-2.5 bg-blue-950/20 border border-blue-900/30 hover:bg-blue-900/30',
+            pathname === '/dashboard/profile' && 'border-blue-400/40 bg-blue-500/10'
           )}
         >
-          <div className="w-8 h-8 rounded-lg bg-neutral-800 flex items-center justify-center text-xs font-bold text-neutral-400 group-hover:text-white transition-colors flex-shrink-0 border border-white/5">
+          <div className="w-8 h-8 rounded-lg bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-300 group-hover:text-white transition-colors flex-shrink-0 border border-blue-800/40">
             {username.charAt(0).toUpperCase()}
           </div>
           {!isCollapsed && (
             <div className="ml-3 flex flex-col min-w-0">
               <span className="text-sm font-medium text-white truncate">{username}</span>
-              <span className="text-[10px] text-neutral-500 font-medium">Lvl {level} {getRank(level)}</span>
+              <span className="text-[10px] text-neutral-500 font-medium">
+                {t('level')} {level} · {t(`rank.${getRankKey(level)}`)}
+              </span>
             </div>
           )}
         </Link>
 
         {/* Action Buttons */}
         <div className="space-y-1">
-          {/* Settings */}
           <Link
             href="/dashboard/settings"
             className={cn(
@@ -269,10 +259,9 @@ export function Sidebar({ username, email, level = 1 }: { username: string; emai
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            {!isCollapsed && <span className="relative z-10">Settings</span>}
+            {!isCollapsed && <span className="relative z-10">{t('settings')}</span>}
           </Link>
 
-          {/* Logout */}
           <button
             onClick={handleLogout}
             className={cn(
@@ -286,17 +275,9 @@ export function Sidebar({ username, email, level = 1 }: { username: string; emai
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
             </div>
-            {!isCollapsed && <span>Logout</span>}
+            {!isCollapsed && <span>{t('logout')}</span>}
           </button>
         </div>
-
-        {/* Status indicator */}
-        {!isCollapsed && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] text-emerald-500/80 font-bold uppercase tracking-widest">System Ready</span>
-          </div>
-        )}
       </div>
     </aside>
   )

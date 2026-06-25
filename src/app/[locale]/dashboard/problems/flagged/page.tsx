@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import { Flag, ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
-import Link from 'next/link'
 
 import { EmptyState } from '@/components/ui/EmptyState'
 

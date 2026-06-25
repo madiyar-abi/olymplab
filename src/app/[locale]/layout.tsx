@@ -36,8 +36,17 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className="h-full antialiased"
+      className="h-full antialiased dark"
     >
+      <head>
+        {/* Blocking script: applies stored theme before first paint — must be in <head> */}
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'dark';var r=t==='system'?(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;document.documentElement.classList.remove('dark','light');document.documentElement.classList.add(r);}catch(e){document.documentElement.classList.add('dark');}})();`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans h-screen flex flex-col bg-background text-foreground`}>
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>

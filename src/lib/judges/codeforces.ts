@@ -82,7 +82,7 @@ export class CodeforcesJudge {
         // Wait for CSRF token or login form
         try {
           await page.waitForSelector('input[name="csrf_token"]', { timeout: 15000 })
-        } catch (e) {
+        } catch {
           console.warn('[CF Bot] Puppeteer timeout waiting for csrf_token, maybe it is a meta tag?')
         }
 
@@ -155,6 +155,18 @@ export class CodeforcesJudge {
     console.log('[CF Bot] Login successful')
   }
 
+  /** Fetch the handle's most recent submissions via the public CF API. */
+  private static async getRecentSubmissions(
+    count = 10
+  ): Promise<Array<{ id: number; contestId?: number; problem?: { index?: string } }>> {
+    const res = await fetch(
+      `https://codeforces.com/api/user.status?handle=${process.env.CF_HANDLE}&from=1&count=${count}`,
+      { headers: this.DEFAULT_HEADERS }
+    )
+    const data = await res.json()
+    return data.status === 'OK' ? data.result : []
+  }
+
   static async submit(contestId: string, problemIndex: string, code: string, language = 'cpp', retryCount = 0): Promise<string> {
     if (retryCount > 1) {
       throw new Error('Codeforces Submission failed after multiple retries.')
@@ -221,6 +233,11 @@ export class CodeforcesJudge {
 
     const body = parts.join('')
 
+    // Record the latest submission id *before* submitting so we can reliably
+    // identify the new one afterwards (avoids returning a stale submission's
+    // verdict on a duplicate-code rejection or slow CF registration).
+    const beforeId = (await this.getRecentSubmissions(1))[0]?.id ?? 0
+
     const res = await fetch(`${submitUrl}?csrf_token=${csrfToken}`, {
       method: 'POST',
       headers: {
@@ -236,28 +253,30 @@ export class CodeforcesJudge {
     const location = res.headers.get('location')
     if (!location || !location.includes('my')) {
       console.error('[CF Bot] Submit failed. Status:', res.status)
-      // If it failed, it might be because of "You have submitted exactly the same code before"
       const text = await res.text()
+      // CF rejects identical resubmissions without creating a new submission —
+      // surface that clearly instead of returning a previous submission's verdict.
       if (text.includes('exactly the same code')) {
-          console.warn('[CF Bot] Exactly the same code submitted.')
-          // We still need a submission ID. We can fetch the latest from user.status.
-      } else {
-        throw new Error(`Codeforces Submission failed: ${res.status}`)
+        throw new Error('You have already submitted exactly the same code to Codeforces.')
       }
+      throw new Error(`Codeforces Submission failed: ${res.status}`)
     }
 
-    // To get the submission ID, we'll use the API for the latest submission of the handle
-    await new Promise(r => setTimeout(r, 2000)) // Wait for CF to register
-    const statusRes = await fetch(`https://codeforces.com/api/user.status?handle=${process.env.CF_HANDLE}&from=1&count=1`, {
-        headers: this.DEFAULT_HEADERS
-    })
-    const statusData = await statusRes.json()
-    
-    if (statusData.status === 'OK' && statusData.result.length > 0) {
-        return statusData.result[0].id.toString()
+    // Poll the CF API until the new submission for *this* problem appears
+    // (id greater than the one we recorded before submitting).
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await new Promise((r) => setTimeout(r, attempt === 0 ? 1500 : 1000))
+      const recent = await this.getRecentSubmissions(10)
+      const fresh = recent.find(
+        (s) =>
+          s.id > beforeId &&
+          String(s.contestId) === String(contestId) &&
+          s.problem?.index === problemIndex
+      )
+      if (fresh) return fresh.id.toString()
     }
 
-    throw new Error('Could not retrieve submission ID from Codeforces API')
+    throw new Error('Submitted to Codeforces, but could not resolve the new submission id.')
   }
 
   static async getStatus(submissionId: string): Promise<CFResult> {

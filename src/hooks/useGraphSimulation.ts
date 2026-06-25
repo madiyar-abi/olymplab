@@ -5,7 +5,22 @@ export function useGraphSimulation(frames: SimulationFrame[]) {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(800); // ms per frame
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Reset playback when a new set of frames is loaded. Using the "adjust state
+  // during render" pattern (vs. an effect) avoids a cascading re-render.
+  const [prevFrames, setPrevFrames] = useState(frames);
+  if (frames !== prevFrames) {
+    setPrevFrames(frames);
+    setCurrentFrameIndex(0);
+    setIsPlaying(false);
+  }
+
+  // Mirror the index into a ref so the interval callback can read the latest
+  // value without restarting the interval on every frame change.
+  const indexRef = useRef(currentFrameIndex);
+  useEffect(() => {
+    indexRef.current = currentFrameIndex;
+  }, [currentFrameIndex]);
 
   const play = useCallback(() => {
     if (frames.length === 0) return;
@@ -39,33 +54,18 @@ export function useGraphSimulation(frames: SimulationFrame[]) {
   }, [frames.length]);
 
   useEffect(() => {
-    if (isPlaying && currentFrameIndex < frames.length - 1) {
-      timerRef.current = setInterval(() => {
-        setCurrentFrameIndex((prev) => {
-          if (prev >= frames.length - 1) {
-            setIsPlaying(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, speed);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (currentFrameIndex >= frames.length - 1) {
+    if (!isPlaying) return;
+    const id = setInterval(() => {
+      // Stop at the last frame. Setting state here is inside a timer callback,
+      // not synchronously in the effect body, so it doesn't cascade.
+      if (indexRef.current >= frames.length - 1) {
         setIsPlaying(false);
+        return;
       }
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isPlaying, currentFrameIndex, frames.length, speed]);
-
-  // Reset index if frames change
-  useEffect(() => {
-    setCurrentFrameIndex(0);
-    setIsPlaying(false);
-  }, [frames]);
+      setCurrentFrameIndex((prev) => Math.min(prev + 1, frames.length - 1));
+    }, speed);
+    return () => clearInterval(id);
+  }, [isPlaying, frames.length, speed]);
 
   return {
     currentFrame: frames[currentFrameIndex] || null,

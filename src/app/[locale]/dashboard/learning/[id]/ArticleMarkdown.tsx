@@ -1,7 +1,7 @@
 'use client'
 
 import React, { ComponentPropsWithoutRef } from 'react'
-import NextLink from 'next/link'
+import { Link as NextLink } from '@/i18n/routing'
 import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'

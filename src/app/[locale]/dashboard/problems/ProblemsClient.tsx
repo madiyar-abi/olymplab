@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
+import { Link, useRouter } from '@/i18n/routing'
 import { ArrowRight, FilterX, Eye, Flag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TagSelector } from './TagSelector'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { ViewToggle, ViewMode } from '@/components/ViewToggle'
 import { ProblemTable } from '@/components/ProblemTable'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -150,15 +149,19 @@ export function ProblemsClient({
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [hideUnsolved, setHideUnsolved] = useState(!!initialSettings.hide_unsolved_tags)
   const [view, setView] = useState<ViewMode>(initialView)
-  
+
+  // Re-sync local spoiler state when the server sends a new value (e.g. after
+  // router.refresh()) using the render-time pattern instead of an effect.
+  const [prevSetting, setPrevSetting] = useState(initialSettings.hide_unsolved_tags)
+  if (initialSettings.hide_unsolved_tags !== prevSetting) {
+    setPrevSetting(initialSettings.hide_unsolved_tags)
+    setHideUnsolved(!!initialSettings.hide_unsolved_tags)
+  }
+
   const handleViewChange = (newView: ViewMode) => {
     setView(newView)
     document.cookie = `problems-view=${newView}; path=/; max-age=31536000`
   }
-
-  useEffect(() => {
-    setHideUnsolved(!!initialSettings.hide_unsolved_tags)
-  }, [initialSettings.hide_unsolved_tags])
 
   const supabase = createClient()
 

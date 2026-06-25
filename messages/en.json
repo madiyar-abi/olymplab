@@ -22,11 +22,219 @@
     "dashboard": "Dashboard",
     "login": "Log in",
     "signup": "Sign up",
-    "logout": "Log out"
+    "logout": "Log out",
+    "features": "Features",
+    "curriculum": "Curriculum",
+    "community": "Wall of Fame"
   },
   "LanguageSwitcher": {
     "label": "Language",
     "en": "English",
     "ru": "Russian"
+  },
+  "Landing": {
+    "nav": {
+      "features": "Features",
+      "visualizers": "Visualizers",
+      "mentor": "AI mentor",
+      "how": "How it works"
+    },
+    "badge": "An open lab for competitive programmers",
+    "heroTitle1": "Train like the",
+    "heroTitle2": "top 1%.",
+    "heroSubtitle": "A focused workspace for competitive programming: a Monaco-powered IDE, real Codeforces & CSES judging, a Gemini AI mentor that guides instead of spoiling, a structured roadmap, and 20+ interactive algorithm visualizers.",
+    "startTraining": "Start training",
+    "exploreFeatures": "Explore the platform",
+    "trustTitle": "Everything in one workspace",
+    "trust": {
+      "languages": "Languages",
+      "languagesValue": "5",
+      "visualizers": "Visualizers",
+      "visualizersValue": "20+",
+      "judges": "Online judges",
+      "judgesValue": "CF · CSES",
+      "mentor": "AI mentor",
+      "mentorValue": "Gemini",
+      "locales": "Interface",
+      "localesValue": "EN · RU"
+    },
+    "ide": {
+      "tabSolution": "solution.cpp",
+      "tabInput": "input.txt",
+      "terminal": "Judge",
+      "compile": "g++ -O2 solution.cpp",
+      "run": "Running against samples…",
+      "test1": "Sample 1 — Accepted (12 ms)",
+      "test2": "Sample 2 — Accepted (15 ms)",
+      "verdict": "Accepted",
+      "mentorName": "AI Mentor",
+      "mentorStatus": "Reviewing your approach",
+      "mentorText": "Your O(n) idea is right. Before you code the range queries, what could you precompute so each query becomes O(1)?"
+    },
+    "featuresHeading": "Built for real training,",
+    "featuresHeadingColor": "not interview prep",
+    "featuresSub": "Every part of the platform exists to shorten the loop between reading a problem and understanding why your solution works.",
+    "features": {
+      "ideTitle": "A real competitive IDE",
+      "ideDesc": "Monaco editor with syntax highlighting and five languages — C++, Python, Java, Rust and Go — plus your own code templates. Run against the samples in a single keystroke.",
+      "mentorTitle": "An AI mentor that won't spoil",
+      "mentorDesc": "A Gemini-powered mentor built on Pólya's method. It diagnoses your thinking and gives graduated hints — the next step, never the whole solution.",
+      "judgeTitle": "Real judging, not mocks",
+      "judgeDesc": "Submit straight to Codeforces and CSES through the platform, or get an instant verdict checked against the sample tests. Status and verdicts stream back live.",
+      "roadmapTitle": "A structured roadmap",
+      "roadmapDesc": "Follow a staged syllabus from fundamentals to advanced DP and graphs, with readable articles and curated problems linked to every topic.",
+      "visualizersTitle": "20+ interactive visualizers",
+      "visualizersDesc": "Watch Dijkstra, segment trees, DSU, sorting and more run step by step, so the algorithm becomes intuition instead of memorized code.",
+      "analyticsTitle": "Progress you can see",
+      "analyticsDesc": "A GitHub-style activity heatmap, verdict analytics, streaks and full submission history keep your weak spots and momentum in plain view."
+    },
+    "visualizersHeading": "See the algorithm, not just the code",
+    "visualizersSub": "Over twenty hand-built visualizers animate the data structures and techniques that show up again and again in contests.",
+    "visualizersMore": "and more",
+    "howHeading": "From problem to intuition in four steps",
+    "how": {
+      "step1Title": "Pick a path",
+      "step1Desc": "Start from the roadmap or jump into a problem matched to your current skill level.",
+      "step2Title": "Solve in the IDE",
+      "step2Desc": "Write, run against samples, and submit — to Codeforces, CSES, or the instant judge.",
+      "step3Title": "Get unstuck, not spoiled",
+      "step3Desc": "Ask the AI mentor for the next hint, or replay the relevant visualizer until it clicks.",
+      "step4Title": "Track your growth",
+      "step4Desc": "Watch your heatmap fill in and your verdict analytics sharpen over time."
+    },
+    "mentorHeading": "Hints that build intuition",
+    "mentorSub": "The mentor follows a hint ladder: a diagnostic question first, a stronger nudge only if you're still stuck, and a full walkthrough only when you ask for it.",
+    "mentorPoint1": "Pinpoints where your reasoning breaks down",
+    "mentorPoint2": "Reviews your code — idea, correctness, complexity, edge cases",
+    "mentorPoint3": "Reveals the full solution only when you explicitly ask",
+    "extrasHeading": "Also included",
+    "extras": {
+      "spoilerTitle": "Spoiler protection",
+      "spoilerDesc": "Hide tags and difficulty to recreate real contest conditions.",
+      "adaptiveTitle": "Adaptive recommendations",
+      "adaptiveDesc": "A skill-axis matching engine suggests problems at the edge of your ability.",
+      "toolsTitle": "Graph editor & whiteboard",
+      "toolsDesc": "Sketch graphs and reason visually without leaving the browser.",
+      "bilingualTitle": "Bilingual interface",
+      "bilingualDesc": "Use the entire platform in English or Russian."
+    },
+    "ctaTitle": "Start training",
+    "ctaTitleColor": "today.",
+    "ctaBtn": "Create your free account",
+    "ctaSub": "Free to start. No credit card required."
+  },
+  "Auth": {
+    "backHome": "Back to home",
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue training.",
+      "google": "Continue with Google",
+      "or": "or",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Create one"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Start training in minutes.",
+      "google": "Sign up with Google",
+      "or": "or",
+      "username": "Username",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "successTitle": "Check your email",
+      "successBody": "We sent a confirmation link to <b>{email}</b>. Click it to activate your account."
+    },
+    "panel": {
+      "title": "Train like the top 1%.",
+      "subtitle": "A real IDE, live judging, and an AI mentor that guides instead of spoiling.",
+      "point1": "Submit to Codeforces & CSES, or judge instantly",
+      "point2": "A Gemini mentor that gives hints, not answers",
+      "point3": "20+ interactive algorithm visualizers"
+    }
+  },
+  "Dashboard": {
+    "nav": {
+      "problems": "Problems",
+      "random": "Random Problem",
+      "learning": "Roadmap",
+      "flagged": "Flagged",
+      "submissions": "Submissions",
+      "whiteboard": "Whiteboard",
+      "graphEditor": "Graph Editor"
+    },
+    "settings": "Settings",
+    "logout": "Log out",
+    "level": "Lvl",
+    "rank": {
+      "novice": "Novice",
+      "apprentice": "Apprentice",
+      "expert": "Expert",
+      "master": "Master",
+      "grandmaster": "Grandmaster"
+    }
+  },
+  "Onboarding": {
+    "step": "Step",
+    "of": "of",
+    "disciplineTitle": "Choose your focus",
+    "disciplineSubtitle": "We'll calibrate your starting level and recommendations.",
+    "cpp": "Competitive Programming",
+    "math": "Mathematics",
+    "levelTitle": "How experienced are you?",
+    "levelSubtitle": "This sets your starting baseline — you can't get it wrong, it adapts as you solve.",
+    "beginner": "Beginner",
+    "beginnerDesc": "New to it — start with the fundamentals.",
+    "intermediate": "Intermediate",
+    "intermediateDesc": "Comfortable with the basics.",
+    "pro": "Advanced",
+    "proDesc": "Experienced and looking for a challenge.",
+    "back": "Back",
+    "finish": "Enter OlympLab",
+    "saving": "Setting up…"
+  },
+  "Footer": {
+    "brand": {
+      "description": "A focused training platform for competitive programming — a real IDE, live judging, and an AI mentor that teaches instead of spoiling."
+    },
+    "product": {
+      "title": "Product",
+      "dashboard": "Dashboard",
+      "problems": "Problems",
+      "learning": "Learning",
+      "whiteboard": "Whiteboard"
+    },
+    "resources": {
+      "title": "Resources",
+      "docs": "Documentation",
+      "api": "API Reference",
+      "community": "Community",
+      "help": "Help Center"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About",
+      "careers": "Careers",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    },
+    "newsletter": {
+      "title": "Stay Updated",
+      "desc": "Get the latest updates on new features and problem sets.",
+      "placeholder": "Email address"
+    },
+    "legal": {
+      "tagline": "Built for absolute rigor.",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookies": "Cookie Policy"
+    }
   }
 }

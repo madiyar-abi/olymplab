@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
+import { Link } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Sprout, Zap, Flame, Inbox } from 'lucide-react'

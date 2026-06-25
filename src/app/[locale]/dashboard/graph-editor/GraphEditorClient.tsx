@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   ReactFlow, Background, Controls, MiniMap,
   useNodesState, useEdgesState, addEdge,
-  Connection, BackgroundVariant, Node, Edge,
+  Connection, BackgroundVariant, Node, Edge, NodeChange,
   ReactFlowProvider, useReactFlow,
   BaseEdge, EdgeLabelRenderer, getStraightPath, EdgeProps,
 } from '@xyflow/react'
@@ -84,8 +84,8 @@ function FlowCanvas({ parsedNodes, parsedEdges }: FlowCanvasProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedNodes, parsedEdges])
 
-  const handleNodesChange = useCallback((changes: any) => {
-    changes.forEach((c: any) => {
+  const handleNodesChange = useCallback((changes: NodeChange<Node>[]) => {
+    changes.forEach((c) => {
       if (c.type === 'position' && c.position) draggedPos.current.set(c.id, c.position)
     })
     onNodesChange(changes)
@@ -166,7 +166,7 @@ function FlowCanvas({ parsedNodes, parsedEdges }: FlowCanvasProps) {
           className="!bg-neutral-900/90 !border-neutral-700/50 !shadow-xl [&>button]:!bg-neutral-900 [&>button]:!text-neutral-400 [&>button:hover]:!bg-neutral-800 [&>button]:!border-neutral-700/50"
         />
         <MiniMap
-          nodeColor={n => { const d = n.data as any; return d.isCurrent ? '#fbbf24' : d.isVisited ? '#34d399' : '#404040' }}
+          nodeColor={n => { const d = n.data as { isCurrent?: boolean; isVisited?: boolean }; return d.isCurrent ? '#fbbf24' : d.isVisited ? '#34d399' : '#404040' }}
           maskColor="rgba(0,0,0,0.5)"
           style={{ background: '#171717', border: '1px solid rgba(64,64,64,0.5)', borderRadius: 8 }}
         />
@@ -208,6 +208,7 @@ export default function GraphEditorClient() {
   )
 
   const lines = inputText.split('\n')
+  const edgeCount = lines.filter(l => l.trim().length > 0).length
 
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full bg-neutral-950 text-white overflow-hidden">
@@ -268,7 +269,7 @@ export default function GraphEditorClient() {
         <div className="p-4 flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest">Graph Data</p>
-            <span className="text-[9px] font-mono text-neutral-600">{lines.length} edge{lines.length !== 1 ? 's' : ''}</span>
+            <span className="text-[9px] font-mono text-neutral-600">{edgeCount} edge{edgeCount !== 1 ? 's' : ''}</span>
           </div>
 
           <div className="flex flex-1 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 font-mono text-[11px]">

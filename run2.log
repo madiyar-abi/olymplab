@@ -1,9 +1,0 @@
-Launching headless browser...
-/Users/caliskan/olymplab/fix_mathjax_puppeteer.js:65
-  await page.waitForTimeout(1000);
-             ^
-
-TypeError: page.waitForTimeout is not a function
-    at /Users/caliskan/olymplab/fix_mathjax_puppeteer.js:65:14
-
-Node.js v22.16.0

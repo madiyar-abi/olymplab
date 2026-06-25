@@ -39,15 +39,16 @@ export function Navbar() {
     router.refresh()
   }
 
-  // Handle case where we might be at root or specific locale root
-  if (pathname === '/') {
-    // Note: next-intl usePathname returns path WITHOUT locale prefix
-    // So if we are on /en, usePathname returns /
+  // Note: next-intl usePathname returns the path WITHOUT the locale prefix
+  // (e.g. on /en/login it returns /login). The landing and the branded auth
+  // funnel render their own headers, so the global navbar is hidden there.
+  const chromelessRoutes = ['/', '/login', '/signup', '/onboarding']
+  if (chromelessRoutes.includes(pathname)) {
     return null
   }
 
   return (
-    <nav className="border-b border-white/5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
+    <nav className="border-b border-blue-900/30 bg-[#0b0f1e]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0b0f1e]/60 transition-colors duration-300">
       <div className="container flex h-16 items-center px-4 mx-auto max-w-7xl">
         <Link href="/" className="flex items-center gap-2.5 group">
           <Image

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { Loader2, Sparkles, Trophy, ExternalLink, Flame } from 'lucide-react'
 
 interface LastProblem {

@@ -98,8 +98,8 @@ export function computeForceLayout(
   // ── 2. Build d3 simulation links ──────────────────────────────────────────
   const simLinks: SimLink[] = edges
     .map(e => ({
-      source: typeof e.source === 'string' ? e.source : (e.source as any).id as string,
-      target: typeof e.target === 'string' ? e.target : (e.target as any).id as string,
+      source: typeof e.source === 'string' ? e.source : (e.source as { id: string }).id,
+      target: typeof e.target === 'string' ? e.target : (e.target as { id: string }).id,
     }))
     // Drop links that reference missing nodes (prevents d3 crash)
     .filter(l => idSet.has(l.source) && idSet.has(l.target));

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { Link } from '@/i18n/routing'
 import { Clock, Code2, ExternalLink, Hash, Zap, Cpu } from 'lucide-react'
 import { VerdictBadge } from '@/components/ui/VerdictBadge'
 import { EmptyState } from '@/components/ui/EmptyState'

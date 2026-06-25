@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
+import { Link } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import ArticleMarkdown from './ArticleMarkdown'
 import ScrollProgress from './ScrollProgress'
