@@ -338,7 +338,14 @@
     "play": "Play",
     "pause": "Pause",
     "stepForward": "Step Forward",
-    "stepBackward": "Step Backward"
+    "stepBackward": "Step Backward",
+    "weighted": "Weighted",
+    "addNode": "Add node",
+    "clear": "Clear",
+    "copyEdges": "Copy edges",
+    "copied": "Copied",
+    "hint": "Double-click the canvas to add a node · drag from one node to another to connect · click a weight to edit · select + Delete to remove · click a node to set the start",
+    "emptyTitle": "Double-click anywhere to add your first node"
   },
   "Onboarding": {
     "step": "Step",
