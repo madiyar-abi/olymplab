@@ -12,6 +12,9 @@ export interface CSESResult {
 export class CSESJudge {
   private static cookie: string | null = null
 
+  private static readonly UA =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
   private static async login() {
     const cheerio = await import('cheerio')
     const username = process.env.CSES_USERNAME
@@ -23,66 +26,77 @@ export class CSESJudge {
 
     console.log('[CSES Bot] Attempting login for:', username)
 
-    try {
-      const loginPage = await fetch('https://cses.fi/login', {
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        }
-      })
-      
-      const cookieMap = new Map<string, string>()
-      loginPage.headers.getSetCookie().forEach(c => {
-        const kv = c.split(';')[0]
-        const eqIdx = kv.indexOf('=')
-        if (eqIdx !== -1) {
-          cookieMap.set(kv.substring(0, eqIdx).trim(), kv.substring(eqIdx + 1).trim())
-        }
-      })
+    const cookieMap = new Map<string, string>()
+    let csrfToken: string | null = null
 
-      const loginHtml = await loginPage.text()
-      const $ = cheerio.load(loginHtml)
-      const csrfToken = $('input[name="csrf_token"]').val() as string
-
-      if (!csrfToken) {
-        throw new Error('Could not find CSRF token on login page')
-      }
-
-      const loginRes = await fetch('https://cses.fi/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; '),
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://cses.fi/login',
-        },
-        body: new URLSearchParams({
-          csrf_token: csrfToken,
-          nick: username,
-          pass: password,
-        }),
-        redirect: 'manual'
-      })
-
-      loginRes.headers.getSetCookie().forEach(c => {
-        const kv = c.split(';')[0]
-        const eqIdx = kv.indexOf('=')
-        if (eqIdx !== -1) {
-          cookieMap.set(kv.substring(0, eqIdx).trim(), kv.substring(eqIdx + 1).trim())
-        }
-      })
-
-      this.cookie = Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; ')
-      
-      if (!this.cookie.includes('PHPSESSID')) {
-        console.error('[CSES Bot] Login failed - PHPSESSID not found in cookies')
-        throw new Error('CSES Login Failed')
-      }
-
-      console.log('[CSES Bot] Login successful')
-    } catch (err) {
-      console.error('[CSES Bot] Login error:', err)
-      throw err
+    const collectCookie = (c: string) => {
+      const kv = c.split(';')[0]
+      const eqIdx = kv.indexOf('=')
+      if (eqIdx !== -1) cookieMap.set(kv.substring(0, eqIdx).trim(), kv.substring(eqIdx + 1).trim())
     }
+
+    // 1. Fast path: plain fetch.
+    try {
+      const loginPage = await fetch('https://cses.fi/login', { headers: { 'User-Agent': this.UA } })
+      loginPage.headers.getSetCookie().forEach(collectCookie)
+      const $ = cheerio.load(await loginPage.text())
+      csrfToken = ($('input[name="csrf_token"]').val() as string) || null
+    } catch (err) {
+      console.warn('[CSES Bot] Fetch login page failed, will try Puppeteer:', err)
+    }
+
+    // 2. Fallback: headless browser (serverless Chromium on Vercel/Lambda).
+    if (!csrfToken) {
+      console.log('[CSES Bot] Launching Puppeteer to fetch the login form...')
+      const { launchStealthBrowser } = await import('./browser')
+      const browser = await launchStealthBrowser()
+      try {
+        const page = await browser.newPage()
+        await page.setUserAgent(this.UA)
+        await page.goto('https://cses.fi/login', { waitUntil: 'networkidle2', timeout: 30000 })
+        try {
+          await page.waitForSelector('input[name="csrf_token"]', { timeout: 15000 })
+        } catch {
+          console.warn('[CSES Bot] Puppeteer timeout waiting for csrf_token')
+        }
+        const $ = cheerio.load(await page.content())
+        csrfToken = ($('input[name="csrf_token"]').val() as string) || null
+        const cookies = await page.cookies()
+        cookies.forEach((c) => cookieMap.set(c.name, c.value))
+      } catch (err) {
+        console.error('[CSES Bot] Puppeteer extraction failed:', err)
+      } finally {
+        await browser.close()
+      }
+    }
+
+    if (!csrfToken) {
+      throw new Error('Could not find CSRF token on CSES login page even with Puppeteer.')
+    }
+
+    // 3. Perform login with the collected cookies + token.
+    const loginRes = await fetch('https://cses.fi/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; '),
+        'User-Agent': this.UA,
+        'Referer': 'https://cses.fi/login',
+      },
+      body: new URLSearchParams({ csrf_token: csrfToken, nick: username, pass: password }),
+      redirect: 'manual',
+    })
+
+    loginRes.headers.getSetCookie().forEach(collectCookie)
+
+    this.cookie = Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; ')
+
+    if (!this.cookie.includes('PHPSESSID')) {
+      console.error('[CSES Bot] Login failed - PHPSESSID not found in cookies')
+      throw new Error('CSES Login Failed')
+    }
+
+    console.log('[CSES Bot] Login successful')
   }
 
   static async submit(problemId: string, code: string, language: string = 'cpp', retryCount = 0): Promise<string> {

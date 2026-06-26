@@ -60,18 +60,13 @@ export class CodeforcesJudge {
       console.warn('[CF Bot] Fetch login page failed, will try Puppeteer:', err)
     }
 
-    // 2. Fallback to Puppeteer if Fetch failed (Bypass Cloudflare)
+    // 2. Fallback to Puppeteer if Fetch failed (Bypass Cloudflare).
+    // Uses serverless Chromium on Vercel/Lambda, bundled Chromium locally.
     if (!csrfToken) {
       console.log('[CF Bot] Launching Puppeteer to bypass Cloudflare...')
-      const puppeteer = (await import('puppeteer-extra')).default
-      const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default
-      puppeteer.use(StealthPlugin())
+      const { launchStealthBrowser } = await import('./browser')
+      const browser = await launchStealthBrowser()
 
-      const browser = await puppeteer.launch({ 
-        headless: true, 
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
-      })
-      
       try {
         const page = await browser.newPage()
         await page.setUserAgent(this.DEFAULT_HEADERS['User-Agent'])
