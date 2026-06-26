@@ -2,6 +2,12 @@ import { Sidebar } from './Sidebar'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
+// The whole dashboard is auth-gated and reads request-time cookies/user, so it
+// must never be statically prerendered at build (doing so would try to create a
+// Supabase client without request context / env). Forcing dynamic here applies
+// to every route nested under this layout.
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardLayout({
   children,
 }: {
