@@ -79,9 +79,20 @@ async function scrapeProblem(browser: any, contestId: number, index: string) {
   const timeLimit = $ps.find('.time-limit').text().replace('time limit per test', '').trim()
   const memoryLimit = $ps.find('.memory-limit').text().replace('memory limit per test', '').trim()
 
-  // 2. Sample I/O (handled as raw text)
-  const sampleInput = $ps.find('.sample-test .input pre').text().trim() || '// No sample input found.'
-  const sampleOutput = $ps.find('.sample-test .output pre').text().trim() || '// No sample output found.'
+  // 2. Sample I/O. Modern Codeforces wraps each sample line in a
+  // <div class="test-example-line">; cheerio's .text() concatenates those with
+  // NO newlines (e.g. "3","1","3" -> "313"), corrupting multi-line samples.
+  // Join the line-divs with '\n'; fall back to raw <pre> text for old problems.
+  const extractSample = (sel: string) => {
+    const $pre = $ps.find(sel).first()
+    const lineDivs = $pre.find('.test-example-line')
+    const text = lineDivs.length > 0
+      ? lineDivs.map((_, el) => $(el).text()).get().join('\n')
+      : $pre.text()
+    return text.trim()
+  }
+  const sampleInput = extractSample('.sample-test .input pre') || '// No sample input found.'
+  const sampleOutput = extractSample('.sample-test .output pre') || '// No sample output found.'
 
   // 3. Mathematical Extraction & Cleaning (Surgical)
   // Remove visual/assistive layers to prevent duplication in final markdown

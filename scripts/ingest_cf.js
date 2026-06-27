@@ -123,10 +123,20 @@ async function scrapeProblem(browser, contestId, index) {
         throw new Error('Could not load problem page (all URLs failed).');
     const $ = cheerio.load(html);
     // ── Sample I/O ──
-    const sampleInputHtml = $('.problem-statement .sample-test .input pre').html();
-    const sampleOutputHtml = $('.problem-statement .sample-test .output pre').html();
-    const sampleInput = sampleInputHtml ? htmlToText(sampleInputHtml) : '// No sample input found.';
-    const sampleOutput = sampleOutputHtml ? htmlToText(sampleOutputHtml) : '// No sample output found.';
+    // Modern Codeforces wraps each sample line in <div class="test-example-line">;
+    // join those with single newlines. Fall back to raw <pre> text for old
+    // problems. (cheerio .text() would concatenate the line-divs with no
+    // newlines, e.g. "3","1","3" -> "313", corrupting multi-line samples.)
+    const extractSample = (sel) => {
+        const $pre = $(sel).first();
+        const lineDivs = $pre.find('.test-example-line');
+        const text = lineDivs.length > 0
+            ? lineDivs.map((_, el) => $(el).text()).get().join('\n')
+            : $pre.text();
+        return text.trim();
+    };
+    const sampleInput = extractSample('.problem-statement .sample-test .input pre') || '// No sample input found.';
+    const sampleOutput = extractSample('.problem-statement .sample-test .output pre') || '// No sample output found.';
     // ── Title ──
     let title = $('.problem-statement .header .title').text().trim();
     if (!title)
