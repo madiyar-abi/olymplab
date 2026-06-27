@@ -48,7 +48,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="border-b border-blue-900/30 bg-[#0b0f1e]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0b0f1e]/60 transition-colors duration-300">
+    <nav className="relative z-50 border-b border-blue-900/30 bg-[#0b0f1e]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0b0f1e]/60 transition-colors duration-300">
       <div className="container flex h-16 items-center px-4 mx-auto max-w-7xl">
         <Link href="/" className="flex items-center gap-2.5 group">
           <Image
