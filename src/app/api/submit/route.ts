@@ -10,6 +10,12 @@ import { evaluateWithWandbox } from '@/lib/judges/wandbox'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
+// The Codeforces/CSES bots scrape a login form behind Cloudflare, which fails in
+// most environments (and adds ~30s of latency per submit while it tries). They
+// are OFF by default — every problem is judged instantly against its samples via
+// Wandbox. Set ENABLE_JUDGE_BOTS=1 only where the bots actually authenticate.
+const EXTERNAL_BOTS_ENABLED = process.env.ENABLE_JUDGE_BOTS === '1'
+
 function getAdminClient(): SupabaseClient {
   return createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,7 +79,7 @@ export async function POST(request: Request) {
     }
 
     // ─── Case 1: CSES Submission via Bot (fall back to Wandbox if unavailable) ───
-    if (problem.external_id?.startsWith('cses-')) {
+    if (EXTERNAL_BOTS_ENABLED && problem.external_id?.startsWith('cses-')) {
       try {
         const { CSESJudge } = await import('@/lib/judges/cses')
         const csesTaskId = problem.external_id.replace('cses-', '')
@@ -108,7 +114,7 @@ export async function POST(request: Request) {
     }
 
     // ─── Case 2: Codeforces Submission via Bot (fall back to Wandbox if unavailable) ───
-    if (problem.external_id?.startsWith('cf-')) {
+    if (EXTERNAL_BOTS_ENABLED && problem.external_id?.startsWith('cf-')) {
       try {
         const { CodeforcesJudge } = await import('@/lib/judges/codeforces')
         const cfPart = problem.external_id.replace('cf-', '') // e.g., "123/A"
