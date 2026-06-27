@@ -106,7 +106,12 @@ export const VERDICT_METADATA: Record<
 export function mapRawVerdict(raw: string | null): Verdict {
   if (!raw) return Verdict.TESTING
   const upper = raw.toUpperCase().trim()
-  
+
+  // If it's already one of our canonical verdict codes (e.g. 'AC', 'WA', 'CE'),
+  // use it directly. Without this, the bare 'AC' the judges store fell through
+  // every branch below and was mis-mapped to FAILED.
+  if ((Object.values(Verdict) as string[]).includes(upper)) return upper as Verdict
+
   if (upper.includes('ACCEPTED') || upper === 'OK' || upper === 'CORRECT') return Verdict.AC
   if (upper.includes('WRONG ANSWER') || upper === 'WA' || upper.includes('INCORRECT')) return Verdict.WA
   if (upper.includes('TIME LIMIT') || upper === 'TLE' || upper.includes('TIMEOUT')) return Verdict.TLE
