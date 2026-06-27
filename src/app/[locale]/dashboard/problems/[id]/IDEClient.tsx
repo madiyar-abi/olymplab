@@ -594,10 +594,15 @@ export default function IDEClient({
       const startTime = Date.now()
       const TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
-      // Poll for status
+      // Poll for status. Poll requests can take longer than the 1s interval, so
+      // ticks overlap; `settled` makes the terminal handling fire exactly once
+      // (clearInterval only stops future ticks, not an in-flight one).
+      let settled = false
       const interval = setInterval(async () => {
+        if (settled) return
         try {
           if (Date.now() - startTime > TIMEOUT_MS) {
+            settled = true
             clearInterval(interval)
             pollingIntervalRef.current = null
             setCurrentSubmission(prev => prev ? { ...prev, status: 'ERROR', verdict: t('timeout') } : { status: 'ERROR', verdict: t('timeout') })
@@ -610,9 +615,12 @@ export default function IDEClient({
           const pollRes = await fetch(`/api/submissions/${submissionId}`)
           const pollData = await pollRes.json() as Submission
 
+          if (settled) return // another overlapping tick already finalized
+
           if (pollRes.ok) {
             setCurrentSubmission(pollData)
             if (pollData.status === 'COMPLETED' || pollData.status === 'ERROR') {
+              settled = true
               clearInterval(interval)
               pollingIntervalRef.current = null
               setIsSubmitting(false)
