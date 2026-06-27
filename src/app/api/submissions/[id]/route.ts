@@ -2,15 +2,20 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { Verdict } from '@/types/verdict'
+import { evaluateWithWandbox } from '@/lib/judges/wandbox'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 // A single external-judge status check should never hang the poll request.
-const STATUS_TIMEOUT_MS = 25_000
-// If an external submission is still unresolved after this long, stop polling
-// the judge and mark it FAILED so the UI doesn't spin forever.
-const STALE_MS = 6 * 60 * 1000
+const STATUS_TIMEOUT_MS = 20_000
+// If an external submission hasn't resolved in this long, stop waiting on the
+// flaky bot and judge it against the sample tests so the UI never spins forever.
+const STALE_MS = 25_000
+// If the judge status check keeps throwing, fall back even sooner.
+const ERROR_FALLBACK_MS = 8_000
+// Only after this long do we give up entirely (Wandbox itself persistently down).
+const HARD_FAIL_MS = 90_000
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>
@@ -38,16 +43,15 @@ export async function GET(
 
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-
     if (!serviceKey || !supabaseUrl) {
       console.error('[Poll] Missing Supabase service-role configuration')
       return NextResponse.json({ error: 'Internal server configuration error' }, { status: 500 })
     }
 
-    // Bypass RLS for reads/writes, then manually enforce ownership below.
-    const supabaseAdmin = createAdminClient(supabaseUrl, serviceKey)
+    // Bypass RLS, then manually enforce ownership below.
+    const admin = createAdminClient(supabaseUrl, serviceKey)
 
-    const { data: submission, error: subError } = await supabaseAdmin
+    const { data: submission, error: subError } = await admin
       .from('submissions')
       .select('*')
       .eq('id', id)
@@ -58,97 +62,113 @@ export async function GET(
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
     }
 
-    // Ownership enforcement (admin client bypasses RLS, so this is mandatory).
     if (submission.user_id !== user.id) {
       return NextResponse.json({ error: 'Unauthorized to view this submission' }, { status: 403 })
     }
 
-    // Already finished — short-circuit.
-    if (submission.status === 'COMPLETED') {
-      const { data: problem } = await supabaseAdmin
-        .from('problems')
-        .select('external_id')
-        .eq('id', submission.problem_id)
-        .single()
-      return NextResponse.json({ ...submission, problems: problem })
-    }
-
-    const { data: problem } = await supabaseAdmin
+    const { data: problem } = await admin
       .from('problems')
-      .select('external_id')
+      .select('external_id, sample_input, sample_output')
       .eq('id', submission.problem_id)
       .single()
 
+    const probMeta = { external_id: problem?.external_id }
+
+    // Already finished — short-circuit.
+    if (submission.status === 'COMPLETED') {
+      return NextResponse.json({ ...submission, problems: probMeta })
+    }
+
     const externalId: string | undefined = problem?.external_id ?? undefined
     const isExternal = externalId?.startsWith('cses-') || externalId?.startsWith('cf-')
-
-    // Staleness safety net: stop polling a never-resolving external submission.
     const ageMs = Date.now() - new Date(submission.created_at).getTime()
-    const markFailed = async (reason: string) => {
-      console.warn(`[Poll ${id}] Resolving stuck submission as FAILED: ${reason}`)
-      const { data: updated } = await supabaseAdmin
+
+    // Persist a terminal verdict, but only if the row is still PENDING — so when
+    // overlapping polls race, the first writer wins and verdicts can't be clobbered.
+    const finalize = async (fields: Record<string, unknown>) => {
+      const { data: rows } = await admin
         .from('submissions')
-        .update({ status: 'COMPLETED', verdict: Verdict.FAILED })
+        .update(fields)
         .eq('id', id)
+        .eq('status', 'PENDING')
         .select()
-        .single()
-      return NextResponse.json({ ...(updated ?? submission), status: 'COMPLETED', verdict: Verdict.FAILED, problems: problem })
+      if (rows && rows.length > 0) {
+        return NextResponse.json({ ...rows[0], problems: probMeta })
+      }
+      // Lost the race (already finalized by another poll) — return current state.
+      const { data: fresh } = await admin.from('submissions').select('*').eq('id', id).single()
+      return NextResponse.json({ ...(fresh ?? submission), problems: probMeta })
     }
 
-    if (isExternal && ageMs > STALE_MS) {
-      return markFailed(`exceeded ${STALE_MS}ms without a verdict`)
+    // Judge against the samples and finalize. On a transient Wandbox failure keep
+    // the submission pending (the client retries) unless we're past the hard deadline.
+    const resolveWithSamples = async (reason: string) => {
+      console.warn(`[Poll ${id}] resolving via samples (${reason})`)
+      const outcome = await evaluateWithWandbox(
+        submission.code ?? '',
+        submission.language ?? 'cpp',
+        problem?.sample_input ?? null,
+        problem?.sample_output ?? null,
+        id,
+      )
+      if (outcome.ok) {
+        return finalize({ status: 'COMPLETED', verdict: outcome.verdict, test_case: 1 })
+      }
+      if (ageMs > HARD_FAIL_MS) {
+        return finalize({ status: 'COMPLETED', verdict: Verdict.FAILED, test_case: 1 })
+      }
+      return NextResponse.json({ ...submission, problems: probMeta })
     }
 
-    // ─── External judge polling (CSES / Codeforces share the same shape) ───
-    if (isExternal) {
-      try {
-        const judgeModule = externalId!.startsWith('cses-')
-          ? (await import('@/lib/judges/cses')).CSESJudge
-          : (await import('@/lib/judges/codeforces')).CodeforcesJudge
+    // A non-external submission should already be COMPLETED; if not, judge now.
+    if (!isExternal) {
+      return resolveWithSamples('non-external pending')
+    }
 
-        const result = await withTimeout(
-          judgeModule.getStatus(String(submission.cf_submission_id)),
-          STATUS_TIMEOUT_MS,
-          'Judge status',
-        )
+    // External submission still pending. Past the deadline → sample-judge.
+    if (ageMs > STALE_MS) {
+      return resolveWithSamples('external judge timed out')
+    }
 
-        if (result.status === 'COMPLETED') {
-          const { data: updated } = await supabaseAdmin
-            .from('submissions')
-            .update({
-              status: 'COMPLETED',
-              verdict: result.verdict,
-              test_case: result.testCase,
-              time_ms: result.timeMs,
-              memory_kb: result.memoryKb,
-            })
-            .eq('id', id)
-            .select()
-            .single()
-          console.log(`[Poll ${id}] External verdict=${result.verdict}`)
-          return NextResponse.json({ ...updated, problems: problem })
-        }
+    // Otherwise ask the external judge for the current status.
+    try {
+      const judge = externalId!.startsWith('cses-')
+        ? (await import('@/lib/judges/cses')).CSESJudge
+        : (await import('@/lib/judges/codeforces')).CodeforcesJudge
 
-        // Still running — surface progress without persisting a non-final status.
-        return NextResponse.json({
-          ...submission,
-          status: result.status,
+      const result = await withTimeout(
+        judge.getStatus(String(submission.cf_submission_id)),
+        STATUS_TIMEOUT_MS,
+        'Judge status',
+      )
+
+      if (result.status === 'COMPLETED') {
+        console.log(`[Poll ${id}] external verdict=${result.verdict}`)
+        return finalize({
+          status: 'COMPLETED',
           verdict: result.verdict,
           test_case: result.testCase,
           time_ms: result.timeMs,
           memory_kb: result.memoryKb,
-          problems: problem,
         })
-      } catch (err) {
-        console.error(`[Poll ${id}] Judge status error:`, err instanceof Error ? err.message : err)
-        // Transient failure: if we've waited too long give up, otherwise keep PENDING.
-        if (ageMs > STALE_MS) return markFailed('judge status repeatedly failing')
-        return NextResponse.json({ ...submission, problems: problem })
       }
-    }
 
-    // Non-external submission that somehow isn't COMPLETED — return as-is.
-    return NextResponse.json({ ...submission, problems: problem })
+      // Still running — surface progress without persisting a non-final status.
+      return NextResponse.json({
+        ...submission,
+        status: result.status,
+        verdict: result.verdict,
+        test_case: result.testCase,
+        time_ms: result.timeMs,
+        memory_kb: result.memoryKb,
+        problems: probMeta,
+      })
+    } catch (err) {
+      console.error(`[Poll ${id}] judge status error:`, err instanceof Error ? err.message : err)
+      // The external judge is unreachable — fall back to sample judging.
+      if (ageMs > ERROR_FALLBACK_MS) return resolveWithSamples('judge unreachable')
+      return NextResponse.json({ ...submission, problems: probMeta })
+    }
   } catch (error) {
     console.error('[Poll] Internal error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
