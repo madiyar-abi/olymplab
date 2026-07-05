@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Link } from '@/i18n/routing'
+import { useRouter, Link } from '@/i18n/routing'
 import { useLocale, useTranslations } from 'next-intl'
-import { CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   AuthShell,
@@ -15,6 +14,7 @@ import {
 } from '@/components/shared/AuthShell'
 
 export default function SignupPage() {
+  const router = useRouter()
   const locale = useLocale()
   const t = useTranslations('Auth')
   const supabase = createClient()
@@ -23,14 +23,13 @@ export default function SignupPage() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
@@ -40,8 +39,15 @@ export default function SignupPage() {
       setLoading(false)
       return
     }
-    setSuccess(true)
-    setLoading(false)
+    // When email confirmation is disabled, Supabase returns a session immediately.
+    // Redirect straight to the dashboard in that case.
+    if (data.session) {
+      router.push('/dashboard')
+      router.refresh()
+    } else {
+      // Fallback: email confirmation is still enabled — redirect to login.
+      router.push('/login?message=check-email')
+    }
   }
 
   const handleGoogleSignup = async () => {
@@ -69,21 +75,7 @@ export default function SignupPage() {
         </>
       }
     >
-      {success ? (
-        <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
-          <h3 className="mb-2 text-lg font-bold text-white">{t('signup.successTitle')}</h3>
-          <p className="text-sm text-white/60">
-            {t.rich('signup.successBody', {
-              email,
-              b: (chunks) => <span className="font-semibold text-white">{chunks}</span>,
-            })}
-          </p>
-        </div>
-      ) : (
-        <form onSubmit={handleSignup}>
+      <form onSubmit={handleSignup}>
           <AuthError>{error}</AuthError>
 
           <GoogleButton label={t('signup.google')} loading={oauthLoading} onClick={handleGoogleSignup} />
@@ -123,7 +115,6 @@ export default function SignupPage() {
             </AuthSubmit>
           </div>
         </form>
-      )}
     </AuthShell>
   )
 }
