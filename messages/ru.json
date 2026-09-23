@@ -2,6 +2,17 @@
   "Syllabi": {
     "title": "Учебные программы",
     "subtitle": "Дорожная карта спортивного программирования — от основ до продвинутых техник",
+    "visualizersLab": "Лаборатория визуализаторов",
+    "visualizersLabSubtitle": "Интерактивные песочницы для 22 ключевых алгоритмов и структур данных",
+    "exploreVisualizers": "Песочницы алгоритмов",
+    "visualizerTagSort": "Сортировка и поиск",
+    "visualizerTagGraph": "Графы и деревья",
+    "visualizerTagDP": "Динамическое программирование",
+    "visualizerTagDS": "Структуры данных",
+    "visualizerTagMath": "Математика и геометрия",
+    "visualizerAll": "Все",
+    "visualizerSearch": "Поиск алгоритма или структуры...",
+    "visualizerNotFound": "Алгоритмы по вашему запросу не найдены",
     "beginner": "Начальный",
     "basic": "Базовый",
     "intermediate": "Средний",
@@ -79,6 +90,8 @@
     "exploreFeatures": "Обзор платформы",
     "trustTitle": "Всё в одном рабочем пространстве",
     "trust": {
+      "problems": "Банк задач",
+      "problemsValue": "1 170+",
       "languages": "Языков",
       "languagesValue": "5",
       "visualizers": "Визуализаторов",
@@ -277,7 +290,14 @@
     "currentStreak": "Текущая серия",
     "days": "дней",
     "accountJoined": "Регистрация",
-    "activity": "Активность"
+    "activity": "Активность",
+    "skillRadarTitle": "9-осевой профиль алгоритмических навыков",
+    "skillRadarSubtitle": "Многомерная оценка по ключевым парадигмам олимпиадного программирования",
+    "overallProficiency": "Общий уровень",
+    "levelNovice": "Новичок",
+    "levelSpecialist": "Специалист",
+    "levelExpert": "Эксперт",
+    "levelMaster": "Мастер"
   },
   "Settings": {
     "title": "Настройки",
@@ -294,7 +314,14 @@
     "interfaceSettingsDesc": "Настройте взаимодействие под себя.",
     "savedShort": "Сохранено",
     "audioTitle": "Звуковые эффекты",
-    "audioDesc": "Включить звук при успешной отправке решения."
+    "audioDesc": "Включить звук при успешной отправке решения.",
+    "spoilersTitle": "Скрывать теги в нерешенных задачах",
+    "spoilersDesc": "Предотвращает спойлеры алгоритмов, скрывая теги до ручного открытия или сдачи решения.",
+    "preferredLanguageTitle": "Основной язык программирования",
+    "preferredLanguageDesc": "Язык по умолчанию при открытии любой задачи в редакторе IDE.",
+    "cfHandleTitle": "Никнейм на Codeforces",
+    "cfHandleDesc": "Синхронизация статистики и рейтинга соревнований с вашим профилем OlympLab.",
+    "cfHandlePlaceholder": "например tourist"
   },
   "Submissions": {
     "title": "История посылок",
@@ -366,6 +393,12 @@
     "intermediateDesc": "Уверенно владею базой.",
     "pro": "Продвинутый",
     "proDesc": "Опытный, ищу вызов.",
+    "langTitle": "Основной язык программирования",
+    "langSubtitle": "Мы настроим шаблоны кода и компилятор по умолчанию.",
+    "handleTitle": "Никнейм на Codeforces (по желанию)",
+    "handleSubtitle": "Подключите ник, чтобы мы точнее подбирали задачи под ваш рейтинг.",
+    "handlePlaceholder": "например, tourist, Benq",
+    "skip": "Пропустить",
     "back": "Назад",
     "finish": "Войти в OlympLab",
     "saving": "Настраиваем…"
@@ -515,5 +548,12 @@
       "terms": "Условия использования",
       "cookies": "Политика cookies"
     }
+  },
+  "Flagged": {
+    "title": "Отмеченные задачи",
+    "count": "{count, plural, one {# сохранённая задача} few {# сохранённые задачи} other {# сохранённых задач}}",
+    "emptyTitle": "Пока нет сохранённых задач",
+    "emptyDesc": "Задачи, которые вы добавите в закладки, появятся здесь. Изучайте каталог, чтобы подобрать следующую задачу.",
+    "browse": "Перейти в банк задач"
   }
 }

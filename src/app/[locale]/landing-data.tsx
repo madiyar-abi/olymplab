@@ -79,7 +79,7 @@ export const extraCards: { key: string; icon: LucideIcon; accent: Accent }[] = [
 ]
 
 /* ── Trust strip ── (key → Landing.trust.<key> / <key>Value) */
-export const trustItems = ['languages', 'visualizers', 'judges', 'mentor', 'locales']
+export const trustItems = ['problems', 'languages', 'visualizers', 'judges', 'mentor', 'locales']
 
 /* ── "How it works" steps ── (key → Landing.how.step{n}Title/Desc) */
 export const steps = [1, 2, 3, 4]

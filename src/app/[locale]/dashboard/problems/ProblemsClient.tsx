@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useRouter } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
-import { ArrowRight, FilterX, Eye, Flag } from 'lucide-react'
+import { ArrowRight, FilterX, Eye, Flag, Search, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TagSelector } from './TagSelector'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +22,6 @@ const DIFFICULTY_CONFIG: Record<string, { badge: string; shadow: string }> = {
   Unrated: { badge: 'text-zinc-400 bg-white/5 border-border', shadow: '' },
 }
 
-// Get dominant skill by highest weight
 function getDominantSkill(req: Requirements | null | undefined): string {
   if (!req) return 'Uncategorized'
   let best = ''
@@ -33,7 +32,6 @@ function getDominantSkill(req: Requirements | null | undefined): string {
   return max > 0 ? best : 'Uncategorized'
 }
 
-// Fallback tags from requirements if real tags are missing
 function getFallbackTags(req: Requirements | null | undefined, n = 3): string[] {
   if (!req) return []
   return Object.entries(req)
@@ -54,14 +52,14 @@ const containerVariants = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05
+      staggerChildren: 0.04
     }
   }
 }
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } }
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } }
 }
 
 export interface Problem {
@@ -70,6 +68,7 @@ export interface Problem {
   difficulty: string
   requirements: Requirements
   tags?: string[]
+  rating?: number | null
 }
 
 interface TagGroupProps {
@@ -97,7 +96,6 @@ function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitia
       e.stopPropagation()
       setRevealed(true)
       if (userId) {
-        // @ts-expect-error - Supabase generated types don't have revealed_problems yet
         await supabase.from('revealed_problems').insert({ user_id: userId, problem_id: problemId })
       }
     }
@@ -112,8 +110,8 @@ function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitia
         <span
           key={tag}
           className={cn(
-            "bg-secondary text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-md text-[9px] font-semibold border border-border uppercase tracking-wider transition-all duration-500",
-            shouldHide && "blur-[4px] select-none opacity-40 group-hover/tags:opacity-60"
+            "bg-secondary text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-md text-[9px] font-semibold border border-border uppercase tracking-wider transition-all duration-300",
+            shouldHide && "blur-[4px] select-none opacity-40 group-hover/tags:opacity-60 cursor-pointer"
           )}
         >
           {tag}
@@ -131,11 +129,15 @@ function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitia
   )
 }
 
+type StatusFilter = 'all' | 'unsolved' | 'solved' | 'bookmarked'
+type RatingFilter = 'all' | '<1200' | '1200-1600' | '1600-2000' | '2000+'
+
 export function ProblemsClient({ 
   problems, 
   hideHeader = false,
   solvedProblemIds = new Set(),
   revealedProblemIds = new Set(),
+  initialBookmarkedIds = new Set(),
   settings: initialSettings = { sound_enabled: true, hide_unsolved_tags: false },
   userId,
   initialView = 'grid'
@@ -144,22 +146,19 @@ export function ProblemsClient({
   hideHeader?: boolean
   solvedProblemIds?: Set<string>
   revealedProblemIds?: Set<string>
+  initialBookmarkedIds?: Set<string>
   settings?: { sound_enabled: boolean, hide_unsolved_tags?: boolean }
   userId?: string
   initialView?: ViewMode
 }) {
   const t = useTranslations('Problems')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all')
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(initialBookmarkedIds)
   const [hideUnsolved, setHideUnsolved] = useState(!!initialSettings.hide_unsolved_tags)
   const [view, setView] = useState<ViewMode>(initialView)
-
-  // Re-sync local spoiler state when the server sends a new value (e.g. after
-  // router.refresh()) using the render-time pattern instead of an effect.
-  const [prevSetting, setPrevSetting] = useState(initialSettings.hide_unsolved_tags)
-  if (initialSettings.hide_unsolved_tags !== prevSetting) {
-    setPrevSetting(initialSettings.hide_unsolved_tags)
-    setHideUnsolved(!!initialSettings.hide_unsolved_tags)
-  }
 
   const handleViewChange = (newView: ViewMode) => {
     setView(newView)
@@ -167,16 +166,14 @@ export function ProblemsClient({
   }
 
   const supabase = createClient()
-
   const router = useRouter()
+
   const handleToggleSpoiler = async () => {
     const newValue = !hideUnsolved
     setHideUnsolved(newValue)
     
-    // Persist to Supabase if userId is provided
     if (userId) {
       await supabase.from('profiles')
-        // @ts-expect-error - Supabase generated types for JSON can be finicky
         .update({ 
           settings: { 
             ...initialSettings, 
@@ -189,25 +186,74 @@ export function ProblemsClient({
     }
   }
 
+  const handleToggleBookmark = async (e: React.MouseEvent, problemId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const isCurrentlyBookmarked = bookmarkedIds.has(problemId)
+    const next = new Set(bookmarkedIds)
+    if (isCurrentlyBookmarked) {
+      next.delete(problemId)
+    } else {
+      next.add(problemId)
+    }
+    setBookmarkedIds(next)
+
+    if (userId) {
+      if (isCurrentlyBookmarked) {
+        await supabase.from('user_bookmarks').delete().eq('user_id', userId).eq('problem_id', problemId)
+      } else {
+        await supabase.from('user_bookmarks').insert({ user_id: userId, problem_id: problemId })
+      }
+    }
+  }
+
   // Extract all unique tags
   const allTags = useMemo(() => {
     const tags = new Set<string>()
     problems.forEach(p => {
-      if (p.tags) p.tags.forEach(t => tags.add(t))
-      // Also add fallback tags to the selector so users can still filter by them
-      getFallbackTags(p.requirements, 5).forEach(t => tags.add(t))
+      if (p.tags) p.tags.forEach(tag => tags.add(tag))
+      getFallbackTags(p.requirements, 5).forEach(tag => tags.add(tag))
     })
     return Array.from(tags).sort()
   }, [problems])
 
-  // Filter problems by tags
+  // Filter problems by tags, search query, status, and rating
   const filteredProblems = useMemo(() => {
-    if (selectedTags.length === 0) return problems
     return problems.filter(p => {
-      const pTags = [...(p.tags || []), ...getFallbackTags(p.requirements, 5)]
-      return selectedTags.every(st => pTags.includes(st))
+      // 1. Tag filter
+      if (selectedTags.length > 0) {
+        const pTags = [...(p.tags || []), ...getFallbackTags(p.requirements, 5)]
+        const matchesTags = selectedTags.every(st => pTags.includes(st))
+        if (!matchesTags) return false
+      }
+
+      // 2. Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim()
+        const matchesTitle = p.title.toLowerCase().includes(q)
+        const matchesTag = (p.tags || []).some(t => t.toLowerCase().includes(q))
+        if (!matchesTitle && !matchesTag) return false
+      }
+
+      // 3. Status filter
+      const isSolved = solvedProblemIds.has(p.id)
+      const isBookmarked = bookmarkedIds.has(p.id)
+      if (statusFilter === 'solved' && !isSolved) return false
+      if (statusFilter === 'unsolved' && isSolved) return false
+      if (statusFilter === 'bookmarked' && !isBookmarked) return false
+
+      // 4. Rating filter
+      if (ratingFilter !== 'all') {
+        const r = p.rating ?? 0
+        if (ratingFilter === '<1200' && (r === 0 || r >= 1200)) return false
+        if (ratingFilter === '1200-1600' && (r < 1200 || r > 1600)) return false
+        if (ratingFilter === '1600-2000' && (r < 1600 || r > 2000)) return false
+        if (ratingFilter === '2000+' && r < 2000) return false
+      }
+
+      return true
     })
-  }, [problems, selectedTags])
+  }, [problems, selectedTags, searchQuery, statusFilter, ratingFilter, solvedProblemIds, bookmarkedIds])
 
   // Group by dominant skill
   const grouped = useMemo(() => {
@@ -229,9 +275,18 @@ export function ProblemsClient({
     })
   }, [grouped])
 
+  const clearAllFilters = () => {
+    setSelectedTags([])
+    setSearchQuery('')
+    setStatusFilter('all')
+    setRatingFilter('all')
+  }
+
+  const hasActiveFilters = selectedTags.length > 0 || searchQuery.trim() !== '' || statusFilter !== 'all' || ratingFilter !== 'all'
+
   return (
     <div className="h-full">
-      <div className="min-h-full px-8 pt-14 pb-12 w-full flex flex-col gap-10">
+      <div className="min-h-full px-8 pt-14 pb-12 w-full flex flex-col gap-8">
       {/* Page Header */}
       {!hideHeader && (
         <motion.header 
@@ -256,14 +311,27 @@ export function ProblemsClient({
         </motion.header>
       )}
 
-      {/* Filter Bar */}
+      {/* Modern Filter Suite */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-4 bg-card/60 backdrop-blur-sm p-4 rounded-2xl border border-border"
       >
-        <div className="flex flex-wrap items-center gap-4">
+        {/* Row 1: Search bar, tag selector, view toggle, spoiler button */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search problems by name or tag…"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-secondary/60 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono transition-colors"
+            />
+          </div>
+
           <TagSelector 
             allTags={allTags} 
             selectedTags={selectedTags} 
@@ -274,10 +342,11 @@ export function ProblemsClient({
 
           <div 
             onClick={handleToggleSpoiler}
-            className="flex items-center gap-3 px-4 py-2.5 bg-secondary/50 hover:bg-secondary/80 rounded-xl border border-border transition-all cursor-pointer group"
+            className="flex items-center gap-2.5 px-3.5 py-2 bg-secondary/50 hover:bg-secondary/80 rounded-xl border border-border transition-all cursor-pointer select-none"
+            title="Blur tags and rating on unsolved problems"
           >
             <Flag className={cn(
-              "w-4 h-4 transition-all", 
+              "w-3.5 h-3.5 transition-all", 
               hideUnsolved ? "text-amber-500 fill-amber-500" : "text-muted-foreground"
             )} />
             <span className="text-[11px] font-bold font-mono text-foreground uppercase tracking-tight">
@@ -285,17 +354,67 @@ export function ProblemsClient({
             </span>
             <div
               className={cn(
-                "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                "relative inline-flex h-4 w-7 items-center rounded-full transition-colors",
                 hideUnsolved ? "bg-amber-500" : "bg-muted"
               )}
             >
               <span
                 className={cn(
-                  "inline-block h-3 w-3 transform rounded-full bg-background transition-transform",
-                  hideUnsolved ? "translate-x-5" : "translate-x-1"
+                  "inline-block h-2.5 w-2.5 transform rounded-full bg-background transition-transform",
+                  hideUnsolved ? "translate-x-3.5" : "translate-x-0.5"
                 )}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Row 2: Status Pills & Rating Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40 text-xs font-mono">
+          {/* Status Pills */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground uppercase font-bold mr-1">Status:</span>
+            {(['all', 'unsolved', 'solved', 'bookmarked'] as StatusFilter[]).map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all capitalize',
+                  statusFilter === st
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary hover:text-foreground'
+                )}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+
+          {/* Rating Pills */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground uppercase font-bold mr-1">Rating:</span>
+            {(['all', '<1200', '1200-1600', '1600-2000', '2000+'] as RatingFilter[]).map((rf) => (
+              <button
+                key={rf}
+                onClick={() => setRatingFilter(rf)}
+                className={cn(
+                  'px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all',
+                  ratingFilter === rf
+                    ? 'bg-amber-400 text-black border-amber-400'
+                    : 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary hover:text-foreground'
+                )}
+              >
+                {rf}
+              </button>
+            ))}
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="text-[11px] text-primary hover:underline ml-2"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -307,7 +426,7 @@ export function ProblemsClient({
           description={t('noMatchDesc')}
           icon={FilterX}
           ctaText={t('clearFilters')}
-          onCtaClick={() => setSelectedTags([])}
+          onCtaClick={clearAllFilters}
           className="min-h-[40vh] py-12"
         />
       )}
@@ -318,23 +437,19 @@ export function ProblemsClient({
           {/* Section Header */}
           <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-1.5 h-5 bg-primary rounded-full" />
-              <h2 className="text-lg font-semibold text-foreground capitalize font-mono tracking-wide">
-                {skill === 'Uncategorized'
-                  ? t('allProblems')
-                  : t.has(`skills.${skill}`)
-                    ? t(`skills.${skill}`)
-                    : sectionLabel(skill)}
+              <h2 className="text-xl font-bold font-mono tracking-tight text-foreground">
+                {sectionLabel(skill)}
               </h2>
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground font-semibold">
+                {groupProblems.length}
+              </span>
             </div>
-            <span className="text-xs font-medium text-muted-foreground font-mono">
-              {t('count', { count: groupProblems.length })}
-            </span>
           </div>
 
+          {/* Cards Grid or Table */}
           {view === 'grid' ? (
             <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               variants={containerVariants}
               initial="hidden"
               whileInView="show"
@@ -347,6 +462,7 @@ export function ProblemsClient({
                 const diff = problem.difficulty || 'Unrated'
                 const cfg = DIFFICULTY_CONFIG[diff] || DIFFICULTY_CONFIG.Unrated
                 const isSolved = solvedProblemIds.has(problem.id)
+                const isBookmarked = bookmarkedIds.has(problem.id)
 
                 return (
                   <motion.div 
@@ -355,27 +471,53 @@ export function ProblemsClient({
                   >
                     <Link
                       href={`/dashboard/problems/${problem.id}`}
-                      className="group flex flex-col items-center text-center justify-center h-[240px] bg-card border border-border rounded-2xl p-8 transition-all duration-500 ease-out hover:-translate-y-1 hover:border-primary/50 shadow-sm hover:shadow-xl cursor-pointer overflow-hidden relative"
+                      className="group flex flex-col items-center text-center justify-between h-[250px] bg-card border border-border rounded-2xl p-6 transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/50 shadow-sm hover:shadow-xl cursor-pointer overflow-hidden relative"
                     >
-                      {/* Badge Centered at Top */}
-                      <span className={cn(
-                        "text-[9px] font-bold px-3 py-1 rounded-full border uppercase tracking-[0.2em] mb-4",
-                        cfg.badge,
-                        cfg.shadow
-                      )}>
-                        {t.has(`difficulty.${diff}`) ? t(`difficulty.${diff}`) : diff}
-                      </span>
+                      {/* Top Badges & Bookmark */}
+                      <div className="w-full flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "text-[9px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider",
+                            cfg.badge,
+                            cfg.shadow
+                          )}>
+                            {t.has(`difficulty.${diff}`) ? t(`difficulty.${diff}`) : diff}
+                          </span>
+                          {problem.rating && (
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20 text-amber-300">
+                              ★ {problem.rating}
+                            </span>
+                          )}
+                        </div>
 
-                      <div className="flex flex-col items-center gap-2 mb-4">
-                        <h3 className="text-lg font-bold text-foreground line-clamp-2 font-mono tracking-tight group-hover:text-primary transition-colors">
+                        {/* Bookmark Button */}
+                        <button
+                          onClick={(e) => handleToggleBookmark(e, problem.id)}
+                          className={cn(
+                            "p-1.5 rounded-lg border border-transparent hover:border-border transition-colors",
+                            isBookmarked ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-400"
+                          )}
+                          title={isBookmarked ? "Remove bookmark" : "Bookmark problem"}
+                        >
+                          <Flag className={cn("w-3.5 h-3.5", isBookmarked && "fill-amber-400")} />
+                        </button>
+                      </div>
+
+                      {/* Problem Title & Solved badge */}
+                      <div className="flex flex-col items-center gap-1.5 my-auto px-2">
+                        <h3 className="text-base font-bold text-foreground line-clamp-2 font-mono tracking-tight group-hover:text-primary transition-colors">
                           {problem.title}
                         </h3>
                         {isSolved && (
-                          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">{t('solved')}</span>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {t('solved')}
+                          </span>
                         )}
                       </div>
 
-                      <div className="mb-6">
+                      {/* Tags & Action Button */}
+                      <div className="w-full flex flex-col items-center gap-3">
                         <TagGroup 
                           tags={displayTags} 
                           isSolved={isSolved} 
@@ -384,12 +526,11 @@ export function ProblemsClient({
                           userId={userId}
                           isInitiallyRevealed={revealedProblemIds.has(problem.id)}
                         />
-                      </div>
-                      
-                      {/* Solve Button Centered at Bottom */}
-                      <div className="px-6 py-2.5 rounded-xl font-sans text-xs font-bold tracking-widest border border-border bg-foreground text-background hover:bg-primary hover:border-primary hover:text-white transition-all flex items-center gap-2 uppercase">
-                        {isSolved ? t('review') : t('solveNow')}
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+
+                        <div className="w-full py-2 rounded-xl font-mono text-[11px] font-bold tracking-wider border border-border bg-secondary/80 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all flex items-center justify-center gap-2 uppercase">
+                          <span>{isSolved ? t('review') : t('solveNow')}</span>
+                          <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
                     </Link>
                   </motion.div>
@@ -402,6 +543,8 @@ export function ProblemsClient({
                 problems={groupProblems} 
                 solvedProblemIds={solvedProblemIds}
                 revealedProblemIds={revealedProblemIds}
+                bookmarkedProblemIds={bookmarkedIds}
+                onToggleBookmark={handleToggleBookmark}
                 hideTagsSetting={hideUnsolved}
                 userId={userId}
               />

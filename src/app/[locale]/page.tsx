@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { InteractivePlayground } from '@/components/landing/InteractivePlayground'
+import { InteractiveVisualizerTeaser } from '@/components/landing/InteractiveVisualizerTeaser'
 
 import {
   featureCards,
@@ -272,101 +274,16 @@ export default function LandingPage() {
           </motion.div>
         </section>
 
-        {/* ── IDE showcase ── */}
+        {/* ── IDE Interactive Showcase ── */}
         <section className="px-4 pb-24 relative z-10">
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
             className="max-w-5xl mx-auto"
           >
-            <div className="relative rounded-2xl border border-white/15 bg-[#0b0b0f] shadow-[0_30px_120px_-30px_rgba(0,0,0,0.9)] overflow-hidden">
-              {/* window chrome */}
-              <div className="h-11 bg-[#121216] border-b border-white/10 flex items-center px-4 gap-4">
-                <div className="flex gap-2">
-                  <span className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <span className="w-3 h-3 rounded-full bg-green-500/80" />
-                </div>
-                <div className="flex bg-black/40 rounded-lg border border-white/10 p-0.5 text-[11px] font-mono">
-                  <span className="px-2.5 py-1 rounded bg-white/10 text-white/90">{t('ide.tabSolution')}</span>
-                  <span className="px-2.5 py-1 text-white/40">{t('ide.tabInput')}</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col md:flex-row">
-                {/* editor */}
-                <div className="flex-1 p-5 sm:p-6 font-mono text-[12.5px] leading-relaxed bg-[#0b0b0f] border-b md:border-b-0 md:border-r border-white/10">
-                  <pre className="text-[#d4d4d4] overflow-x-auto">
-                    <code>
-                      <span className="text-violet-400">#include</span> <span className="text-amber-300">&lt;bits/stdc++.h&gt;</span>{'\n'}
-                      <span className="text-violet-400">using namespace</span> <span className="text-emerald-300">std</span>;{'\n\n'}
-                      <span className="text-blue-400">int</span> <span className="text-yellow-200">main</span>() {'{'}{'\n'}
-                      {'  '}<span className="text-blue-400">int</span> <span className="text-sky-300">n</span>, <span className="text-sky-300">q</span>; <span className="text-emerald-300">cin</span> &gt;&gt; <span className="text-sky-300">n</span> &gt;&gt; <span className="text-sky-300">q</span>;{'\n'}
-                      {'  '}<span className="text-emerald-300">vector</span>&lt;<span className="text-blue-400">long long</span>&gt; <span className="text-sky-300">pre</span>(<span className="text-sky-300">n</span> + <span className="text-orange-200">1</span>);{'\n'}
-                      {'  '}<span className="text-violet-400">for</span> (<span className="text-blue-400">int</span> <span className="text-sky-300">i</span> = <span className="text-orange-200">1</span>; <span className="text-sky-300">i</span> &lt;= <span className="text-sky-300">n</span>; ++<span className="text-sky-300">i</span>) {'{'}{'\n'}
-                      {'    '}<span className="text-blue-400">int</span> <span className="text-sky-300">x</span>; <span className="text-emerald-300">cin</span> &gt;&gt; <span className="text-sky-300">x</span>;{'\n'}
-                      {'    '}<span className="text-sky-300">pre</span>[<span className="text-sky-300">i</span>] = <span className="text-sky-300">pre</span>[<span className="text-sky-300">i</span> - <span className="text-orange-200">1</span>] + <span className="text-sky-300">x</span>;{'\n'}
-                      {'  '}{'}'}
-                      <span className="inline-block w-2 h-4 bg-amber-400 align-middle ml-0.5 animate-pulse" />{'\n'}
-                      {'}'}
-                    </code>
-                  </pre>
-                </div>
-
-                {/* judge + mentor */}
-                <div className="w-full md:w-[360px] flex flex-col bg-[#08080b]">
-                  <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2 text-xs font-semibold text-white/60 uppercase tracking-wider">
-                    <Terminal className="w-4 h-4" /> {t('ide.terminal')}
-                  </div>
-                  <div className="p-4 font-mono text-[12px] space-y-2.5 flex-1">
-                    <div className="text-white/50">$ {t('ide.compile')}</div>
-                    <div className="text-white/50">$ {t('ide.run')}</div>
-                    <motion.div
-                      initial={{ opacity: 0, x: -8 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.6 }}
-                      className="flex items-center gap-2 text-emerald-400 pt-1"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> {t('ide.test1')}
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, x: -8 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.8 }}
-                      className="flex items-center gap-2 text-emerald-400"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> {t('ide.test2')}
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 1 }}
-                      className="inline-flex items-center gap-1.5 mt-2 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-emerald-300 font-bold text-[11px]"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {t('ide.verdict')}
-                    </motion.div>
-                  </div>
-
-                  <div className="m-4 rounded-xl border border-violet-500/30 bg-violet-500/[0.08] p-3.5">
-                    <div className="flex items-center gap-2.5 mb-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-violet-500/25 flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-violet-300" />
-                      </div>
-                      <div className="leading-tight">
-                        <div className="text-sm font-bold text-white">{t('ide.mentorName')}</div>
-                        <div className="text-[10px] text-violet-300/80 font-mono">{t('ide.mentorStatus')}</div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-white/75 leading-relaxed">{t('ide.mentorText')}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <InteractivePlayground />
           </motion.div>
         </section>
 
@@ -469,7 +386,7 @@ export default function LandingPage() {
               whileInView="show"
               viewport={{ once: true }}
               variants={stagger}
-              className="flex flex-wrap justify-center gap-2.5"
+              className="flex flex-wrap justify-center gap-2.5 mb-14"
             >
               {visualizers.map((name) => (
                 <motion.span
@@ -486,6 +403,17 @@ export default function LandingPage() {
               >
                 {t('visualizersMore')}…
               </motion.span>
+            </motion.div>
+
+            {/* Interactive Live Teaser */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-left"
+            >
+              <InteractiveVisualizerTeaser />
             </motion.div>
           </div>
         </section>

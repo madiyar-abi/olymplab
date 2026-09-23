@@ -42,7 +42,7 @@ export default function SignupPage() {
     // When email confirmation is disabled, Supabase returns a session immediately.
     // Redirect straight to the dashboard in that case.
     if (data.session) {
-      router.push('/dashboard')
+      router.push('/onboarding')
       router.refresh()
     } else {
       // Fallback: email confirmation is still enabled — redirect to login.

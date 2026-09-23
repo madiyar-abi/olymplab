@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels'
 import { useAutoSaveCode, SaveStatus } from '@/hooks/useAutoSaveCode'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { toast } from '@/components/ui/Toast'
 
 export interface SkillReq {
@@ -66,6 +66,8 @@ export interface Problem {
   time_limit?: string
   memory_limit?: string
   difficulty_rating?: number
+  rating?: number | null
+  tags?: string[]
   submission_stats?: {
     solved_count: number
   }
@@ -283,6 +285,7 @@ export default function IDEClient({
   initialIsRevealed = false
 }: IDEClientProps) {
   const t = useTranslations('IDE')
+  const locale = useLocale()
   const { resolvedTheme } = useTheme()
   const supabase = useMemo(() => createClient(), [])
    
@@ -501,32 +504,22 @@ export default function IDEClient({
     setIsFlagged(localStorage.getItem(`flagged_${problem.id}`) === 'true')
   }
 
-  const toggleFlag = () => {
+  const toggleFlag = async () => {
     const newState = !isFlagged
     setIsFlagged(newState)
     localStorage.setItem(`flagged_${problem.id}`, String(newState))
 
-    const flaggedListRaw = localStorage.getItem('flagged_problems_list')
-    let flaggedList: FlaggedProblem[] = flaggedListRaw ? JSON.parse(flaggedListRaw) : []
-
-    if (newState) {
-      if (!flaggedList.find((p) => p.id === problem.id)) {
-        flaggedList.push({
-          id: problem.id,
-          title: problem.title,
-          difficulty: problem.difficulty,
-          requirements: problem.requirements
-        })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      if (newState) {
+        await supabase.from('user_bookmarks').insert({ user_id: user.id, problem_id: problem.id })
+      } else {
+        await supabase.from('user_bookmarks').delete().eq('user_id', user.id).eq('problem_id', problem.id)
       }
-    } else {
-      flaggedList = flaggedList.filter((p) => p.id !== problem.id)
     }
-    localStorage.setItem('flagged_problems_list', JSON.stringify(flaggedList))
   }
 
-  // Remove broken manual resize states
   const CONTAINER_REF_REPLACEMENT = useRef<HTMLDivElement>(null)
-  const rightPanelRef = useRef<HTMLDivElement>(null)
 
   const handleRunCode = useCallback(async () => {
     if (!editorRef.current) return
@@ -732,7 +725,8 @@ export default function IDEClient({
           sampleInput: problem.sample_input || extractSampleInput(),
           sampleOutput: problem.sample_output,
           history: mentorHistory,
-          userMessage: userMessage
+          userMessage: userMessage,
+          locale: locale || 'en'
         })
       })
 
@@ -814,6 +808,11 @@ export default function IDEClient({
             </div>
 
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground font-medium">
+              {problem.rating && (
+                <div className="flex items-center gap-1.5 bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-lg text-amber-300 font-mono font-bold">
+                  <span>★ {problem.rating}</span>
+                </div>
+              )}
               {problem.time_limit && (
                 <div className="flex items-center gap-1.5 bg-secondary px-2 py-1 rounded-lg border border-border">
                   <Clock className="w-3.5 h-3.5 text-muted-foreground/60" />
@@ -827,6 +826,33 @@ export default function IDEClient({
                 </div>
               )}
             </div>
+
+            {/* Tags with Spoiler Protection */}
+            {problem.tags && problem.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2.5 border-t border-border/40">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1 font-mono">Tags:</span>
+                {problem.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    onClick={shouldHideTags ? handleRevealTags : undefined}
+                    className={cn(
+                      "text-[10px] font-mono px-2 py-0.5 rounded-md border border-border bg-secondary text-muted-foreground transition-all duration-300",
+                      shouldHideTags && "blur-[4px] select-none opacity-40 hover:opacity-60 cursor-pointer"
+                    )}
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {shouldHideTags && (
+                  <button
+                    onClick={handleRevealTags}
+                    className="text-[10px] font-mono font-bold text-primary hover:underline ml-1 uppercase tracking-tight"
+                  >
+                    Reveal Tags
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 px-8 pt-6 pb-32 space-y-8 text-[15px] text-foreground/90 leading-relaxed scrollbar-thin selection:bg-cyan-500/30 select-text">
@@ -840,7 +866,24 @@ export default function IDEClient({
               <div className="space-y-4 pt-6 border-t border-border">
                 {problem.sample_input && (
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">{t('input')}</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('input')}</h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (problem.sample_input) {
+                              setStdin(problem.sample_input)
+                              setActiveConsoleTab('testcases')
+                              toast.success('Loaded sample into testcase console')
+                            }
+                          }}
+                          className="text-[11px] font-mono font-semibold text-primary hover:underline flex items-center gap-1"
+                        >
+                          Load into Console
+                        </button>
+                        <CopyButton value={problem.sample_input} />
+                      </div>
+                    </div>
                     <div className="bg-secondary/50 border border-border p-4 rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground/90">
                       {problem.sample_input}
                     </div>
@@ -848,7 +891,10 @@ export default function IDEClient({
                 )}
                 {problem.sample_output && (
                   <div>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">{t('output')}</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('output')}</h3>
+                      <CopyButton value={problem.sample_output} />
+                    </div>
                     <div className="bg-secondary/50 border border-border p-4 rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground/90">
                       {problem.sample_output}
                     </div>
@@ -866,22 +912,26 @@ export default function IDEClient({
               </div>
             )}
 
-            {problem.submission_stats && (
+            {(problem.rating || problem.difficulty_rating || problem.submission_stats) && (
               <div className="pt-6 border-t border-border grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">{t('solvedBy')}</span>
-                  <p className="text-xl font-mono font-bold text-foreground">{problem.submission_stats.solved_count}</p>
+                  <p className="text-xl font-mono font-bold text-foreground">
+                    {problem.submission_stats?.solved_count ?? '---'}
+                  </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">{t('difficulty')}</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-bold">Rating</span>
                   <div className="flex items-center gap-2">
-                    <p className="text-xl font-mono font-bold text-foreground">{problem.difficulty_rating || '---'}</p>
-                    {problem.difficulty_rating && (
-                      <div className="flex-1 max-w-[60px]">
-                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <p className="text-xl font-mono font-bold text-foreground">
+                      {problem.rating || problem.difficulty_rating || '---'}
+                    </p>
+                    {(problem.rating || problem.difficulty_rating) && (
+                      <div className="flex-1 max-w-[80px]">
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden border border-border/50">
                           <div
-                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
-                            style={{ width: `${Math.min(100, (problem.difficulty_rating / 3500) * 100)}%` }}
+                            className="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-purple-500 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, (((problem.rating || problem.difficulty_rating) || 800) / 3200) * 100)}%` }}
                           />
                         </div>
                       </div>

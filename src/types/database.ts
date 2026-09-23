@@ -29,7 +29,11 @@ export interface Database {
           experience_level: string | null
           code_template: string | null
           preferred_language: string | null
+          hide_unsolved_tags: boolean | null
+          cf_handle: string | null
           settings: Json
+          solved_count: number
+          level: number
           created_at: string
         }
         Insert: {
@@ -40,7 +44,11 @@ export interface Database {
           experience_level?: string | null
           code_template?: string | null
           preferred_language?: string | null
+          hide_unsolved_tags?: boolean | null
+          cf_handle?: string | null
           settings?: Json
+          solved_count?: number
+          level?: number
           created_at?: string
         }
         Update: {
@@ -51,9 +59,14 @@ export interface Database {
           experience_level?: string | null
           code_template?: string | null
           preferred_language?: string | null
+          hide_unsolved_tags?: boolean | null
+          cf_handle?: string | null
           settings?: Json
+          solved_count?: number
+          level?: number
           created_at?: string
         }
+        Relationships: []
       }
       problems: {
         Row: {
@@ -64,9 +77,12 @@ export interface Database {
           difficulty: string
           rating: number | null
           requirements: Record<SkillAxes, { level: number; weight: number }>
+          tags: string[]
           sample_input: string | null
           sample_output: string | null
           external_id: string | null
+          time_limit: string | null
+          memory_limit: string | null
           created_at: string
         }
         Insert: {
@@ -77,9 +93,12 @@ export interface Database {
           difficulty?: string
           rating?: number | null
           requirements?: Record<SkillAxes, { level: number; weight: number }>
+          tags?: string[]
           sample_input?: string | null
           sample_output?: string | null
           external_id?: string | null
+          time_limit?: string | null
+          memory_limit?: string | null
           created_at?: string
         }
         Update: {
@@ -90,11 +109,15 @@ export interface Database {
           difficulty?: string
           rating?: number | null
           requirements?: Record<SkillAxes, { level: number; weight: number }>
+          tags?: string[]
           sample_input?: string | null
           sample_output?: string | null
           external_id?: string | null
+          time_limit?: string | null
+          memory_limit?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       submissions: {
         Row: {
@@ -139,6 +162,43 @@ export interface Database {
           memory_kb?: number | null
           created_at?: string
         }
+        Relationships: []
+      }
+      revealed_problems: {
+        Row: {
+          user_id: string
+          problem_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          problem_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          problem_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      user_bookmarks: {
+        Row: {
+          user_id: string
+          problem_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          problem_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          problem_id?: string
+          created_at?: string
+        }
+        Relationships: []
       }
       roadmap_topics: {
         Row: {
@@ -174,6 +234,7 @@ export interface Database {
           level?: string
           created_at?: string
         }
+        Relationships: []
       }
       topic_problems: {
         Row: {
@@ -221,13 +282,22 @@ export interface Database {
           solved_count?: number | null
           created_at?: string
         }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_verdict_stats: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: {
+          verdict: string
+          count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

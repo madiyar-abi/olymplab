@@ -19,7 +19,7 @@ export default async function SettingsPage() {
 
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('settings, code_template, preferred_language')
+    .select('settings, code_template, preferred_language, hide_unsolved_tags, cf_handle')
     .eq('id', user.id)
     .single()
 
@@ -27,11 +27,15 @@ export default async function SettingsPage() {
     settings: { sound_enabled: boolean } | null
     code_template: string | null
     preferred_language: string | null
+    hide_unsolved_tags: boolean | null
+    cf_handle: string | null
   } | null
 
   const codeTemplate = profile?.code_template || ''
   const settings = profile?.settings || { sound_enabled: true }
   const preferredLanguage = profile?.preferred_language || 'cpp'
+  const hideSpoilers = profile?.hide_unsolved_tags ?? true
+  const cfHandle = profile?.cf_handle || ''
 
   return (
     <div className="min-h-full p-4 md:p-8 space-y-8">
@@ -64,7 +68,13 @@ export default async function SettingsPage() {
             {t('preferences')}
           </h3>
           <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-8 transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)]">
-            <SettingsEditor initialSettings={settings} userId={user.id} />
+            <SettingsEditor 
+              initialSettings={settings} 
+              initialHideSpoilers={hideSpoilers}
+              initialPreferredLanguage={preferredLanguage}
+              initialCfHandle={cfHandle}
+              userId={user.id} 
+            />
           </div>
         </div>
       </div>

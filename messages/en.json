@@ -2,6 +2,17 @@
   "Syllabi": {
     "title": "Structured Syllabi",
     "subtitle": "Competitive programming roadmap — from basics to advanced techniques",
+    "visualizersLab": "Visualizer Lab",
+    "visualizersLabSubtitle": "Interactive sandboxes for 22 core algorithms and data structures",
+    "exploreVisualizers": "Explore Visualizers",
+    "visualizerTagSort": "Sorting & Search",
+    "visualizerTagGraph": "Graphs & Trees",
+    "visualizerTagDP": "Dynamic Programming",
+    "visualizerTagDS": "Data Structures",
+    "visualizerTagMath": "Math & Geometry",
+    "visualizerAll": "All",
+    "visualizerSearch": "Search algorithm or structure...",
+    "visualizerNotFound": "No visualizers matching your criteria",
     "beginner": "Beginner",
     "basic": "Basic",
     "intermediate": "Intermediate",
@@ -79,6 +90,8 @@
     "exploreFeatures": "Explore the platform",
     "trustTitle": "Everything in one workspace",
     "trust": {
+      "problems": "Problems",
+      "problemsValue": "1,170+",
       "languages": "Languages",
       "languagesValue": "5",
       "visualizers": "Visualizers",
@@ -277,7 +290,14 @@
     "currentStreak": "Current Streak",
     "days": "days",
     "accountJoined": "Account Joined",
-    "activity": "Activity"
+    "activity": "Activity",
+    "skillRadarTitle": "9-Axis Algorithmic Skill Profile",
+    "skillRadarSubtitle": "Multi-dimensional evaluation across competitive programming paradigms",
+    "overallProficiency": "Overall Proficiency",
+    "levelNovice": "Novice",
+    "levelSpecialist": "Specialist",
+    "levelExpert": "Expert",
+    "levelMaster": "Master"
   },
   "Settings": {
     "title": "Settings",
@@ -294,7 +314,14 @@
     "interfaceSettingsDesc": "Customize your interaction experience.",
     "savedShort": "Saved",
     "audioTitle": "Audio Micro-interactions",
-    "audioDesc": "Enable sound effects for successful submissions."
+    "audioDesc": "Enable sound effects for successful submissions.",
+    "spoilersTitle": "Hide Tags on Unsolved Problems",
+    "spoilersDesc": "Prevent algorithm spoilers by obscuring tags until you click to reveal or solve the problem.",
+    "preferredLanguageTitle": "Default Programming Language",
+    "preferredLanguageDesc": "Pre-selected compiler language when opening any problem in the IDE.",
+    "cfHandleTitle": "Codeforces Handle",
+    "cfHandleDesc": "Sync your competition stats and rating with your OlympLab profile.",
+    "cfHandlePlaceholder": "e.g. tourist"
   },
   "Submissions": {
     "title": "Submission History",
@@ -366,6 +393,12 @@
     "intermediateDesc": "Comfortable with the basics.",
     "pro": "Advanced",
     "proDesc": "Experienced and looking for a challenge.",
+    "langTitle": "Choose your primary language",
+    "langSubtitle": "We'll configure your default editor templates and compiler runtime.",
+    "handleTitle": "Codeforces Handle (Optional)",
+    "handleSubtitle": "Connect your handle to tailor problem recommendations.",
+    "handlePlaceholder": "e.g. tourist, Benq",
+    "skip": "Skip for now",
     "back": "Back",
     "finish": "Enter OlympLab",
     "saving": "Setting up…"
@@ -515,5 +548,12 @@
       "terms": "Terms of Service",
       "cookies": "Cookie Policy"
     }
+  },
+  "Flagged": {
+    "title": "Bookmarked Problems",
+    "count": "{count, plural, one {# bookmarked problem} other {# bookmarked problems}}",
+    "emptyTitle": "No Bookmarked Problems Yet",
+    "emptyDesc": "Problems you bookmark for later review will appear here. Start exploring the catalog to find your next challenge.",
+    "browse": "Browse Problem Catalog"
   }
 }

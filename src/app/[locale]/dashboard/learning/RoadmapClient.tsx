@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Code2, Terminal, Trophy, Sprout, Zap, Flame, Rocket, Crown } from 'lucide-react'
+import { BookOpen, Code2, Terminal, Trophy, Sprout, Zap, Flame, Rocket, Crown, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface RoadmapTopic {
@@ -104,42 +104,59 @@ export function RoadmapClient({
 
   return (
     <div className="px-8 pb-24 w-full">
-      {/* Tabs Header */}
-      <div className="flex items-center gap-8 border-b border-white/5 mb-10 overflow-x-auto hide-scrollbar">
-        {STAGE_ORDER.map((stageKey) => {
-          const isActive = activeLevel === stageKey
-          const count = topics.filter(top => STAGE_MAP[top.stage] === stageKey).length
-          if (count === 0) return null
+      {/* Tabs Header & Visualizers Lab Link */}
+      <div className="flex items-center justify-between gap-4 border-b border-white/5 mb-10 overflow-x-auto hide-scrollbar">
+        <div className="flex items-center gap-8">
+          {STAGE_ORDER.map((stageKey) => {
+            const isActive = activeLevel === stageKey
+            const count = topics.filter(top => STAGE_MAP[top.stage] === stageKey).length
+            if (count === 0) return null
+            const cfg = STAGE_CONFIG[stageKey]
 
-          return (
-            <button
-              key={stageKey}
-              onClick={() => setActiveLevel(stageKey)}
-              className={cn(
-                "pb-4 px-1 text-sm font-bold transition-all relative whitespace-nowrap group",
-                isActive 
-                  ? "text-primary" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <span className="font-sans uppercase tracking-widest text-xs">{t(stageKey)}</span>
-                <span className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full border transition-colors font-mono",
-                  isActive ? "bg-primary/10 border-primary/20" : "bg-secondary border-border"
-                )}>
-                  {count}
-                </span>
-              </div>
-              {isActive && (
-                <motion.div 
-                  layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
-                />
-              )}
-            </button>
-          )
-        })}
+            return (
+              <button
+                key={stageKey}
+                onClick={() => setActiveLevel(stageKey)}
+                className={cn(
+                  "pb-4 px-1 text-sm font-bold transition-all relative whitespace-nowrap group",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground/60")}>
+                    {cfg?.icon}
+                  </span>
+                  <span className="font-sans uppercase tracking-widest text-xs">{t(stageKey)}</span>
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full border transition-colors font-mono",
+                    isActive ? "bg-primary/10 border-primary/20" : "bg-secondary border-border"
+                  )}>
+                    {count}
+                  </span>
+                </div>
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                  />
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        <Link
+          href="/dashboard/learning/visualizers"
+          className="pb-4 shrink-0 flex items-center gap-2 text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap group"
+        >
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 group-hover:border-amber-500/40">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>{t('visualizersLab')}</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-amber-500/20 rounded-full text-amber-300">22</span>
+          </div>
+        </Link>
       </div>
 
       <AnimatePresence mode="wait">

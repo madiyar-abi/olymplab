@@ -4,8 +4,11 @@ import { getTranslations, getFormatter } from 'next-intl/server'
 import { ContributionGraph } from '@/components/ContributionGraph'
 import { calculateStreak } from '@/lib/analytics/streaks'
 import VerdictAnalytics from '@/components/Profile/VerdictAnalytics'
+import SkillRadar from '@/components/Profile/SkillRadar'
 import { mapRawVerdict, Verdict } from '@/types/verdict'
 import { VerdictStat } from '@/lib/verdictInsights'
+import type { SkillAxes } from '@/types/database'
+import { Trophy } from 'lucide-react'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -67,10 +70,10 @@ export default async function ProfilePage() {
 
   const streakCount = calculateStreak((contributionsData as { created_at: string }[])?.map(c => c.created_at) || [])
 
-  // Fetch username and stats from profiles table
+  // Fetch username, stats, skills, and cf_handle from profiles table
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('username, solved_count, level')
+    .select('username, solved_count, level, skills, cf_handle')
     .eq('id', user.id)
     .single()
 
@@ -78,10 +81,14 @@ export default async function ProfilePage() {
     username: string; 
     solved_count?: number;
     level?: number;
+    skills?: Partial<Record<SkillAxes, number>>;
+    cf_handle?: string | null;
   } | null
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
   const initial = username.charAt(0).toUpperCase()
   const solvedCount = profile?.solved_count || 0
+  const skills = profile?.skills || {}
+  const cfHandle = profile?.cf_handle
 
   return (
     <div className="min-h-full p-4 md:p-8 space-y-8">
@@ -104,10 +111,21 @@ export default async function ProfilePage() {
         <div className="flex-1 text-center md:text-left space-y-1">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">{username}</h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm">{user.email}</p>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
             <span className="inline-flex items-center rounded border border-white/5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               {t('statusLabel')}: {t('statusActive')}
             </span>
+            {cfHandle && (
+              <a
+                href={`https://codeforces.com/profile/${cfHandle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider text-amber-400 hover:bg-amber-500/20 transition-colors"
+              >
+                <Trophy className="w-3 h-3 text-amber-400" />
+                <span>CF: {cfHandle}</span>
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -159,6 +177,9 @@ export default async function ProfilePage() {
           </p>
         </div>
       </div>
+
+      {/* 9-Axis Algorithmic Skill Profile */}
+      <SkillRadar skills={skills} />
 
       {/* Contribution Heatmap */}
       <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 pt-4">
