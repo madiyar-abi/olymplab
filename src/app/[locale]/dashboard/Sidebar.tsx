@@ -6,6 +6,8 @@ import { useState, useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
 
 /* ── TYPES ─────────────────────────────────────────────────────────────────── */
 
@@ -146,15 +148,21 @@ export function Sidebar({ username, level = 1 }: { username: string; email: stri
   const t = useTranslations('Dashboard')
   const supabase = createClient()
   const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  // Lazy init from localStorage (client only). The isMounted guard below renders
-  // a placeholder during hydration, so this can't cause a mismatch.
-  const [isCollapsed, setIsCollapsed] = useState(
-    () => typeof window !== 'undefined' && localStorage.getItem('sidebarCollapsed') === 'true'
-  )
+
+  const isProblemPage = pathname.startsWith('/dashboard/problems/') && !pathname.startsWith('/dashboard/problems/flagged')
+
+  const [manualCollapsed, setManualCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('sidebarManualCollapse') === 'true'
+  })
+
+  // Automatically collapsed on problem page; otherwise respects user's manual preference
+  const isCollapsed = isProblemPage || manualCollapsed
 
   const toggleCollapse = () => {
     const next = !isCollapsed
-    setIsCollapsed(next)
+    setManualCollapsed(next)
+    localStorage.setItem('sidebarManualCollapse', String(next))
     localStorage.setItem('sidebarCollapsed', String(next))
   }
 
@@ -236,6 +244,15 @@ export function Sidebar({ username, level = 1 }: { username: string; email: stri
             </div>
           )}
         </Link>
+
+        {/* Language & Theme Controls */}
+        <div className={cn(
+          "flex items-center gap-2 py-1 border-t border-border/20",
+          isCollapsed ? "flex-col justify-center items-center" : "justify-between px-1"
+        )}>
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
 
         {/* Action Buttons */}
         <div className="space-y-1">

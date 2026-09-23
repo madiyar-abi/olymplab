@@ -49,19 +49,9 @@ export function PlaybackControls({
   const accentColor = ALGO_COLORS[selectedAlgorithm];
 
   return (
-    <div
-      style={{
-        background: 'rgba(9,9,11,0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(63,63,70,0.7)',
-        borderRadius: 16,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03) inset',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="bg-card/85 backdrop-blur-2xl border border-border rounded-2xl shadow-2xl overflow-hidden transition-all duration-300">
       {/* Progress bar at top */}
-      <div className="relative h-0.5 w-full" style={{ background: 'rgba(63,63,70,0.5)' }}>
+      <div className="relative h-0.5 w-full bg-border/40">
         <div
           className="absolute top-0 left-0 h-full transition-all duration-300 ease-out"
           style={{

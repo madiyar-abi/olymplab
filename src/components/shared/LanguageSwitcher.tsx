@@ -2,7 +2,6 @@
 
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/routing';
-import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useTransition } from 'react';
 import { Globe, ChevronDown, Check } from 'lucide-react';
@@ -12,22 +11,25 @@ const LOCALES = [
   { code: 'ru', label: 'Русский', flag: '🇷🇺' },
 ];
 
+function setLocaleCookie(nextLocale: string) {
+  if (typeof document !== 'undefined') {
+    document.cookie = `NEXT_LOCALE=${nextLocale};path=/;max-age=31536000;SameSite=Lax`;
+  }
+}
+
 export function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const params = useParams();
-  const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const onSelectLocale = (nextLocale: string) => {
     setIsOpen(false);
+    setLocaleCookie(nextLocale);
     startTransition(() => {
-      router.replace(
-        // @ts-expect-error -- next-intl typed pathname
-        { pathname, params },
-        { locale: nextLocale }
-      );
+      router.replace(pathname, { locale: nextLocale });
+      router.refresh();
     });
   };
 

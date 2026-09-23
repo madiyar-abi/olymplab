@@ -30,7 +30,13 @@ export interface Database {
           code_template: string | null
           preferred_language: string | null
           hide_unsolved_tags: boolean | null
+          problems_view: string | null
           cf_handle: string | null
+          cf_rating: number | null
+          cf_rank: string | null
+          cf_max_rating: number | null
+          cf_avatar: string | null
+          cf_last_synced_at: string | null
           settings: Json
           solved_count: number
           level: number
@@ -45,7 +51,13 @@ export interface Database {
           code_template?: string | null
           preferred_language?: string | null
           hide_unsolved_tags?: boolean | null
+          problems_view?: string | null
           cf_handle?: string | null
+          cf_rating?: number | null
+          cf_rank?: string | null
+          cf_max_rating?: number | null
+          cf_avatar?: string | null
+          cf_last_synced_at?: string | null
           settings?: Json
           solved_count?: number
           level?: number
@@ -60,7 +72,13 @@ export interface Database {
           code_template?: string | null
           preferred_language?: string | null
           hide_unsolved_tags?: boolean | null
+          problems_view?: string | null
           cf_handle?: string | null
+          cf_rating?: number | null
+          cf_rank?: string | null
+          cf_max_rating?: number | null
+          cf_avatar?: string | null
+          cf_last_synced_at?: string | null
           settings?: Json
           solved_count?: number
           level?: number
@@ -72,7 +90,9 @@ export interface Database {
         Row: {
           id: string
           title: string
+          title_ru: string | null
           description: string
+          description_ru: string | null
           note: string | null
           difficulty: string
           rating: number | null
@@ -88,7 +108,9 @@ export interface Database {
         Insert: {
           id?: string
           title: string
+          title_ru?: string | null
           description: string
+          description_ru?: string | null
           note?: string | null
           difficulty?: string
           rating?: number | null
@@ -104,7 +126,9 @@ export interface Database {
         Update: {
           id?: string
           title?: string
+          title_ru?: string | null
           description?: string
+          description_ru?: string | null
           note?: string | null
           difficulty?: string
           rating?: number | null
@@ -204,10 +228,12 @@ export interface Database {
         Row: {
           id: string
           title: string
+          title_en: string | null
           stage: string
           order_index: number
           prerequisites: string[] | null
           article_markdown: string | null
+          article_markdown_en: string | null
           article_url: string | null
           level: string
           created_at: string
@@ -215,10 +241,12 @@ export interface Database {
         Insert: {
           id?: string
           title: string
+          title_en?: string | null
           stage: string
           order_index?: number
           prerequisites?: string[] | null
           article_markdown?: string | null
+          article_markdown_en?: string | null
           article_url?: string | null
           level?: string
           created_at?: string
@@ -226,10 +254,12 @@ export interface Database {
         Update: {
           id?: string
           title?: string
+          title_en?: string | null
           stage?: string
           order_index?: number
           prerequisites?: string[] | null
           article_markdown?: string | null
+          article_markdown_en?: string | null
           article_url?: string | null
           level?: string
           created_at?: string

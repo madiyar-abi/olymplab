@@ -13,7 +13,6 @@ export default async function DashboardProblemsPage() {
   const t = await getTranslations('Problems')
   const supabase = await createClient()
   const cookieStore = await cookies()
-  const initialView = (cookieStore.get('problems-view')?.value as 'grid' | 'table') || 'grid'
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -27,14 +26,19 @@ export default async function DashboardProblemsPage() {
 
   // Fetch user settings, solved problems, revealed spoilers, and bookmarks in parallel
   const [profileResult, solvedResult, revealedResult, bookmarksResult] = await Promise.all([
-    supabase.from('profiles').select('settings').eq('id', user.id).single(),
+    supabase.from('profiles').select('settings, hide_unsolved_tags, problems_view').eq('id', user.id).single(),
     supabase.from('submissions').select('problem_id').eq('user_id', user.id).in('verdict', ['Accepted', 'AC', 'OK', 'CORRECT']),
     supabase.from('revealed_problems').select('problem_id').eq('user_id', user.id),
     supabase.from('user_bookmarks').select('problem_id').eq('user_id', user.id),
   ])
 
-  const profile = profileResult.data as { settings: { sound_enabled: boolean; hide_unsolved_tags?: boolean } } | null
-  const settings = profile?.settings || { sound_enabled: true, hide_unsolved_tags: false }
+  const profile = profileResult.data
+  const hideUnsolvedTags = profile?.hide_unsolved_tags ?? (profile?.settings as { hide_unsolved_tags?: boolean } | null)?.hide_unsolved_tags ?? true
+  const initialView = (profile?.problems_view as 'grid' | 'table') || (cookieStore.get('problems-view')?.value as 'grid' | 'table') || 'grid'
+  const settings = {
+    sound_enabled: (profile?.settings as { sound_enabled?: boolean } | null)?.sound_enabled ?? true,
+    hide_unsolved_tags: hideUnsolvedTags
+  }
   
   const solvedProblemIds = new Set<string>((solvedResult.data || []).map(s => s.problem_id))
   const revealedProblemIds = new Set<string>((revealedResult.data || []).map(r => r.problem_id))

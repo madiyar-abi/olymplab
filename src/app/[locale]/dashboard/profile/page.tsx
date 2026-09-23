@@ -70,10 +70,10 @@ export default async function ProfilePage() {
 
   const streakCount = calculateStreak((contributionsData as { created_at: string }[])?.map(c => c.created_at) || [])
 
-  // Fetch username, stats, skills, and cf_handle from profiles table
+  // Fetch username, stats, skills, and cf data from profiles table
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('username, solved_count, level, skills, cf_handle')
+    .select('username, solved_count, level, skills, cf_handle, cf_rating, cf_rank, cf_max_rating, cf_avatar, cf_last_synced_at')
     .eq('id', user.id)
     .single()
 
@@ -83,6 +83,11 @@ export default async function ProfilePage() {
     level?: number;
     skills?: Partial<Record<SkillAxes, number>>;
     cf_handle?: string | null;
+    cf_rating?: number | null;
+    cf_rank?: string | null;
+    cf_max_rating?: number | null;
+    cf_avatar?: string | null;
+    cf_last_synced_at?: string | null;
   } | null
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
   const initial = username.charAt(0).toUpperCase()
@@ -120,10 +125,20 @@ export default async function ProfilePage() {
                 href={`https://codeforces.com/profile/${cfHandle}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded border border-amber-500/20 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold font-mono uppercase tracking-wider text-amber-400 hover:bg-amber-500/20 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold font-mono tracking-wider text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm"
               >
-                <Trophy className="w-3 h-3 text-amber-400" />
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
                 <span>CF: {cfHandle}</span>
+                {profile?.cf_rating && (
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[10px]">
+                    ★ {profile.cf_rating}
+                  </span>
+                )}
+                {profile?.cf_rank && (
+                  <span className="text-[10px] text-amber-400/80 font-normal">
+                    ({profile.cf_rank})
+                  </span>
+                )}
               </a>
             )}
           </div>

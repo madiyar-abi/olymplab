@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 interface RoadmapTopic {
   id: string
   title: string
+  title_en?: string | null
   stage: string
   level: string
   order_index: number
@@ -92,6 +93,7 @@ export function RoadmapClient({
   mastery?: Record<string, { total: number; solved: number }> 
 }) {
   const t = useTranslations('Syllabi')
+  const locale = useLocale()
   const [activeLevel, setActiveLevel] = useState(STAGE_ORDER[0])
 
   const stageTopics = topics.filter(top => STAGE_MAP[top.stage] === activeLevel)
@@ -191,7 +193,7 @@ export function RoadmapClient({
                             {num}
                           </span>
                           <h3 className="text-lg font-bold text-foreground tracking-tight leading-snug font-sans">
-                            {topic.title}
+                            {(locale === 'en' && topic.title_en) ? topic.title_en : topic.title}
                           </h3>
                         </div>
                         

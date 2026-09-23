@@ -3,25 +3,59 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from '@/i18n/routing'
 import { useTranslations, useLocale } from 'next-intl'
-import { Loader2, Sparkles, Trophy, ExternalLink, Flame } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Flame, Sparkles, AlertCircle, ArrowRight, Zap, Target } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 interface LastProblem {
   id: string
   title: string
   difficulty: string
+  rating?: number
   timestamp: string
 }
+
+const ROULETTE_TITLES = [
+  '[CF] Tree Diameter & Centers',
+  '[CF] Segment Tree Range Updates',
+  '[CF] Dynamic Programming on Subsets',
+  '[CF] Convex Hull & Upper Envelope',
+  '[CF] Two Pointers with Monotonic Queue',
+  '[CF] Dijkstra with Bitmask States',
+  '[CF] Edmonds-Karp Network Flow',
+  '[CF] Sieve of Eratosthenes & Mobius',
+  '[CF] Binary Search over Monotonic Function',
+  '[CF] String Matching with KMP Automaton',
+]
+
+const ROULETTE_RATINGS = [1200, 1400, 1600, 1800, 2000, 2200, 2400]
 
 export default function RandomizedExecutionClient({ streakCount = 0 }: { streakCount?: number }) {
   const t = useTranslations('Random')
   const locale = useLocale()
+  const router = useRouter()
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [minRating, setMinRating] = useState<number>(800)
-  const [maxRating, setMaxRating] = useState<number>(3500)
+  const [minRatingStr, setMinRatingStr] = useState('800')
+  const [maxRatingStr, setMaxRatingStr] = useState('3500')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [lastProblem, setLastProblem] = useState<LastProblem | null>(null)
-  const router = useRouter()
+  const [lastProblem, setLastProblem] = useState<LastProblem | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('last_random_problem')
+        if (saved) return JSON.parse(saved)
+      } catch (e) {
+        console.error('Failed to parse last problem', e)
+      }
+    }
+    return null
+  })
+
+  // Roulette animation state
+  const [rouletteIndex, setRouletteIndex] = useState(0)
+  const [rouletteRating, setRouletteRating] = useState(1400)
+  const [phaseText, setPhaseText] = useState('Scanning problem bank...')
 
   const allTags = [
     'dp', 'math', 'greedy', 'graphs', 'data structures', 
@@ -34,22 +68,40 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
     )
   }
 
+  // Roulette loop effect while loading
   useEffect(() => {
-    const saved = localStorage.getItem('last_random_problem')
-    if (saved) {
-      try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLastProblem(JSON.parse(saved))
-      } catch (e) {
-        console.error('Failed to parse last problem', e)
-      }
+    if (!isLoading) return
+
+    const titleInterval = setInterval(() => {
+      setRouletteIndex(prev => (prev + 1) % ROULETTE_TITLES.length)
+      setRouletteRating(ROULETTE_RATINGS[Math.floor(Math.random() * ROULETTE_RATINGS.length)])
+    }, 90)
+
+    const timer1 = setTimeout(() => {
+      setPhaseText(locale === 'ru' ? 'Синхронизация матрицы навыков...' : 'Projecting skill matrix...')
+    }, 600)
+
+    const timer2 = setTimeout(() => {
+      setPhaseText(locale === 'ru' ? 'Оптимальная олимпиадная задача подобрана!' : 'Optimal challenge synthesized!')
+    }, 1300)
+
+    return () => {
+      clearInterval(titleInterval)
+      clearTimeout(timer1)
+      clearTimeout(timer2)
     }
-  }, [])
+  }, [isLoading, locale])
 
   const handleExecute = async () => {
     setIsLoading(true)
     setError(null)
+    setPhaseText(locale === 'ru' ? 'Поиск в базе из 1,170+ олимпиадных задач...' : 'Scanning 1,170+ competitive problems...')
+
+    const minRating = parseInt(minRatingStr, 10) || 800
+    const maxRating = parseInt(maxRatingStr, 10) || 3500
+
     try {
+      const startTime = Date.now()
       const response = await fetch('/api/ai/recommend', {
         method: 'POST',
         headers: {
@@ -62,20 +114,31 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
 
       if (!response.ok) {
         setError(data.error || t('errorNotFound'))
+        setIsLoading(false)
         return
       }
 
       if (data.problem) {
-        localStorage.setItem('last_random_problem', JSON.stringify({
+        const lastP: LastProblem = {
           ...data.problem,
           timestamp: new Date().toISOString()
-        }))
-        router.push(`/dashboard/problems/${data.problem.id}`)
+        }
+        localStorage.setItem('last_random_problem', JSON.stringify(lastP))
+        setLastProblem(lastP)
+
+        // Allow at least 1.6s of futuristic roulette excitement
+        const elapsed = Date.now() - startTime
+        const waitMore = Math.max(0, 1600 - elapsed)
+
+        setTimeout(() => {
+          router.push(`/dashboard/problems/${data.problem.id}`)
+        }, waitMore)
+      } else {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error('Failed to get recommendation:', error)
+    } catch (err) {
+      console.error('Failed to get recommendation:', err)
       setError(t('errorUnexpected'))
-    } finally {
       setIsLoading(false)
     }
   }
@@ -106,132 +169,163 @@ export default function RandomizedExecutionClient({ streakCount = 0 }: { streakC
         )}
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-card/80 backdrop-blur-sm border border-border rounded-2xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)] text-center relative overflow-hidden min-h-[500px]">
-        {/* Background decorative elements */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded bg-primary/5 blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded bg-accent/5 blur-3xl animate-pulse" />
-        
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-card/80 backdrop-blur-sm border border-border rounded-2xl shadow-xl text-center relative overflow-hidden min-h-[520px]">
+        {/* Ambient glow */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+
         <div className="relative z-10 max-w-md mx-auto space-y-8 w-full">
-          <div className={`w-24 h-24 mx-auto bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 border border-primary/20 shadow-xl transition-all duration-500 ${isLoading ? 'animate-spin scale-110' : ''}`}>
-            {isLoading ? (
-              <Loader2 className="w-12 h-12" />
-            ) : (
-              <Sparkles className="w-12 h-12" />
-            )}
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-bold text-foreground mb-3 font-mono tracking-tight">
-              {isLoading ? t('analyzing') : t('initiate')}
-            </h2>
-            <p className="text-muted-foreground leading-relaxed text-sm font-mono opacity-80 mb-6">
-              {isLoading ? t('analyzingDesc') : t('initiateDesc')}
-            </p>
-
-            <div className="bg-secondary/30 p-5 rounded-xl border border-border/50 mb-8 space-y-6 text-left">
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
-                  {t('ratingRange')}
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="number"
-                    min="800"
-                    max="3500"
-                    step="100"
-                    value={minRating}
-                    onChange={(e) => setMinRating(Number(e.target.value))}
-                    disabled={isLoading}
-                    className="w-1/2 bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                    placeholder={t('minPlaceholder')}
-                  />
-                  <span className="text-muted-foreground font-mono font-bold">-</span>
-                  <input
-                    type="number"
-                    min="800"
-                    max="3500"
-                    step="100"
-                    value={maxRating}
-                    onChange={(e) => setMaxRating(Number(e.target.value))}
-                    disabled={isLoading}
-                    className="w-1/2 bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                    placeholder={t('maxPlaceholder')}
-                  />
+          {/* Main Visualizer or Roulette Spinner */}
+          {isLoading ? (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="py-4 space-y-4"
+            >
+              {/* Radar Rings & Glowing Core */}
+              <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-amber-500/20 animate-ping" />
+                <div className="absolute inset-2 rounded-full border border-sky-500/30 animate-spin" style={{ animationDuration: '3s' }} />
+                <div className="absolute inset-4 rounded-full border-2 border-dashed border-amber-400/50 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '4s' }} />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                  <Zap className="w-8 h-8 text-white animate-pulse" />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
-                  {t('topicsTags')}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      disabled={isLoading}
-                      className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all ${
-                        selectedTags.includes(tag)
-                          ? 'bg-primary text-primary-foreground shadow-md scale-105'
-                          : 'bg-background border border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+              {/* Shuffling Roulette Display */}
+              <div className="rounded-xl border border-amber-500/40 bg-black/60 p-4 shadow-inner space-y-2 backdrop-blur-md">
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Target className="w-3.5 h-3.5" /> Roulette Match
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
+                    ★ {rouletteRating}
+                  </span>
+                </div>
+                <div className="font-mono text-sm font-bold text-white truncate h-6 flex items-center justify-center">
+                  {ROULETTE_TITLES[rouletteIndex]}
                 </div>
               </div>
+
+              {/* Status Phase */}
+              <p className="text-xs font-mono text-amber-300/80 animate-pulse tracking-wide">
+                {phaseText}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="w-20 h-20 mx-auto bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4 border border-primary/20 shadow-xl">
+              <Sparkles className="w-10 h-10" />
             </div>
-
-            {error && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-mono animate-in fade-in zoom-in-95 duration-300">
-                {error}
-              </div>
-            )}
-          </div>
+          )}
           
-          <button 
-            onClick={handleExecute}
-            disabled={isLoading}
-            className="group relative w-full sm:w-auto px-12 py-4 rounded-xl bg-primary text-primary-foreground font-mono font-bold text-sm hover:bg-primary/90 transition-all hover:scale-[1.05] active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              {isLoading ? t('calculating') : t('execute')}
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
-          </button>
+          {!isLoading && (
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-2 font-mono tracking-tight">
+                {t('initiate')}
+              </h2>
+              <p className="text-muted-foreground leading-relaxed text-sm font-mono opacity-80 mb-6">
+                {t('initiateDesc')}
+              </p>
+
+              <div className="bg-secondary/30 p-5 rounded-xl border border-border/50 mb-8 space-y-6 text-left">
+                {/* Clean Rating Range Inputs (Fixed No Zero Bugs) */}
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
+                    {t('ratingRange')}
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={minRatingStr}
+                      onChange={(e) => setMinRatingStr(e.target.value.replace(/[^0-9]/g, ''))}
+                      onBlur={() => {
+                        const val = parseInt(minRatingStr, 10)
+                        if (isNaN(val) || val < 800) setMinRatingStr('800')
+                      }}
+                      className="w-1/2 bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      placeholder="800"
+                    />
+                    <span className="text-muted-foreground font-mono font-bold">-</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={maxRatingStr}
+                      onChange={(e) => setMaxRatingStr(e.target.value.replace(/[^0-9]/g, ''))}
+                      onBlur={() => {
+                        const val = parseInt(maxRatingStr, 10)
+                        if (isNaN(val) || val > 3500) setMaxRatingStr('3500')
+                      }}
+                      className="w-1/2 bg-background border border-border rounded-lg px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      placeholder="3500"
+                    />
+                  </div>
+                </div>
+
+                {/* Topics / Tags */}
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 font-mono">
+                    {t('topicsTags')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {allTags.map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all ${
+                          selectedTags.includes(tag)
+                            ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                            : 'bg-background border border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-mono flex items-center gap-3">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 text-left">{error}</span>
+                </div>
+              )}
+
+              <Button
+                onClick={handleExecute}
+                className="w-full py-4 text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                {t('button')}
+              </Button>
+            </div>
+          )}
+
+          {/* Last Problem Recall */}
+          {lastProblem && !isLoading && (
+            <div className="pt-6 border-t border-border/40 text-left">
+              <span className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-widest block mb-2">
+                {t('previousProblem')}
+              </span>
+              <button
+                onClick={() => router.push(`/dashboard/problems/${lastProblem.id}`)}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-border/60 bg-secondary/20 hover:bg-secondary/40 transition-all group"
+              >
+                <div className="flex flex-col min-w-0 pr-2">
+                  <span className="text-xs font-mono font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                    {lastProblem.title}
+                  </span>
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    ★ {lastProblem.rating || 1200} · {lastProblem.difficulty}
+                  </span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {lastProblem && (
-        <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h3 className="text-xs font-bold text-muted-foreground mb-4 font-mono uppercase tracking-[0.2em] opacity-60">{t('previousExecution')}</h3>
-          <div 
-            onClick={() => router.push(`/dashboard/problems/${lastProblem.id}`)}
-            className="flex items-center p-6 bg-card/80 backdrop-blur-sm border border-border rounded-2xl transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)] cursor-pointer group"
-          >
-            <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 mr-5 border border-emerald-500/20 group-hover:scale-110 transition-transform">
-              <Trophy className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-foreground font-mono truncate">{lastProblem.title}</h4>
-              <div className="flex items-center gap-3 mt-1">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                  lastProblem.difficulty === 'Easy' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                  lastProblem.difficulty === 'Medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                  'bg-red-500/10 text-red-500 border-red-500/20'
-                }`}>
-                  {lastProblem.difficulty.toUpperCase()}
-                </span>
-                <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                  {new Date(lastProblem.timestamp).toLocaleDateString(locale)}
-                </span>
-              </div>
-            </div>
-            <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ml-4" />
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -68,7 +68,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     try { localStorage.setItem('theme', newTheme) } catch {}
-    setThemeState(newTheme)
+    const nextResolved = newTheme === 'system' ? systemTheme : (newTheme as 'dark' | 'light')
+
+    const updateClasses = () => {
+      const root = document.documentElement
+      root.classList.add('theme-transitioning')
+      root.classList.remove('dark', 'light')
+      root.classList.add(nextResolved)
+      window.setTimeout(() => {
+        root.classList.remove('theme-transitioning')
+      }, 400)
+    }
+
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      // Modern View Transition API
+      (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(() => {
+        setThemeState(newTheme)
+        updateClasses()
+      })
+    } else {
+      setThemeState(newTheme)
+      updateClasses()
+    }
   }
 
   return (

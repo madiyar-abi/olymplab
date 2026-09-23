@@ -132,6 +132,12 @@ function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitia
 type StatusFilter = 'all' | 'unsolved' | 'solved' | 'bookmarked'
 type RatingFilter = 'all' | '<1200' | '1200-1600' | '1600-2000' | '2000+'
 
+function setCookie(name: string, value: string) {
+  if (typeof document !== 'undefined') {
+    document.cookie = `${name}=${value}; path=/; max-age=31536000; SameSite=Lax`
+  }
+}
+
 export function ProblemsClient({ 
   problems, 
   hideHeader = false,
@@ -160,9 +166,14 @@ export function ProblemsClient({
   const [hideUnsolved, setHideUnsolved] = useState(!!initialSettings.hide_unsolved_tags)
   const [view, setView] = useState<ViewMode>(initialView)
 
-  const handleViewChange = (newView: ViewMode) => {
+  const handleViewChange = async (newView: ViewMode) => {
     setView(newView)
-    document.cookie = `problems-view=${newView}; path=/; max-age=31536000`
+    setCookie('problems-view', newView)
+    if (userId) {
+      await supabase.from('profiles')
+        .update({ problems_view: newView })
+        .eq('id', userId)
+    }
   }
 
   const supabase = createClient()
@@ -175,6 +186,7 @@ export function ProblemsClient({
     if (userId) {
       await supabase.from('profiles')
         .update({ 
+          hide_unsolved_tags: newValue,
           settings: { 
             ...initialSettings, 
             hide_unsolved_tags: newValue 

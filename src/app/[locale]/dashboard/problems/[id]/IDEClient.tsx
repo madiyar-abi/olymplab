@@ -63,6 +63,8 @@ export interface Problem {
   sample_input: string | null
   sample_output: string | null
   external_id: string | null
+  title_ru?: string | null
+  description_ru?: string | null
   time_limit?: string
   memory_limit?: string
   difficulty_rating?: number
@@ -317,6 +319,54 @@ export default function IDEClient({
       }
     }
   }, [savedCode, isHydrated])
+
+  // Language translation state for problem statement
+  const [statementLang, setStatementLang] = useState<'ru' | 'en'>(locale === 'ru' ? 'ru' : 'en')
+  const [translatedRu, setTranslatedRu] = useState<{ title: string; description: string } | null>(
+    problem.description_ru ? { title: problem.title_ru || problem.title, description: problem.description_ru } : null
+  )
+  const [isTranslating, setIsTranslating] = useState(false)
+
+  const currentRu = useMemo(() => {
+    if (translatedRu) return translatedRu
+    if (problem.description_ru) {
+      return { title: problem.title_ru || problem.title, description: problem.description_ru }
+    }
+    return null
+  }, [translatedRu, problem.description_ru, problem.title_ru, problem.title])
+
+  useEffect(() => {
+    if (statementLang === 'ru' && !currentRu) {
+      let isSubscribed = true
+
+      Promise.resolve().then(() => {
+        if (isSubscribed) setIsTranslating(true)
+      })
+
+      fetch('/api/translate-problem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problemId: problem.id })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (isSubscribed && data?.description_ru) {
+            setTranslatedRu({ title: data.title_ru || problem.title, description: data.description_ru })
+          }
+        })
+        .catch(err => console.error('Failed to translate problem:', err))
+        .finally(() => {
+          if (isSubscribed) setIsTranslating(false)
+        })
+
+      return () => {
+        isSubscribed = false
+      }
+    }
+  }, [statementLang, currentRu, problem.id, problem.title])
+
+  const displayTitle = statementLang === 'ru' && currentRu ? currentRu.title : problem.title
+  const displayDescription = statementLang === 'ru' && currentRu ? currentRu.description : problem.description
 
   const processDescription = (text: string) => {
     if (!text) return '';
@@ -786,25 +836,56 @@ export default function IDEClient({
           <div className="px-6 py-4 border-b border-border shrink-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-bold text-foreground font-mono leading-tight">{problem.title}</h1>
+                <h1 className="text-lg font-bold text-foreground font-mono leading-tight">{displayTitle}</h1>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${diffColor}`}>
                   {problem.difficulty}
                 </span>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleFlag}
-                className={cn(
-                  "transition-all",
-                  isFlagged
-                    ? 'bg-amber-400/10 border-amber-400/50 text-amber-400'
-                    : 'text-muted-foreground'
+              <div className="flex items-center gap-2">
+                {isTranslating && (
+                  <div className="flex items-center gap-1.5 text-xs text-primary animate-pulse font-mono">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span className="text-[10px] hidden sm:inline">{locale === 'ru' ? 'Перевод...' : 'Translating...'}</span>
+                  </div>
                 )}
-                title={isFlagged ? t('removeFlag') : t('flagProblem')}
-              >
-                <Flag className={`w-4 h-4 ${isFlagged ? 'fill-amber-400' : ''}`} />
-              </Button>
+                {/* Statement Language Toggle */}
+                <div className="flex items-center rounded-lg border border-border bg-secondary/50 p-0.5 text-[11px] font-mono">
+                  <button
+                    onClick={() => setStatementLang('ru')}
+                    title="Русский"
+                    className={cn(
+                      "px-2 py-0.5 rounded-md transition-all font-semibold text-[10px]",
+                      statementLang === 'ru' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    RU
+                  </button>
+                  <button
+                    onClick={() => setStatementLang('en')}
+                    title="English"
+                    className={cn(
+                      "px-2 py-0.5 rounded-md transition-all font-semibold text-[10px]",
+                      statementLang === 'en' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    EN
+                  </button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleFlag}
+                  className={cn(
+                    "transition-all",
+                    isFlagged
+                      ? 'bg-amber-400/10 border-amber-400/50 text-amber-400'
+                      : 'text-muted-foreground'
+                  )}
+                  title={isFlagged ? t('removeFlag') : t('flagProblem')}
+                >
+                  <Flag className={`w-4 h-4 ${isFlagged ? 'fill-amber-400' : ''}`} />
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground font-medium">
@@ -856,9 +937,9 @@ export default function IDEClient({
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 px-8 pt-6 pb-32 space-y-8 text-[15px] text-foreground/90 leading-relaxed scrollbar-thin selection:bg-cyan-500/30 select-text">
-            {problem.description && (
+            {displayDescription && (
               <div className="prose dark:prose-invert max-w-none [&>h2]:bg-muted/50 dark:[&>h2]:bg-muted/30 [&>h2]:inline-block [&>h2]:px-3 [&>h2]:py-1.5 [&>h2]:rounded-lg [&>h2]:text-sm [&>h2]:uppercase [&>h2]:tracking-wider [&>h2]:text-muted-foreground dark:[&>h2]:text-muted-foreground [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-4 [&>h3]:bg-muted/50 dark:[&>h3]:bg-muted/30 [&>h3]:inline-block [&>h3]:px-3 [&>h3]:py-1.5 [&>h3]:rounded-lg [&>h3]:text-sm [&>h3]:uppercase [&>h3]:tracking-wider [&>h3]:text-muted-foreground dark:[&>h3]:text-muted-foreground [&>h3]:font-bold [&>h3]:mt-6 [&>h3]:mb-3">
-                <MarkdownRenderer content={processDescription(problem.description)} />
+                <MarkdownRenderer content={processDescription(displayDescription)} />
               </div>
             )}
 

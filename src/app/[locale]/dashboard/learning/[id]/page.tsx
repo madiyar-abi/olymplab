@@ -10,12 +10,14 @@ import { Sprout, Zap, Flame, Rocket, Crown, PenTool, MapPin } from 'lucide-react
 interface RoadmapTopic {
   id: string
   title: string
+  title_en?: string | null
   stage: string
   level: string
   order_index: number
   prerequisites: string[]
   article_url: string | null
   article_markdown: string | null
+  article_markdown_en?: string | null
   created_at: string
 }
 
@@ -46,9 +48,9 @@ function calculateReadingTime(text: string | null): number {
 export default async function ArticlePage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string; locale: string }>
 }) {
-  const { id } = await params
+  const { id, locale } = await params
   const tr = await getTranslations('Syllabi')
   const supabase = await createClient()
 
@@ -62,17 +64,24 @@ export default async function ArticlePage({
     notFound()
   }
 
+  const isEn = locale === 'en'
+  const t = topic as RoadmapTopic
+  const displayTitle = (isEn && t.title_en) ? t.title_en : t.title
+  const displayMarkdown = (isEn && t.article_markdown_en) ? t.article_markdown_en : t.article_markdown
+
   // Load all topics for internal link resolution in ArticleMarkdown
   const { data: allTopics } = await supabase
     .from('roadmap_topics')
-    .select('id, title')
+    .select('id, title, title_en')
     .order('order_index')
 
-  const topics = (allTopics ?? []) as { id: string; title: string }[]
+  const topics = ((allTopics ?? []) as { id: string; title: string; title_en?: string | null }[]).map(top => ({
+    id: top.id,
+    title: (isEn && top.title_en) ? top.title_en : top.title
+  }))
 
-  const t = topic as RoadmapTopic
   const cfg = STAGE_CONFIG[t.stage] ?? { badge: 'bg-muted text-muted-foreground border-border', icon: <MapPin className="w-4 h-4" /> }
-  const readingTime = calculateReadingTime(t.article_markdown);
+  const readingTime = calculateReadingTime(displayMarkdown);
 
   // Fetch mastery for this topic
   const {
@@ -114,7 +123,7 @@ export default async function ArticlePage({
               {tr('roadmap')}
             </Link>
             <span className="text-muted-foreground/30">/</span>
-            <span className="text-sm text-muted-foreground truncate max-w-xs">{t.title}</span>
+            <span className="text-sm text-muted-foreground truncate max-w-xs">{displayTitle}</span>
           </div>
 
           {readingTime > 0 && (
@@ -155,7 +164,7 @@ export default async function ArticlePage({
 
         {/* Title */}
         <h1 className="text-3xl font-bold text-foreground leading-tight mb-2">
-          {t.title}
+          {displayTitle}
         </h1>
 
         {/* Prerequisites */}
@@ -176,8 +185,8 @@ export default async function ArticlePage({
         <div className="border-t border-border mt-6" />
 
         {/* Article body */}
-        {t.article_markdown ? (
-          <ArticleMarkdown content={t.article_markdown} topics={topics} />
+        {displayMarkdown ? (
+          <ArticleMarkdown content={displayMarkdown} topics={topics} />
         ) : (
           <div className="mt-12 flex flex-col items-center text-center py-20 rounded-2xl border border-border bg-muted/30">
             <PenTool className="w-10 h-10 text-muted-foreground mb-4" />

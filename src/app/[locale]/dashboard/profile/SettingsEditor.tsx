@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { Volume2, VolumeX, Save, Check, EyeOff, Eye, Code2, Trophy } from 'lucide-react'
+import { Volume2, VolumeX, Save, Check, EyeOff, Eye, Code2, Trophy, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
 
 interface SettingsEditorProps {
@@ -56,6 +57,43 @@ export function SettingsEditor({
       setTimeout(() => setHasSaved(false), 3000)
     }
     setIsSaving(false)
+  }
+
+  const [isSyncingCf, setIsSyncingCf] = useState(false)
+  const [cfSyncResult, setCfSyncResult] = useState<{
+    rank?: string;
+    rating?: number | null;
+    solvedCount?: number;
+  } | null>(null)
+
+  const handleSyncCf = async () => {
+    if (!cfHandle.trim()) {
+      toast.error('Enter Codeforces handle')
+      return
+    }
+    setIsSyncingCf(true)
+    try {
+      const res = await fetch('/api/codeforces/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle: cfHandle.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to sync with Codeforces')
+      } else {
+        setCfSyncResult({
+          rank: data.rank,
+          rating: data.rating,
+          solvedCount: data.solvedCount,
+        })
+        toast.success(`Codeforces synced: ${data.rank} (${data.rating ?? 'unrated'})`)
+      }
+    } catch {
+      toast.error('Network error during Codeforces sync')
+    } finally {
+      setIsSyncingCf(false)
+    }
   }
 
   return (
@@ -161,25 +199,54 @@ export function SettingsEditor({
         </div>
 
         {/* Codeforces Handle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors gap-3">
-          <div className="flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
-              <Trophy className="w-5 h-5" />
+        <div className="flex flex-col p-4 rounded-xl border border-border bg-card/50 hover:bg-card transition-colors gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-foreground font-mono text-sm">{t('cfHandleTitle')}</p>
+                <p className="text-xs text-muted-foreground font-mono">{t('cfHandleDesc')}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-bold text-foreground font-mono text-sm">{t('cfHandleTitle')}</p>
-              <p className="text-xs text-muted-foreground font-mono">{t('cfHandleDesc')}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              <input
+                type="text"
+                value={cfHandle}
+                onChange={(e) => { setCfHandle(e.target.value); setHasSaved(false); }}
+                placeholder={t('cfHandlePlaceholder')}
+                className="bg-secondary border border-border text-foreground text-xs font-mono rounded-lg px-3 py-2 w-44 focus:outline-none focus:border-primary placeholder:text-muted-foreground/40"
+              />
+              <button
+                type="button"
+                onClick={handleSyncCf}
+                disabled={isSyncingCf || !cfHandle.trim()}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 hover:bg-orange-500/25 text-xs font-mono font-semibold transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {isSyncingCf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>Sync</span>
+              </button>
             </div>
           </div>
-          <div className="relative shrink-0">
-            <input
-              type="text"
-              value={cfHandle}
-              onChange={(e) => { setCfHandle(e.target.value); setHasSaved(false); }}
-              placeholder={t('cfHandlePlaceholder')}
-              className="bg-secondary border border-border text-foreground text-xs font-mono rounded-lg px-3 py-2 w-48 focus:outline-none focus:border-primary placeholder:text-muted-foreground/40"
-            />
-          </div>
+          {cfSyncResult && (
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border/40 text-xs font-mono">
+              <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Sync:</span>
+              <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 font-bold uppercase tracking-wider text-[10px] border border-orange-500/20">
+                {cfSyncResult.rank}
+              </span>
+              {cfSyncResult.rating !== null && (
+                <span className="text-foreground font-bold">★ {cfSyncResult.rating}</span>
+              )}
+              {cfSyncResult.solvedCount !== undefined && (
+                <span className="text-muted-foreground">CF Solved: <b className="text-emerald-400">{cfSyncResult.solvedCount}</b></span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
