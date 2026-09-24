@@ -12,7 +12,9 @@ export interface Insight {
   message: string;
 }
 
-export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
+export type InsightTranslator = (key: string) => string;
+
+export function generateVerdictInsights(stats: VerdictStat[], t?: InsightTranslator): Insight[] {
   const insights: Insight[] = [];
   const totalSubmissions = stats.reduce((acc, curr) => acc + curr.count, 0);
 
@@ -20,8 +22,8 @@ export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
     return [
       {
         type: 'info',
-        title: 'Start Solving!',
-        message: 'Complete your first problem to unlock personalized performance insights.',
+        title: t ? t('insights.startSolvingTitle') : 'Start Solving!',
+        message: t ? t('insights.startSolvingMsg') : 'Complete your first problem to unlock personalized performance insights.',
       },
     ];
   }
@@ -44,14 +46,14 @@ export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
   if (acRate > 60) {
     insights.push({
       type: 'success',
-      title: 'Excellent Accuracy',
-      message: 'You write robust and clean code. Your success rate is significantly above average.',
+      title: t ? t('insights.excellentAccuracyTitle') : 'Excellent Accuracy',
+      message: t ? t('insights.excellentAccuracyMsg') : 'You write robust and clean code. Your success rate is significantly above average.',
     });
   } else if (acRate < 30 && totalSubmissions > 5) {
     insights.push({
       type: 'info',
-      title: 'Focus on Fundamentals',
-      message: 'Your accuracy is lower than ideal. Try solving "Easy" problems to build confidence and better coding habits.',
+      title: t ? t('insights.focusFundamentalsTitle') : 'Focus on Fundamentals',
+      message: t ? t('insights.focusFundamentalsMsg') : 'Your accuracy is lower than ideal. Try solving "Easy" problems to build confidence and better coding habits.',
     });
   }
 
@@ -59,8 +61,8 @@ export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
   if (tleRate > 30) {
     insights.push({
       type: 'warning',
-      title: 'High Time Limit Exceeded Rate',
-      message: 'You often write inefficient algorithms. Focus on Big O notation and look for ways to optimize nested loops ($O(N^2) \\rightarrow O(N \\log N)$).',
+      title: t ? t('insights.highTleTitle') : 'High Time Limit Exceeded Rate',
+      message: t ? t('insights.highTleMsg') : 'You often write inefficient algorithms. Focus on Big O notation and look for ways to optimize nested loops ($O(N^2) \\rightarrow O(N \\log N)$).',
     });
   }
 
@@ -68,8 +70,8 @@ export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
   if (waRate > 40) {
     insights.push({
       type: 'warning',
-      title: 'High Wrong Answer Rate',
-      message: 'You might be missing edge cases or facing integer overflow issues. Test with extreme constraints before submitting.',
+      title: t ? t('insights.highWaTitle') : 'High Wrong Answer Rate',
+      message: t ? t('insights.highWaMsg') : 'You might be missing edge cases or facing integer overflow issues. Test with extreme constraints before submitting.',
     });
   }
 
@@ -77,16 +79,16 @@ export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
   if (mleRate > 15) {
     insights.push({
       type: 'warning',
-      title: 'Memory Management Issues',
-      message: 'Your solutions use too much memory. Check for unnecessary large arrays or deep recursion that could be converted to iteration.',
+      title: t ? t('insights.mleTitle') : 'Memory Management Issues',
+      message: t ? t('insights.mleMsg') : 'Your solutions use too much memory. Check for unnecessary large arrays or deep recursion that could be converted to iteration.',
     });
   }
 
   if (reRate > 20) {
     insights.push({
       type: 'warning',
-      title: 'Frequent Runtime Errors',
-      message: 'Your code is crashing. Common causes include out-of-bounds array access, null pointer dereference, or stack overflow.',
+      title: t ? t('insights.reTitle') : 'Frequent Runtime Errors',
+      message: t ? t('insights.reMsg') : 'Your code is crashing. Common causes include out-of-bounds array access, null pointer dereference, or stack overflow.',
     });
   }
 
@@ -94,8 +96,8 @@ export function generateVerdictInsights(stats: VerdictStat[]): Insight[] {
   if (insights.length === 0) {
     insights.push({
       type: 'info',
-      title: 'Steady Progress',
-      message: 'Keep solving problems! As you submit more, I will be able to provide deeper analysis of your coding patterns.',
+      title: t ? t('insights.steadyProgressTitle') : 'Steady Progress',
+      message: t ? t('insights.steadyProgressMsg') : 'Keep solving problems! As you submit more, I will be able to provide deeper analysis of your coding patterns.',
     });
   }
 

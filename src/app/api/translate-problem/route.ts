@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { parseCfProblemIdentifier, scrapeCodeforcesProblemRu } from '@/lib/codeforces/scraper'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,21 +11,79 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient()
 
-    // 1. Check if problem already has Russian translation
-    const { data: problem, error: fetchErr } = await supabase
+    // 1. Fetch problem details from Supabase
+    const { data: problemData, error: fetchErr } = await supabase
       .from('problems')
-      .select('id, title, description, title_ru, description_ru')
+      .select('id, title, description, title_ru, description_ru, external_id, sample_input, sample_output')
       .eq('id', problemId)
       .single()
 
-    if (fetchErr || !problem) {
+    if (fetchErr || !problemData) {
       return NextResponse.json({ error: 'Problem not found' }, { status: 404 })
     }
 
+    const problem = problemData as {
+      id: string
+      title: string
+      description: string
+      title_ru?: string | null
+      description_ru?: string | null
+      external_id?: string | null
+      cf_id?: string | null
+      sample_input?: string | null
+      sample_output?: string | null
+    }
+
+    // 2. Check if this is a Codeforces problem and needs official Russian statement or repaired sample input
+    const cfParsed = parseCfProblemIdentifier(problem.external_id, problem.cf_id, problem.title)
+    const hasRu = Boolean(problem.description_ru && problem.description_ru.length > 20)
+    const sampleNeedsRepair = Boolean(
+      problem.sample_input &&
+      !problem.sample_input.includes('\n') &&
+      problem.sample_input.length > 5
+    )
+
+    if (cfParsed && (!hasRu || sampleNeedsRepair)) {
+      try {
+        console.log(`[Translate] Fetching official CF statement for ${cfParsed.contestId}/${cfParsed.index}...`)
+        const scraped = await scrapeCodeforcesProblemRu(cfParsed.contestId, cfParsed.index)
+        if (scraped && scraped.descriptionRu) {
+          const updateData: {
+            title_ru?: string | null
+            description_ru?: string | null
+            sample_input?: string | null
+            sample_output?: string | null
+          } = {
+            title_ru: scraped.titleRu || problem.title_ru || problem.title,
+            description_ru: scraped.descriptionRu,
+          }
+          if (scraped.sampleInput) updateData.sample_input = scraped.sampleInput
+          if (scraped.sampleOutput) updateData.sample_output = scraped.sampleOutput
+
+          await supabase
+            .from('problems')
+            .update(updateData)
+            .eq('id', problemId)
+
+          return NextResponse.json({
+            title_ru: updateData.title_ru,
+            description_ru: updateData.description_ru,
+            sample_input: scraped.sampleInput || problem.sample_input,
+            sample_output: scraped.sampleOutput || problem.sample_output,
+          })
+        }
+      } catch (cfErr) {
+        console.warn(`[Translate] CF scraper failed for ${problemId}:`, cfErr)
+      }
+    }
+
+    // If already has Russian translation
     if (problem.description_ru && problem.description_ru.length > 20) {
       return NextResponse.json({
         title_ru: problem.title_ru || problem.title,
         description_ru: problem.description_ru,
+        sample_input: problem.sample_input,
+        sample_output: problem.sample_output,
       })
     }
 
@@ -33,6 +92,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         title_ru: problem.title_ru || problem.title,
         description_ru: problem.description_ru || problem.description,
+        sample_input: problem.sample_input,
+        sample_output: problem.sample_output,
       })
     }
 
@@ -79,6 +140,8 @@ ${problem.description}
       return NextResponse.json({
         title_ru: problem.title_ru || problem.title,
         description_ru: problem.description_ru || problem.description,
+        sample_input: problem.sample_input,
+        sample_output: problem.sample_output,
       })
     }
 
@@ -110,6 +173,8 @@ ${problem.description}
     return NextResponse.json({
       title_ru: parsed.title_ru || problem.title,
       description_ru: parsed.description_ru || problem.description,
+      sample_input: problem.sample_input,
+      sample_output: problem.sample_output,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Translation error'

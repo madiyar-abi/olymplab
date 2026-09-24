@@ -12,6 +12,26 @@ import type { SkillAxes } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
+type ProfileRecord = { 
+  username: string; 
+  solved_count?: number;
+  level?: number;
+  skills?: Partial<Record<SkillAxes, number>>;
+  cf_handle?: string | null;
+  cf_rating?: number | null;
+  cf_rank?: string | null;
+  cf_max_rating?: number | null;
+  cf_avatar?: string | null;
+  cf_last_synced_at?: string | null;
+  avatar_url?: string | null;
+  cf_submissions_data?: {
+    total?: number;
+    solvedCount?: number;
+    verdicts?: Record<string, number>;
+    activity?: { date: string; count: number }[];
+  } | null;
+}
+
 export default async function ProfilePage() {
   const supabase = await createClient()
 
@@ -33,25 +53,31 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
-  const profile = profileData as { 
-    username: string; 
-    solved_count?: number;
-    level?: number;
-    skills?: Partial<Record<SkillAxes, number>>;
-    cf_handle?: string | null;
-    cf_rating?: number | null;
-    cf_rank?: string | null;
-    cf_max_rating?: number | null;
-    cf_avatar?: string | null;
-    cf_last_synced_at?: string | null;
-    avatar_url?: string | null;
-    cf_submissions_data?: {
-      total?: number;
-      solvedCount?: number;
-      verdicts?: Record<string, number>;
-      activity?: { date: string; count: number }[];
-    } | null;
-  } | null
+  let profile: ProfileRecord | null = profileData as ProfileRecord | null
+
+  if (!profile) {
+    const metaUsername = (user.user_metadata?.username as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'User'
+    const metaAvatar = (user.user_metadata?.avatar_url as string) || null
+    const metaCfHandle = (user.user_metadata?.cf_handle as string) || null
+    const { data: newRow } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username: metaUsername,
+        avatar_url: metaAvatar,
+        cf_handle: metaCfHandle,
+        level: 1,
+        solved_count: 0,
+        skills: {},
+        primary_subject: 'C++ Programming',
+        experience_level: 'Intermediate',
+      } as never)
+      .select('username, solved_count, level, skills, cf_handle, cf_rating, cf_rank, cf_max_rating, cf_avatar, cf_last_synced_at, avatar_url, cf_submissions_data')
+      .single()
+    if (newRow) {
+      profile = newRow as unknown as ProfileRecord
+    }
+  }
 
   const cfData = profile?.cf_submissions_data
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
@@ -106,32 +132,59 @@ export default async function ProfilePage() {
     percentage: totalSubmissions > 0 ? (s.count / totalSubmissions) * 100 : 0
   }))
 
-  // 3. Fetch real contribution data for the heatmap
+  // 3. Fetch real contribution data for the heatmap (unique problems solved per day)
   const { data: contributionsData } = await supabase
     .from('submissions')
-    .select('created_at')
+    .select('problem_id, created_at, cf_submission_id, problems ( external_id )')
     .eq('user_id', user.id)
     .in('verdict', ['Accepted', 'AC', 'OK', 'CORRECT'])
 
-  const contributionsMap = new Map<string, number>()
-  ;(contributionsData as { created_at: string }[] | null)?.forEach(sub => {
+  const dailyProblemsMap = new Map<string, Set<string>>()
+
+  ;(contributionsData as { problem_id: string; created_at: string; problems?: { external_id?: string | null } | null }[] | null)?.forEach(sub => {
     const date = new Date(sub.created_at).toISOString().split('T')[0]
-    contributionsMap.set(date, (contributionsMap.get(date) || 0) + 1)
+    if (!dailyProblemsMap.has(date)) {
+      dailyProblemsMap.set(date, new Set())
+    }
+    // Canonical problem identifier (lowercase cf-contest/index or problem_id)
+    const probKey = sub.problems?.external_id 
+      ? sub.problems.external_id.toLowerCase().replace('-', '/').replace('cf/', 'cf-')
+      : sub.problem_id
+    dailyProblemsMap.get(date)!.add(probKey)
   })
 
   // Merge Codeforces activity dates
   if (cfData?.activity && Array.isArray(cfData.activity)) {
-    cfData.activity.forEach(item => {
-      contributionsMap.set(item.date, (contributionsMap.get(item.date) || 0) + item.count)
+    cfData.activity.forEach((item: { date: string; count: number; problems?: string[] }) => {
+      if (!dailyProblemsMap.has(item.date)) {
+        dailyProblemsMap.set(item.date, new Set())
+      }
+      const set = dailyProblemsMap.get(item.date)!
+      if (Array.isArray(item.problems) && item.problems.length > 0) {
+        item.problems.forEach(pKey => set.add(pKey.toLowerCase()))
+      } else {
+        // Fallback for legacy cached CF data without problems array:
+        // Use Math.max to prevent double-counting local submissions that were synced to CF
+        if (set.size === 0) {
+          for (let i = 0; i < item.count; i++) {
+            set.add(`cf-legacy-${item.date}-${i}`)
+          }
+        } else if (item.count > set.size) {
+          const diff = item.count - set.size
+          for (let i = 0; i < diff; i++) {
+            set.add(`cf-legacy-${item.date}-${set.size + i}`)
+          }
+        }
+      }
     })
   }
 
-  const realContributions = Array.from(contributionsMap.entries()).map(([date, count]) => ({
+  const realContributions = Array.from(dailyProblemsMap.entries()).map(([date, set]) => ({
     date,
-    count
+    count: set.size
   }))
 
-  const allActivityDates = Array.from(contributionsMap.keys())
+  const allActivityDates = Array.from(dailyProblemsMap.keys()).filter(d => (dailyProblemsMap.get(d)?.size || 0) > 0)
   const streakCount = calculateStreak(allActivityDates)
 
   return (

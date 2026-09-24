@@ -4,13 +4,31 @@ import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from '@/i18n/routing'
 import { useTranslations, useLocale } from 'next-intl'
-import { ArrowRight, FilterX, Eye, Flag, Search, CheckCircle2 } from 'lucide-react'
+import { 
+  ArrowRight, 
+  FilterX, 
+  Eye, 
+  Flag, 
+  Search, 
+  CheckCircle2, 
+  Layers, 
+  Cpu, 
+  GitBranch, 
+  Database, 
+  ArrowUpDown, 
+  Zap, 
+  Puzzle, 
+  Binary, 
+  Shapes, 
+  Code2 
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TagSelector } from './TagSelector'
 import { createClient } from '@/lib/supabase/client'
 import { ViewToggle, ViewMode } from '@/components/ViewToggle'
 import { ProblemTable } from '@/components/ProblemTable'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { getSpoilerPlaceholderTags } from '@/lib/spoilerTags'
 
 type Requirements = Record<string, { level: number; weight: number }>
 
@@ -22,14 +40,173 @@ const DIFFICULTY_CONFIG: Record<string, { badge: string; shadow: string }> = {
   Unrated: { badge: 'text-zinc-400 bg-white/5 border-border', shadow: '' },
 }
 
-function getDominantSkill(req: Requirements | null | undefined): string {
-  if (!req) return 'Uncategorized'
-  let best = ''
-  let max = 0
-  for (const [skill, { weight }] of Object.entries(req)) {
-    if (weight > max) { max = weight; best = skill }
+export type CategoryKey = 
+  | 'dynamic_programming'
+  | 'graphs_trees'
+  | 'data_structures'
+  | 'searching_sorting'
+  | 'greedy'
+  | 'constructive_logic'
+  | 'math_number_theory'
+  | 'strings_geometry'
+  | 'implementation'
+
+export const CATEGORY_ORDER: CategoryKey[] = [
+  'dynamic_programming',
+  'graphs_trees',
+  'data_structures',
+  'searching_sorting',
+  'greedy',
+  'constructive_logic',
+  'math_number_theory',
+  'strings_geometry',
+  'implementation',
+]
+
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  all: Layers,
+  dynamic_programming: Cpu,
+  graphs_trees: GitBranch,
+  data_structures: Database,
+  searching_sorting: ArrowUpDown,
+  greedy: Zap,
+  constructive_logic: Puzzle,
+  math_number_theory: Binary,
+  strings_geometry: Shapes,
+  implementation: Code2,
+}
+
+export function getProblemCategory(p: { tags?: string[]; title?: string; requirements?: Requirements }): CategoryKey {
+  const tags = (p.tags || []).map(t => t.toLowerCase())
+  const title = (p.title || '').toLowerCase()
+  const req = p.requirements || {}
+
+  // 1. Dynamic Programming
+  if (
+    tags.some(t => t === 'dp' || t.includes('dynamic')) ||
+    title.includes('coin combination') || title.includes('dice combination') ||
+    title.includes('grid paths') || title.includes('book shop') ||
+    title.includes('array description') || title.includes('edit distance') ||
+    title.includes('rectangle cutting') || title.includes('money sums') ||
+    title.includes('removal game') || title.includes('two sets ii') ||
+    title.includes('projects') || title.includes('elevator rides') ||
+    title.includes('counting tilings')
+  ) {
+    return 'dynamic_programming'
   }
-  return max > 0 ? best : 'Uncategorized'
+
+  // 2. Graphs & Trees
+  if (
+    tags.some(t => t.includes('graph') || t.includes('tree') || t.includes('dfs') || t.includes('bfs') || t.includes('shortest path') || t.includes('flow') || t.includes('dijkstra')) ||
+    title.includes('counting rooms') || title.includes('labyrinth') ||
+    title.includes('building roads') || title.includes('message route') ||
+    title.includes('building teams') || title.includes('round trip') ||
+    title.includes('monsters') || title.includes('shortest routes') ||
+    title.includes('high score') || title.includes('flight discount') ||
+    title.includes('cycle finding') || title.includes('course schedule') ||
+    title.includes('road reparation') || title.includes('road construction') ||
+    title.includes('subordinates') || title.includes('tree matching') ||
+    title.includes('tree diameter') || title.includes('tree distances') ||
+    title.includes('company queries') || title.includes('distance queries') ||
+    (req.graphs && req.graphs.weight > 0)
+  ) {
+    return 'graphs_trees'
+  }
+
+  // 3. Data Structures
+  if (
+    tags.some(t => t.includes('data structure') || t.includes('dsu') || t.includes('segment tree') || t.includes('fenwick') || t.includes('heap') || t.includes('stack') || t.includes('queue') || t.includes('priority')) ||
+    title.includes('static range') || title.includes('dynamic range') ||
+    title.includes('range xor') || title.includes('range update') ||
+    title.includes('forest queries') || title.includes('hotel queries') ||
+    title.includes('list removals') || title.includes('salary queries') ||
+    title.includes('prefix sum') || title.includes('polynomial queries') ||
+    (req.data_structures && req.data_structures.weight > 0)
+  ) {
+    return 'data_structures'
+  }
+
+  // 4. Searching & Sorting
+  if (
+    tags.some(t => t.includes('sort') || t.includes('binary search') || t.includes('two pointer') || t.includes('divide and conquer') || t.includes('ternary search')) ||
+    title.includes('distinct numbers') || title.includes('apartments') ||
+    title.includes('concert tickets') || title.includes('sum of two values') ||
+    title.includes('sum of three values') || title.includes('sum of four values') ||
+    title.includes('nearest smaller') || title.includes('subarray sums') ||
+    title.includes('subarray divisibility') || title.includes('subarray distinct') ||
+    title.includes('array division') || title.includes('sliding median') ||
+    title.includes('sliding cost') || title.includes('movie festival ii') ||
+    title.includes('maximum subarray sum') || title.includes('missing coin sum') ||
+    title.includes('collecting numbers') || title.includes('playlist') ||
+    title.includes('binary search')
+  ) {
+    return 'searching_sorting'
+  }
+
+  // 5. Greedy Algorithms
+  if (
+    tags.some(t => t.includes('greedy')) ||
+    title.includes('movie festival') || title.includes('ferris wheel') ||
+    title.includes('restaurant customers') || title.includes('towers') ||
+    title.includes('traffic lights') || title.includes('room allocation') ||
+    title.includes('tasks and deadlines') || title.includes('reading books')
+  ) {
+    return 'greedy'
+  }
+
+  // 6. Mathematics & Number Theory
+  if (
+    tags.some(t => t.includes('math') || t.includes('number theory') || t.includes('matrices') || t.includes('prime') || t.includes('combinatorics') || t.includes('probabilities')) ||
+    title.includes('josephus') || title.includes('exponentiation') ||
+    title.includes('counting divisors') || title.includes('common divisors') ||
+    title.includes('sum of divisors') || title.includes('prime multiples') ||
+    title.includes('counting coprimes') || title.includes('binomial coefficients') ||
+    title.includes('creating strings ii') || title.includes('distributing apples') ||
+    title.includes('christmas party') || title.includes('bracket sequences') ||
+    title.includes('t-primes') ||
+    (req.math && req.math.weight > 0)
+  ) {
+    return 'math_number_theory'
+  }
+
+  // 7. Strings & Geometry
+  if (
+    tags.some(t => t.includes('string') || t.includes('geometry') || t.includes('hashing')) ||
+    title.includes('point location') || title.includes('line segment') ||
+    title.includes('polygon area') || title.includes('point in polygon') ||
+    title.includes('word combinations') || title.includes('string matching') ||
+    title.includes('finding borders') || title.includes('finding periods') ||
+    title.includes('minimal rotation') || title.includes('longest palindrome') ||
+    title.includes('required substring') || title.includes('palindrome queries')
+  ) {
+    return 'strings_geometry'
+  }
+
+  // 8. Constructive & Logic
+  if (
+    tags.some(t => t.includes('constructive') || t.includes('game') || t.includes('bitmask') || t.includes('bit') || t.includes('interactive')) ||
+    title.includes('bit strings') || title.includes('gray code') ||
+    title.includes('nim game') || title.includes('game of stones') ||
+    title.includes('weird algorithm') || title.includes('two sets') ||
+    title.includes('palindrome reorder') || title.includes('tower of hanoi') ||
+    (req.logic && req.logic.weight > 0)
+  ) {
+    return 'constructive_logic'
+  }
+
+  // 9. Implementation & Basics
+  return 'implementation'
+}
+
+function getCategoryLabel(t: ReturnType<typeof useTranslations<'Problems'>>, catKey: string): string {
+  try {
+    if (t.has(`categoryLabels.${catKey}`)) {
+      return t(`categoryLabels.${catKey}`)
+    }
+  } catch {
+    // fallback if key not found
+  }
+  return catKey.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function getFallbackTags(req: Requirements | null | undefined, n = 3): string[] {
@@ -39,12 +216,6 @@ function getFallbackTags(req: Requirements | null | undefined, n = 3): string[] 
     .sort((a, b) => b[1].weight - a[1].weight)
     .slice(0, n)
     .map(([skill]) => skill.replace('_', ' '))
-}
-
-function sectionLabel(skill: string) {
-  return skill === 'Uncategorized'
-    ? 'All Problems'
-    : skill.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 const containerVariants = {
@@ -102,14 +273,16 @@ function TagGroup({ tags, isSolved, hideTagsSetting, problemId, userId, isInitia
     }
   }
 
+  const displayTags = shouldHide ? getSpoilerPlaceholderTags(problemId) : tags
+
   return (
     <div 
       className="flex flex-wrap gap-1.5 relative group/tags"
       onClick={handleReveal}
     >
-      {tags.map(tag => (
+      {displayTags.map((tag, idx) => (
         <span
-          key={tag}
+          key={shouldHide ? `spoiler-${problemId}-${idx}` : tag}
           className={cn(
             "bg-secondary text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-md text-[9px] font-semibold border border-border uppercase tracking-wider transition-all duration-300",
             shouldHide && "blur-[4px] select-none opacity-40 group-hover/tags:opacity-60 cursor-pointer"
@@ -161,6 +334,7 @@ export function ProblemsClient({
   const t = useTranslations('Problems')
   const locale = useLocale()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all')
@@ -269,34 +443,48 @@ export function ProblemsClient({
     })
   }, [problems, selectedTags, searchQuery, statusFilter, ratingFilter, solvedProblemIds, bookmarkedIds])
 
-  // Group by dominant skill
+  // Group problems by algorithmic category
   const grouped = useMemo(() => {
     const g: Record<string, Problem[]> = {}
     for (const p of filteredProblems) {
-      const key = getDominantSkill(p.requirements)
+      const key = getProblemCategory(p)
       if (!g[key]) g[key] = []
       g[key].push(p)
     }
     return g
   }, [filteredProblems])
 
-  // Always show Uncategorized last
+  // Count problems per category (based on current non-category filters: tags, search, status, rating)
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: filteredProblems.length }
+    for (const key of CATEGORY_ORDER) {
+      counts[key] = (grouped[key] || []).length
+    }
+    return counts
+  }, [filteredProblems.length, grouped])
+
+  // Canonically sorted groups
   const sortedGroups = useMemo(() => {
-    return Object.entries(grouped).sort(([a], [b]) => {
-      if (a === 'Uncategorized') return 1
-      if (b === 'Uncategorized') return -1
-      return a.localeCompare(b)
-    })
+    return CATEGORY_ORDER
+      .filter(key => grouped[key] && grouped[key].length > 0)
+      .map(key => [key, grouped[key]] as [string, Problem[]])
   }, [grouped])
+
+  // Displayed groups (either all, or just the selected category)
+  const displayedGroups = useMemo(() => {
+    if (selectedCategory === 'all') return sortedGroups
+    return sortedGroups.filter(([key]) => key === selectedCategory)
+  }, [sortedGroups, selectedCategory])
 
   const clearAllFilters = () => {
     setSelectedTags([])
     setSearchQuery('')
     setStatusFilter('all')
     setRatingFilter('all')
+    setSelectedCategory('all')
   }
 
-  const hasActiveFilters = selectedTags.length > 0 || searchQuery.trim() !== '' || statusFilter !== 'all' || ratingFilter !== 'all'
+  const hasActiveFilters = selectedTags.length > 0 || searchQuery.trim() !== '' || statusFilter !== 'all' || ratingFilter !== 'all' || selectedCategory !== 'all'
 
   return (
     <div className="h-full">
@@ -318,7 +506,7 @@ export function ProblemsClient({
           <div className="flex flex-col items-end gap-3">
             <div className="flex gap-2 items-center">
               <span className="text-xs text-muted-foreground font-mono bg-secondary/50 backdrop-blur-md border border-border px-3 py-1.5 rounded-lg shadow-sm">
-                {t('categories', { count: Object.keys(grouped).length })}
+                {t('categories', { count: CATEGORY_ORDER.length })}
               </span>
             </div>
           </div>
@@ -433,8 +621,128 @@ export function ProblemsClient({
         </div>
       </motion.div>
 
+      {/* Category Navigation Tabs Bar */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="flex flex-col gap-2.5"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              {t('allCategories')}
+            </span>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground">
+              {CATEGORY_ORDER.length}
+            </span>
+          </div>
+          {selectedCategory !== 'all' && (
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className="text-[11px] font-mono font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>{t('showAll')}</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5 no-scrollbar scroll-smooth">
+          {/* "All" Category Pill */}
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={cn(
+              "group relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono border transition-all duration-200 whitespace-nowrap cursor-pointer shrink-0 select-none",
+              selectedCategory === 'all'
+                ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-bold"
+                : "bg-secondary/50 text-muted-foreground border-border hover:bg-secondary hover:text-foreground"
+            )}
+          >
+            <Layers className={cn(
+              "w-3.5 h-3.5 transition-transform group-hover:scale-110",
+              selectedCategory === 'all' ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+            )} />
+            <span>{t('categoryLabels.all')}</span>
+            <span className={cn(
+              "text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold transition-colors",
+              selectedCategory === 'all'
+                ? "bg-primary-foreground/20 text-primary-foreground"
+                : "bg-background/80 text-muted-foreground border border-border/60 group-hover:text-foreground"
+            )}>
+              {filteredProblems.length}
+            </span>
+          </button>
+
+          {/* Individual Category Pills */}
+          {CATEGORY_ORDER.map((catKey) => {
+            const IconComponent = CATEGORY_ICONS[catKey] || Layers
+            const isSelected = selectedCategory === catKey
+            const count = categoryCounts[catKey] || 0
+            const label = getCategoryLabel(t, catKey)
+
+            return (
+              <button
+                key={catKey}
+                onClick={() => setSelectedCategory(catKey)}
+                className={cn(
+                  "group relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono border transition-all duration-200 whitespace-nowrap cursor-pointer shrink-0 select-none",
+                  isSelected
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/25 font-bold"
+                    : count === 0
+                      ? "bg-secondary/30 text-muted-foreground/40 border-border/40 hover:bg-secondary/50 hover:text-muted-foreground"
+                      : "bg-secondary/50 text-muted-foreground border-border hover:bg-secondary hover:text-foreground hover:border-border/80"
+                )}
+              >
+                <IconComponent className={cn(
+                  "w-3.5 h-3.5 transition-transform group-hover:scale-110",
+                  isSelected ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+                )} />
+                <span>{label}</span>
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold transition-colors",
+                  isSelected
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : count === 0
+                      ? "bg-transparent text-muted-foreground/40"
+                      : "bg-background/80 text-muted-foreground border border-border/60 group-hover:text-foreground"
+                )}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </motion.div>
+
+      {/* Category Quick Focus Indicator */}
+      {selectedCategory !== 'all' && displayedGroups.length > 0 && (
+        <div className="flex items-center justify-between bg-card/60 backdrop-blur-sm border border-border/80 rounded-2xl px-5 py-3 animate-in fade-in duration-300">
+          <div className="flex items-center gap-2.5 text-xs font-mono">
+            <span className="text-muted-foreground">{t('viewingCategory')}:</span>
+            <span className="inline-flex items-center gap-2 font-bold text-foreground bg-primary/10 border border-primary/20 px-3 py-1 rounded-xl text-primary">
+              {(() => {
+                const IconComponent = CATEGORY_ICONS[selectedCategory] || Layers
+                return <IconComponent className="w-3.5 h-3.5" />
+              })()}
+              {getCategoryLabel(t, selectedCategory)}
+            </span>
+            <span className="text-muted-foreground font-semibold">
+              ({displayedGroups[0]?.[1]?.length || 0})
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className="text-xs font-mono font-semibold text-primary hover:text-primary/80 hover:underline flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <span>{t('showAll')}</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {/* Empty State */}
-      {filteredProblems.length === 0 && (
+      {displayedGroups.length === 0 && (
         <EmptyState
           title={t('noMatchTitle')}
           description={t('noMatchDesc')}
@@ -446,19 +754,35 @@ export function ProblemsClient({
       )}
 
       {/* Sections */}
-      {sortedGroups.map(([skill, groupProblems]) => (
-        <section key={skill} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Section Header */}
-          <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold font-mono tracking-tight text-foreground">
-                {sectionLabel(skill)}
-              </h2>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground font-semibold">
-                {groupProblems.length}
-              </span>
+      {displayedGroups.map(([skill, groupProblems]) => {
+        const SectionIcon = CATEGORY_ICONS[skill] || Layers
+        return (
+          <section key={skill} id={`category-${skill}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Section Header */}
+            <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-secondary/80 border border-border text-foreground shadow-sm">
+                  <SectionIcon className="w-4 h-4 text-primary" />
+                </div>
+                <h2 className="text-xl font-bold font-mono tracking-tight text-foreground">
+                  {getCategoryLabel(t, skill)}
+                </h2>
+                <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground font-semibold">
+                  {groupProblems.length}
+                </span>
+              </div>
+
+              {selectedCategory === 'all' && (
+                <button
+                  onClick={() => setSelectedCategory(skill)}
+                  className="group text-xs font-mono text-muted-foreground hover:text-primary transition-all flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-secondary/80 border border-transparent hover:border-border cursor-pointer"
+                  title={t('focusCategory')}
+                >
+                  <span>{t('focusCategory')}</span>
+                  <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              )}
             </div>
-          </div>
 
           {/* Cards Grid or Table */}
           {view === 'grid' ? (
@@ -565,7 +889,8 @@ export function ProblemsClient({
             </div>
           )}
         </section>
-      ))}
+        )
+      })}
       </div>
     </div>
   )

@@ -51,25 +51,44 @@ export function SettingsEditor({
       document.cookie = `hide-unsolved-tags=${hideSpoilers};path=/;max-age=31536000;SameSite=Lax`
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        settings: { sound_enabled: soundEnabled, hide_unsolved_tags: hideSpoilers },
-        hide_unsolved_tags: hideSpoilers,
-        preferred_language: preferredLang,
-        cf_handle: cleanCf,
-      } as never)
-      .eq('id', userId)
+    try {
+      // 1. Call server API which uses service role key for guaranteed persistence and sets HTTP cookies
+      const res = await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sound_enabled: soundEnabled,
+          hide_unsolved_tags: hideSpoilers,
+          preferred_language: preferredLang,
+          cf_handle: cleanCf,
+          settings: { sound_enabled: soundEnabled, hide_unsolved_tags: hideSpoilers },
+        }),
+      })
 
-    if (!error) {
-      setHasSaved(true)
-      setTimeout(() => setHasSaved(false), 3000)
-      toast.success(t('savedShort') || 'Настройки сохранены')
-      router.refresh()
-    } else {
+      // 2. Also upsert via supabase client as immediate sync
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          settings: { sound_enabled: soundEnabled, hide_unsolved_tags: hideSpoilers },
+          hide_unsolved_tags: hideSpoilers,
+          preferred_language: preferredLang,
+          cf_handle: cleanCf,
+        } as never)
+
+      if (res.ok) {
+        setHasSaved(true)
+        setTimeout(() => setHasSaved(false), 3000)
+        toast.success(t('savedShort') || 'Настройки сохранены')
+        router.refresh()
+      } else {
+        toast.error('Не удалось сохранить настройки')
+      }
+    } catch {
       toast.error('Не удалось сохранить настройки')
+    } finally {
+      setIsSaving(false)
     }
-    setIsSaving(false)
   }
 
   const [isSyncingCf, setIsSyncingCf] = useState(false)
@@ -87,13 +106,7 @@ export function SettingsEditor({
     }
     setIsSyncingCf(true)
     try {
-      // 1. Ensure cf_handle is saved to profiles first
-      await supabase
-        .from('profiles')
-        .update({ cf_handle: cleanHandle } as never)
-        .eq('id', userId)
-
-      // 2. Call Codeforces sync
+      // Call Codeforces sync API route which updates profile and auth metadata
       const res = await fetch('/api/codeforces/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

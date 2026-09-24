@@ -72,6 +72,8 @@ function SectionContent({ content, topics }: { content: string; topics: TopicRef
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypeKatex, { strict: 'ignore' }]]}
         components={{
+          script: () => null,
+
           // Fix Hydration Error: <p> cannot contain block elements like <div>
           p({ children }) {
             // If it has complex children, render as div to be safe, otherwise as p

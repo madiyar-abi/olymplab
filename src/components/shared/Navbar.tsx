@@ -19,8 +19,16 @@ export function Navbar() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        if (!error && data?.user) {
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
+      } catch {
+        setUser(null)
+      }
     }
     fetchUser()
 

@@ -6,6 +6,14 @@ import { SettingsEditor } from '../profile/SettingsEditor'
 
 export const dynamic = 'force-dynamic'
 
+type SettingsProfile = {
+  settings: { sound_enabled: boolean } | null
+  code_template: string | null
+  preferred_language: string | null
+  hide_unsolved_tags: boolean | null
+  cf_handle: string | null
+}
+
 export default async function SettingsPage() {
   const supabase = await createClient()
 
@@ -25,13 +33,27 @@ export default async function SettingsPage() {
     .eq('id', user.id)
     .single()
 
-  const profile = profileData as {
-    settings: { sound_enabled: boolean } | null
-    code_template: string | null
-    preferred_language: string | null
-    hide_unsolved_tags: boolean | null
-    cf_handle: string | null
-  } | null
+  let profile: SettingsProfile | null = profileData as SettingsProfile | null
+
+  if (!profile) {
+    const metaUsername = (user.user_metadata?.username as string) || (user.user_metadata?.name as string) || user.email?.split('@')[0] || 'User'
+    const { data: newRow } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username: metaUsername,
+        settings: { sound_enabled: true },
+        preferred_language: 'cpp',
+        hide_unsolved_tags: true,
+        primary_subject: 'C++ Programming',
+        experience_level: 'Intermediate',
+      } as never)
+      .select('settings, code_template, preferred_language, hide_unsolved_tags, cf_handle')
+      .single()
+    if (newRow) {
+      profile = newRow as unknown as SettingsProfile
+    }
+  }
 
   const codeTemplate = profile?.code_template || ''
   const settings = profile?.settings || { sound_enabled: true }
@@ -58,6 +80,7 @@ export default async function SettingsPage() {
           </h3>
           <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-8 transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)]">
             <CodeTemplateEditor 
+              key={`template-${user.id}-${preferredLanguage}-${codeTemplate.length}`}
               initialTemplate={codeTemplate} 
               initialLanguage={preferredLanguage}
             />
@@ -71,6 +94,7 @@ export default async function SettingsPage() {
           </h3>
           <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-sm p-8 transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(79,70,229,0.2)]">
             <SettingsEditor 
+              key={`settings-${user.id}-${settings.sound_enabled}-${hideSpoilers}-${preferredLanguage}-${cfHandle}`}
               initialSettings={settings} 
               initialHideSpoilers={hideSpoilers}
               initialPreferredLanguage={preferredLanguage}

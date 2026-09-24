@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Info, Zap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Verdict, VERDICT_METADATA } from '@/types/verdict';
 import { VerdictStat, generateVerdictInsights } from '@/lib/verdictInsights';
 import { cn } from '@/lib/utils';
@@ -12,7 +13,8 @@ interface VerdictAnalyticsProps {
 }
 
 export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
-  const insights = generateVerdictInsights(stats);
+  const t = useTranslations('Profile');
+  const insights = generateVerdictInsights(stats, (key) => t(key as never));
   const totalSubmissions = stats.reduce((acc, curr) => acc + curr.count, 0);
 
   // Filter to show only common CP verdicts in the main bar
@@ -26,11 +28,11 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">Verdict Analytics</h2>
-          <p className="text-muted-foreground text-sm">Deep dive into your submission patterns</p>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('verdictAnalyticsTitle')}</h2>
+          <p className="text-muted-foreground text-sm">{t('verdictAnalyticsSubtitle')}</p>
         </div>
         <div className="px-4 py-2 rounded-xl bg-secondary/60 border border-border flex flex-col items-center sm:items-end shadow-inner">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Total Submissions</span>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">{t('totalSubmissions')}</span>
           <div className="text-xl font-mono text-foreground font-bold leading-none mt-1">{totalSubmissions}</div>
         </div>
       </div>
@@ -63,10 +65,15 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
           {mainVerdicts.map((v) => {
             const stat = stats.find((s) => s.verdict === v) || { verdict: v, count: 0, percentage: 0 };
             const meta = VERDICT_METADATA[v];
-            
+            const localizedLabel = t.has(`verdictLabels.${v}` as never)
+              ? t(`verdictLabels.${v}` as never)
+              : meta.label;
+
             return (
               <div key={v} className="p-3.5 rounded-xl bg-secondary/40 border border-border hover:border-primary/40 transition-all group">
-                <div className={cn("text-[10px] font-bold uppercase tracking-wider mb-1", meta.color)}>{meta.label}</div>
+                <div className={cn("text-[10px] font-bold uppercase tracking-wider mb-1 truncate", meta.color)} title={localizedLabel}>
+                  {localizedLabel}
+                </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-mono font-bold text-foreground transition-colors">{stat.count}</span>
                   <span className="text-xs text-muted-foreground">{stat.percentage.toFixed(1)}%</span>
@@ -81,7 +88,7 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
       <div className="space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-2">
           <Zap size={16} className="text-amber-400 fill-amber-400/20" />
-          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-foreground">Smart Insights</h3>
+          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-foreground">{t('smartInsights')}</h3>
         </div>
 
         <div className="grid gap-3">

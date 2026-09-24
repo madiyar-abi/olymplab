@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { Problem } from '@/app/[locale]/dashboard/problems/ProblemsClient'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getSpoilerPlaceholderTags } from '@/lib/spoilerTags'
 
 interface ProblemTableProps {
   problems: Problem[]
@@ -91,6 +92,7 @@ function ProblemRow({
   const supabase = createClient()
   const shouldHide = hideTagsSetting && !isSolved && !revealed
   const tags = problem.tags || []
+  const displayTags = shouldHide ? getSpoilerPlaceholderTags(problem.id) : tags
 
   const handleReveal = async () => {
     if (shouldHide) {
@@ -144,13 +146,13 @@ function ProblemRow({
             className="flex flex-wrap gap-1 items-center"
             onClick={handleReveal}
           >
-            {tags.length > 0 ? (
-              tags.map((tag) => (
+            {displayTags.length > 0 ? (
+              displayTags.map((tag, idx) => (
                 <span
-                  key={tag}
+                  key={shouldHide ? `spoiler-${problem.id}-${idx}` : tag}
                   className={cn(
                     "text-[10px] px-1.5 py-0.5 rounded border border-border/50 bg-secondary/50 text-muted-foreground font-mono transition-all duration-300",
-                    shouldHide && "blur-[3px] select-none opacity-40 hover:opacity-60 cursor-pointer"
+                    shouldHide && "blur-[3.5px] select-none opacity-40 hover:opacity-60 cursor-pointer"
                   )}
                 >
                   {tag}
@@ -162,7 +164,7 @@ function ProblemRow({
             {shouldHide && (
               <button 
                 onClick={handleReveal}
-                className="text-[9px] font-bold text-primary hover:underline ml-1 uppercase"
+                className="text-[9px] font-bold text-primary hover:underline ml-1 uppercase cursor-pointer"
               >
                 {t('table.reveal')}
               </button>

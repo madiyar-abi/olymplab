@@ -112,12 +112,29 @@ export function CodeTemplateEditor({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({ code_template: template, preferred_language: language } as never)
-        .eq('id', user.id)
+      // 1. Call preferences API for service-role guaranteed upsert
+      const res = await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code_template: template,
+          preferred_language: language,
+        }),
+      })
 
-      if (error) throw error
+      // 2. Also upsert directly via supabase client
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          code_template: template,
+          preferred_language: language,
+        } as never)
+
+      if (!res.ok) {
+        throw new Error('Failed to save template via API')
+      }
+
       setSaveStatus('success')
       setTimeout(() => setSaveStatus('idle'), 3000)
     } catch (err) {

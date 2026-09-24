@@ -1,4 +1,5 @@
 import { Verdict } from '@/types/verdict'
+import { executeLocally } from '@/lib/executor/localRunner'
 
 // Wandbox can be slow or rate-limited; without an explicit timeout a hung
 // connection would block the whole serverless function.
@@ -6,7 +7,7 @@ const WANDBOX_TIMEOUT_MS = 20_000
 
 // Map our internal language ids to Wandbox compiler identifiers.
 const WANDBOX_COMPILERS: Record<string, string> = {
-  cpp: 'gcc-head',
+  cpp: 'gcc-13.2.0',
   python: 'cpython-head',
   python3: 'cpython-head',
   java: 'openjdk-head',
@@ -36,9 +37,8 @@ export type WandboxOutcome =
   | { ok: false; httpStatus: number; error: string }
 
 /**
- * Synchronously evaluate a submission against the problem's sample I/O via the
- * Wandbox API. Used both for the instant-judge path and as a fast fallback when
- * an external bot (Codeforces/CSES) can't be reached or never resolves.
+ * Synchronously evaluate a submission against the problem's sample I/O via
+ * fast local execution or fallback to the Wandbox API.
  */
 export async function evaluateWithWandbox(
   code: string,
@@ -49,8 +49,26 @@ export async function evaluateWithWandbox(
 ): Promise<WandboxOutcome> {
   const cleanInput = (sampleInput || '').replace(/\n\s*\n/g, '\n').trim()
   const expectedOutput = normalizeOutput(sampleOutput || '')
-  const compiler = WANDBOX_COMPILERS[language?.toLowerCase()] ?? WANDBOX_COMPILERS.cpp
 
+  // 1. Ultra-fast local execution path
+  const localRes = executeLocally(code, cleanInput, language)
+  if (localRes) {
+    console.log(`[Evaluate ${reqId}] Local execution took ${localRes.durationMs}ms with code ${localRes.code}`)
+    if (localRes.code === 124) {
+      return { ok: true, verdict: Verdict.TLE }
+    }
+    if (localRes.code !== 0) {
+      const isCE = localRes.stderr.toLowerCase().includes('error:') || localRes.stderr.toLowerCase().includes('compilation')
+      return { ok: true, verdict: isCE ? Verdict.CE : Verdict.RE }
+    }
+    const actualOutput = normalizeOutput(localRes.stdout)
+    if (actualOutput === expectedOutput || tokenize(actualOutput) === tokenize(expectedOutput)) {
+      return { ok: true, verdict: Verdict.AC }
+    }
+    return { ok: true, verdict: Verdict.WA }
+  }
+
+  const compiler = WANDBOX_COMPILERS[language?.toLowerCase()] ?? WANDBOX_COMPILERS.cpp
   console.log(`[Wandbox ${reqId}] eval lang=${language} compiler=${compiler}`)
 
   let wData: {

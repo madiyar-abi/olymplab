@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { executeLocally } from '@/lib/executor/localRunner';
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +9,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required field: code.' }, { status: 400 });
     }
 
-    // Map internal language to Wandbox compiler
-    let compiler = 'gcc-head' // Default C++
+    // 1. Try ultra-fast local runner first (typically 40ms - 600ms)
+    const localResult = executeLocally(code, stdin, language);
+    if (localResult) {
+      return NextResponse.json({
+        stdout: localResult.stdout,
+        stderr: localResult.stderr,
+        code: localResult.code,
+        durationMs: localResult.durationMs,
+      });
+    }
+
+    // 2. Fallback to Wandbox if local compilers are unavailable or language is unsupported
+    let compiler = 'gcc-13.2.0' // Use stable fast GCC
     const langLower = language.toLowerCase()
     if (langLower.includes('python')) compiler = 'cpython-head'
     else if (langLower.includes('java')) compiler = 'openjdk-head'
@@ -17,7 +29,6 @@ export async function POST(request: Request) {
     else if (langLower.includes('rust')) compiler = 'rust-head'
     else if (langLower.includes('go')) compiler = 'go-head'
 
-    // Wandbox API
     const response = await fetch('https://wandbox.org/api/compile.json', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,8 +38,6 @@ export async function POST(request: Request) {
         stdin: stdin || '',
       }),
     });
-
-    console.log('[Execute] Wandbox Response Status:', response.status);
 
     if (!response.ok) {
       const text = await response.text();
@@ -40,10 +49,6 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log('[Execute] Wandbox Data:', JSON.stringify(data, null, 2));
-
-    // Wandbox returns status "0" on success. Output is in program_message.
-    // Errors are in compiler_error or program_error.
     const stdout = data.program_message || '';
     const stderr = data.compiler_error || data.program_error || '';
     const exitCode = data.status === '0' ? 0 : 1;

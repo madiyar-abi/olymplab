@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       total: number
       solvedCount: number
       verdicts: Record<string, number>
-      activity: { date: string; count: number }[]
+      activity: { date: string; count: number; problems?: string[] }[]
     } | null = null
 
     try {
@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
         const statusData = await statusRes.json()
         if (statusData.status === 'OK' && Array.isArray(statusData.result)) {
           const solvedSet = new Set<string>()
+          const dailySolvedProblems = new Map<string, Set<string>>()
           const verdictsCount: Record<string, number> = {
             AC: 0,
             WA: 0,
@@ -85,18 +86,25 @@ export async function POST(req: NextRequest) {
             CE: 0,
             OTHER: 0
           }
-          const activityMap = new Map<string, number>()
 
           for (const sub of statusData.result) {
-            // Track unique solved problems
-            if (sub.verdict === 'OK' && sub.problem?.contestId && sub.problem?.index) {
-              solvedSet.add(`${sub.problem.contestId}-${sub.problem.index}`)
-            }
+            const isSolved = sub.verdict === 'OK'
+            const problemKey = (sub.problem?.contestId && sub.problem?.index)
+              ? `cf-${sub.problem.contestId}/${sub.problem.index}`.toLowerCase()
+              : (sub.problem?.name ? `name-${sub.problem.name}`.toLowerCase() : null)
 
-            // Track activity heatmap date
-            if (sub.creationTimeSeconds) {
-              const dateStr = new Date(sub.creationTimeSeconds * 1000).toISOString().split('T')[0]
-              activityMap.set(dateStr, (activityMap.get(dateStr) || 0) + 1)
+            // Track unique solved problems
+            if (isSolved && problemKey) {
+              solvedSet.add(problemKey)
+
+              // Track unique solved problems for activity heatmap date
+              if (sub.creationTimeSeconds) {
+                const dateStr = new Date(sub.creationTimeSeconds * 1000).toISOString().split('T')[0]
+                if (!dailySolvedProblems.has(dateStr)) {
+                  dailySolvedProblems.set(dateStr, new Set())
+                }
+                dailySolvedProblems.get(dateStr)!.add(problemKey)
+              }
             }
 
             // Tally verdicts
@@ -117,7 +125,11 @@ export async function POST(req: NextRequest) {
             total: statusData.result.length,
             solvedCount,
             verdicts: verdictsCount,
-            activity: Array.from(activityMap.entries()).map(([date, count]) => ({ date, count }))
+            activity: Array.from(dailySolvedProblems.entries()).map(([date, probSet]) => ({
+              date,
+              count: probSet.size,
+              problems: Array.from(probSet)
+            }))
           }
         }
       }
@@ -154,10 +166,20 @@ export async function POST(req: NextRequest) {
       updatePayload.cf_submissions_data = cfSubmissionsData
     }
 
-    const { error: updateError } = await supabase
+    updatePayload.id = user.id
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    let admin = null
+    if (url && serviceKey) {
+      const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+      admin = createAdminClient(url, serviceKey)
+    }
+    const dbClient = admin || supabase
+
+    const { error: updateError } = await dbClient
       .from('profiles')
-      .update(updatePayload as never)
-      .eq('id', user.id)
+      .upsert(updatePayload as never)
 
     if (updateError) {
       console.error('Failed to update profile with CF data:', updateError)
@@ -165,17 +187,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Sync auth user metadata
-    if (avatar) {
-      try {
-        await supabase.auth.updateUser({
-          data: {
-            avatar_url: avatar,
-            cf_handle: cleanHandle,
-          }
-        })
-      } catch (authErr) {
-        console.warn('Could not sync user_metadata during CF sync:', authErr)
+    try {
+      const metaUpdate: Record<string, unknown> = {
+        cf_handle: cleanHandle,
       }
+      if (avatar && updatePayload.avatar_url) {
+        metaUpdate.avatar_url = avatar
+      }
+      if (admin) {
+        await admin.auth.admin.updateUserById(user.id, { user_metadata: metaUpdate })
+      } else {
+        await supabase.auth.updateUser({ data: metaUpdate })
+      }
+    } catch (authErr) {
+      console.warn('Could not sync user_metadata during CF sync:', authErr)
     }
 
     return NextResponse.json({

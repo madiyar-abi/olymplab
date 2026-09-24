@@ -56,7 +56,10 @@ export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    createClient().auth.getUser().then(({ data: { user } }) => setUser(user))
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setUser(data?.user ?? null))
+      .catch(() => setUser(null))
   }, [])
 
   const navLinks = [

@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useCallback, useSyncExternalStore } from 'react'
 import ReactDOM from 'react-dom'
+import { useLocale } from 'next-intl'
 import { useTheme } from '@/components/shared/ThemeProvider'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,10 +24,23 @@ interface TooltipState {
   dateText: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+// ─── Constants & Helpers ──────────────────────────────────────────────────────
+const MONTH_NAMES_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTH_NAMES_RU = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек']
 const CELL = 14    // px — cell size
 const GAP  = 2     // px — gap between cells
+
+function formatTasksCount(count: number, locale: string): string {
+  if (locale === 'ru') {
+    const mod10 = count % 10
+    const mod100 = count % 100
+    if (mod100 >= 11 && mod100 <= 19) return `${count} задач`
+    if (mod10 === 1) return `${count} задача`
+    if (mod10 >= 2 && mod10 <= 4) return `${count} задачи`
+    return `${count} задач`
+  }
+  return `${count} ${count === 1 ? 'problem' : 'problems'}`
+}
 
 const subscribe = () => () => {}
 const getSnapshot = () => true
@@ -84,6 +98,9 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== 'light'
+  const locale = useLocale()
+  const monthNames = locale === 'ru' ? MONTH_NAMES_RU : MONTH_NAMES_EN
+  const dayLabels = locale === 'ru' ? ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'] : ['S','M','T','W','T','F','S']
 
   // ── Build grid ────────────────────────────────────────────────────────────
   const { weeks, monthLabels } = useMemo(() => {
@@ -127,7 +144,7 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
 
         const month = cur.getMonth()
         if (d === 0 && !isBeforeStart && !isAfterToday && month !== seenMonth) {
-          monthsArr.push({ label: MONTH_NAMES[month], colIndex: weeksArr.length })
+          monthsArr.push({ label: monthNames[month], colIndex: weeksArr.length })
           seenMonth = month
         }
 
@@ -143,7 +160,7 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
     }
 
     return { weeks: weeksArr, monthLabels: monthsArr }
-  }, [data])
+  }, [data, monthNames])
 
   const handleMouseLeave = useCallback(() => setTooltip(null), [])
 
@@ -181,7 +198,7 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
           ))}
 
           {/* Day of week labels */}
-          {['S','M','T','W','T','F','S'].map((d, i) => (
+          {dayLabels.map((d, i) => (
             (i === 1 || i === 3 || i === 5) ? (
               <text
                 key={i}
@@ -229,8 +246,9 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
                   strokeWidth={strokeWidth}
                   onMouseEnter={day.isEmpty ? undefined : (e) => {
                     const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect()
-                    const tasksText = day.count === 1 ? '1 задача' : `${day.count} задач`
-                    const dateText = day.date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
+                    const tasksText = formatTasksCount(day.count, locale)
+                    const dateLocale = locale === 'ru' ? 'ru-RU' : 'en-US'
+                    const dateText = day.date.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })
                     setTooltip({ anchorX: rect.left + rect.width / 2, anchorY: rect.top, tasksText, dateText })
                   }}
                   onMouseLeave={day.isEmpty ? undefined : handleMouseLeave}
@@ -243,7 +261,7 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
 
         {/* Legend */}
         <div className="flex items-center justify-end gap-2 mt-3 pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
-          <span>Меньше</span>
+          <span>{locale === 'ru' ? 'Меньше' : 'Less'}</span>
           <div className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#ebedf0', border: isDark ? 'none' : '1px solid #d0d7de' }} />
             <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#0e4429' : '#9be9a8' }} />
@@ -251,7 +269,7 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
             <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#26a641' : '#30a14e' }} />
             <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#39d353' : '#216e39' }} />
           </div>
-          <span>Больше</span>
+          <span>{locale === 'ru' ? 'Больше' : 'More'}</span>
         </div>
       </div>
     </>

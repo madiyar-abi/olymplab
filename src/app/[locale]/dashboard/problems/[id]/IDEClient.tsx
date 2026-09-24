@@ -24,6 +24,7 @@ import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'reac
 import { useAutoSaveCode, SaveStatus } from '@/hooks/useAutoSaveCode'
 import { useTranslations, useLocale } from 'next-intl'
 import { toast } from '@/components/ui/Toast'
+import { getSpoilerPlaceholderTags } from '@/lib/spoilerTags'
 
 export interface SkillReq {
   level: number
@@ -191,7 +192,8 @@ const MarkdownRenderer = ({ content }: { content: string }) => (
             </pre>
           </div>
         )
-      }
+      },
+      script: () => null,
     }}
   >
     {content}
@@ -332,6 +334,9 @@ export default function IDEClient({
 
   const statementLang = statementLangOverride ?? (locale === 'ru' ? 'ru' : 'en')
 
+  const [currentSampleInput, setCurrentSampleInput] = useState<string | null>(problem.sample_input)
+  const [currentSampleOutput, setCurrentSampleOutput] = useState<string | null>(problem.sample_output)
+
   const [translatedRu, setTranslatedRu] = useState<{ title: string; description: string } | null>(
     problem.description_ru ? { title: problem.title_ru || problem.title, description: problem.description_ru } : null
   )
@@ -345,35 +350,6 @@ export default function IDEClient({
     return null
   }, [translatedRu, problem.description_ru, problem.title_ru, problem.title])
 
-  useEffect(() => {
-    if (statementLang === 'ru' && !currentRu) {
-      let isSubscribed = true
-
-      Promise.resolve().then(() => {
-        if (isSubscribed) setIsTranslating(true)
-      })
-
-      fetch('/api/translate-problem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problemId: problem.id })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (isSubscribed && data?.description_ru) {
-            setTranslatedRu({ title: data.title_ru || problem.title, description: data.description_ru })
-          }
-        })
-        .catch(err => console.error('Failed to translate problem:', err))
-        .finally(() => {
-          if (isSubscribed) setIsTranslating(false)
-        })
-
-      return () => {
-        isSubscribed = false
-      }
-    }
-  }, [statementLang, currentRu, problem.id, problem.title])
 
   const displayTitle = statementLang === 'ru' 
     ? (currentRu?.title || problem.title_ru || problem.title) 
@@ -384,6 +360,9 @@ export default function IDEClient({
   const processDescription = (text: string) => {
     if (!text) return '';
     return text
+      .replace(/<script type="math\/tex; mode=display">([\s\S]*?)<\/script>/gi, (_, tex) => `\n\n$$${tex}$$\n\n`)
+      .replace(/<script type="math\/tex">([\s\S]*?)<\/script>/gi, (_, tex) => `$${tex}$`)
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/\$«/g, '«$')
       .replace(/»\$/g, '$»')
       .replace(/\$\$«/g, '«$$')
@@ -444,7 +423,7 @@ export default function IDEClient({
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null)
 
-  const [stdin, setStdin] = useState(() => problem.sample_input || extractSampleInput())
+  const [stdin, setStdin] = useState(() => currentSampleInput || extractSampleInput())
   const [output, setOutput] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [isFlagged, setIsFlagged] = useState(false)
@@ -464,6 +443,46 @@ export default function IDEClient({
     }
     setIsLoadingHistory(false)
   }, [supabase, problem.id])
+
+  useEffect(() => {
+    const isSampleBroken = currentSampleInput && !currentSampleInput.includes('\n') && currentSampleInput.length > 5
+    const shouldFetch = (statementLang === 'ru' && !currentRu) || isSampleBroken
+
+    if (shouldFetch && !isTranslating) {
+      let isSubscribed = true
+      Promise.resolve().then(() => {
+        if (isSubscribed) setIsTranslating(true)
+      })
+
+      fetch('/api/translate-problem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problemId: problem.id })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (!isSubscribed) return
+          if (data?.description_ru) {
+            setTranslatedRu({ title: data.title_ru || problem.title, description: data.description_ru })
+          }
+          if (data?.sample_input) {
+            setCurrentSampleInput(data.sample_input)
+            setStdin(prev => (!prev || prev === problem.sample_input || !prev.includes('\n') ? data.sample_input : prev))
+          }
+          if (data?.sample_output) {
+            setCurrentSampleOutput(data.sample_output)
+          }
+        })
+        .catch(err => console.error('Failed to translate / fix problem:', err))
+        .finally(() => {
+          if (isSubscribed) setIsTranslating(false)
+        })
+
+      return () => {
+        isSubscribed = false
+      }
+    }
+  }, [statementLang, currentRu, isTranslating, currentSampleInput, problem.id, problem.title, problem.sample_input])
 
   // Cleanup polling interval on unmount
   useEffect(() => {
@@ -785,8 +804,8 @@ export default function IDEClient({
           problemDescription: problem.description,
           timeLimit: problem.time_limit,
           memoryLimit: problem.memory_limit,
-          sampleInput: problem.sample_input || extractSampleInput(),
-          sampleOutput: problem.sample_output,
+          sampleInput: currentSampleInput || extractSampleInput(),
+          sampleOutput: currentSampleOutput || problem.sample_output,
           history: mentorHistory,
           userMessage: userMessage,
           locale: locale || 'en'
@@ -924,10 +943,12 @@ export default function IDEClient({
             {/* Tags with Spoiler Protection */}
             {problem.tags && problem.tags.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2.5 border-t border-border/40">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1 font-mono">Tags:</span>
-                {problem.tags.map((tag) => (
+                <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1 font-mono">
+                  {t('tagsLabel') || 'Tags:'}
+                </span>
+                {(shouldHideTags ? getSpoilerPlaceholderTags(problem.id) : problem.tags).map((tag, idx) => (
                   <span
-                    key={tag}
+                    key={shouldHideTags ? `spoiler-${problem.id}-${idx}` : tag}
                     onClick={shouldHideTags ? handleRevealTags : undefined}
                     className={cn(
                       "text-[10px] font-mono px-2 py-0.5 rounded-md border border-border bg-secondary text-muted-foreground transition-all duration-300",
@@ -940,9 +961,9 @@ export default function IDEClient({
                 {shouldHideTags && (
                   <button
                     onClick={handleRevealTags}
-                    className="text-[10px] font-mono font-bold text-primary hover:underline ml-1 uppercase tracking-tight"
+                    className="text-[10px] font-mono font-bold text-primary hover:underline ml-1 uppercase tracking-tight cursor-pointer"
                   >
-                    Reveal Tags
+                    {t('revealTags') || 'Reveal Tags'}
                   </button>
                 )}
               </div>
@@ -956,17 +977,17 @@ export default function IDEClient({
               </div>
             )}
 
-            {(problem.sample_input || problem.sample_output) && (
+            {(currentSampleInput || currentSampleOutput) && (
               <div className="space-y-4 pt-6 border-t border-border">
-                {problem.sample_input && (
+                {currentSampleInput && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('input')}</h3>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
-                            if (problem.sample_input) {
-                              setStdin(problem.sample_input)
+                            if (currentSampleInput) {
+                              setStdin(currentSampleInput)
                               setActiveConsoleTab('testcases')
                               toast.success('Loaded sample into testcase console')
                             }
@@ -975,22 +996,22 @@ export default function IDEClient({
                         >
                           Load into Console
                         </button>
-                        <CopyButton value={problem.sample_input} />
+                        <CopyButton value={currentSampleInput} />
                       </div>
                     </div>
                     <div className="bg-secondary/50 border border-border p-4 rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground/90">
-                      {problem.sample_input}
+                      {currentSampleInput}
                     </div>
                   </div>
                 )}
-                {problem.sample_output && (
+                {currentSampleOutput && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">{t('output')}</h3>
-                      <CopyButton value={problem.sample_output} />
+                      <CopyButton value={currentSampleOutput} />
                     </div>
                     <div className="bg-secondary/50 border border-border p-4 rounded-xl font-mono text-sm whitespace-pre-wrap text-foreground/90">
-                      {problem.sample_output}
+                      {currentSampleOutput}
                     </div>
                   </div>
                 )}

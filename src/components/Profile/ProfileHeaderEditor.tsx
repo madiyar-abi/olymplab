@@ -14,7 +14,8 @@ import {
   User as UserIcon,
   RefreshCw,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  RotateCcw
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -70,7 +71,9 @@ export function ProfileHeaderEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [isSyncingCf, setIsSyncingCf] = useState(false)
 
-  const activeAvatar = avatarUrl || cfAvatar
+  const activeAvatar = isEditing
+    ? (customUrlInput.trim() || editAvatar || null)
+    : (avatarUrl || cfAvatar)
 
   const handleStartEdit = () => {
     setEditName(username)
@@ -131,7 +134,7 @@ export function ProfileHeaderEditor({
 
     setIsSaving(true)
     try {
-      const finalAvatar = editAvatar || (customUrlInput.trim() ? customUrlInput.trim() : null)
+      const finalAvatar = customUrlInput.trim() || editAvatar || null
       const cleanCfHandle = editCfHandle.trim() || null
 
       const res = await fetch('/api/profile/update', {
@@ -149,20 +152,14 @@ export function ProfileHeaderEditor({
         throw new Error(data.error || 'Не удалось сохранить профиль')
       }
 
-      setUsername(trimmedName)
-      setAvatarUrl(finalAvatar)
-      setCfHandle(cleanCfHandle)
+      setUsername(data.username || trimmedName)
+      setAvatarUrl(data.avatar_url ?? finalAvatar)
+      setCfHandle(data.cf_handle ?? cleanCfHandle)
+      if (data.cf_rating !== undefined) setCfRating(data.cf_rating)
+      if (data.cf_rank !== undefined) setCfRank(data.cf_rank)
+      if (data.cf_avatar !== undefined) setCfAvatar(data.cf_avatar)
       setIsEditing(false)
       toast.success(t('profileUpdated'))
-
-      // If CF handle changed, trigger a background sync
-      if (cleanCfHandle && cleanCfHandle !== initialCfHandle) {
-        fetch('/api/codeforces/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ handle: cleanCfHandle }),
-        }).catch(console.error)
-      }
 
       router.refresh()
     } catch (err: unknown) {
@@ -182,21 +179,22 @@ export function ProfileHeaderEditor({
           <div className="h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-secondary border border-border flex items-center justify-center text-foreground font-semibold text-4xl overflow-hidden shadow-inner">
             {activeAvatar ? (
               <img
+                key={activeAvatar}
                 src={activeAvatar}
-                alt={username}
+                alt={isEditing ? editName : username}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).style.display = 'none'
                 }}
               />
             ) : (
-              <span className="font-mono">{username.charAt(0).toUpperCase()}</span>
+              <span className="font-mono">{(isEditing ? editName.trim() || username : username).charAt(0).toUpperCase()}</span>
             )}
           </div>
 
           <button
             onClick={handleStartEdit}
-            className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-transform"
+            className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer"
             title={t('editAvatar')}
           >
             <Camera className="w-4 h-4" />
@@ -215,7 +213,7 @@ export function ProfileHeaderEditor({
 
             <button
               onClick={handleStartEdit}
-              className="self-center sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-secondary/80 hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+              className="self-center sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-secondary/80 hover:bg-secondary text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors shadow-sm cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>{t('editProfile')}</span>
@@ -267,7 +265,7 @@ export function ProfileHeaderEditor({
             </h3>
             <button
               onClick={handleCancel}
-              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -313,7 +311,7 @@ export function ProfileHeaderEditor({
                   type="button"
                   onClick={handleSyncCf}
                   disabled={isSyncingCf || !editCfHandle.trim()}
-                  className="px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-xs font-semibold font-mono flex items-center gap-1.5 transition-all disabled:opacity-50"
+                  className="px-3.5 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-xs font-semibold font-mono flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                   title="Синхронизировать данные с Codeforces"
                 >
                   {isSyncingCf ? (
@@ -334,29 +332,45 @@ export function ProfileHeaderEditor({
               <label className="text-xs font-semibold text-foreground block font-mono">
                 {t('choosePresetAvatar')}
               </label>
-              {cfAvatar && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditAvatar(cfAvatar)
-                    setCustomUrlInput('')
-                  }}
-                  className={cn(
-                    "text-xs font-mono font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5",
-                    editAvatar === cfAvatar
-                      ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40"
-                      : "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                  )}
-                >
-                  <img src={cfAvatar} alt="CF" className="w-4 h-4 rounded-full object-cover" />
-                  <span>{t('useCfAvatar')}</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {cfAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditAvatar(cfAvatar)
+                      setCustomUrlInput('')
+                    }}
+                    className={cn(
+                      "text-xs font-mono font-semibold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer",
+                      editAvatar === cfAvatar
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40"
+                        : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                    )}
+                  >
+                    <img src={cfAvatar} alt="CF" className="w-4 h-4 rounded-full object-cover" />
+                    <span>{t('useCfAvatar')}</span>
+                  </button>
+                )}
+                {(editAvatar || customUrlInput) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditAvatar(null)
+                      setCustomUrlInput('')
+                    }}
+                    className="text-xs font-mono font-semibold px-2.5 py-1 rounded-lg border border-border bg-secondary/80 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="Сбросить аватар к стандартной букве"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Сбросить (буква)</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {PRESET_AVATARS.map((preset) => {
-                const isSelected = editAvatar === preset.url
+                const isSelected = editAvatar === preset.url && !customUrlInput.trim()
                 return (
                   <button
                     key={preset.id}
@@ -368,7 +382,7 @@ export function ProfileHeaderEditor({
                     className={cn(
                       'p-2.5 rounded-xl border flex flex-col items-center gap-2 transition-all text-center group cursor-pointer',
                       isSelected
-                        ? 'border-primary bg-primary/10 ring-2 ring-primary/40 shadow-sm'
+                        ? 'border-primary bg-primary/15 ring-2 ring-primary/50 shadow-sm'
                         : 'border-border bg-secondary/40 hover:bg-secondary hover:border-primary/40'
                     )}
                   >
@@ -395,13 +409,16 @@ export function ProfileHeaderEditor({
               type="url"
               value={customUrlInput}
               onChange={(e) => {
-                setCustomUrlInput(e.target.value)
-                if (e.target.value) setEditAvatar(e.target.value)
+                const val = e.target.value
+                setCustomUrlInput(val)
+                if (val.trim()) {
+                  setEditAvatar(val.trim())
+                }
               }}
               placeholder="https://example.com/avatar.png"
               className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-medium focus:ring-2 focus:ring-primary/50 outline-none transition-all font-mono"
             />
-            <p className="text-[11px] text-muted-foreground">{t('customAvatarUrlDesc')}</p>
+            <p className="text-[11px] text-muted-foreground">Или выберите готового алгоритмического персонажа выше.</p>
           </div>
 
           {/* Action Buttons */}
@@ -410,7 +427,7 @@ export function ProfileHeaderEditor({
               type="button"
               onClick={handleCancel}
               disabled={isSaving}
-              className="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
             >
               {t('cancel')}
             </button>
@@ -418,9 +435,13 @@ export function ProfileHeaderEditor({
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5" />
+              {isSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
               <span>{isSaving ? t('saving') : t('save')}</span>
             </button>
           </div>
