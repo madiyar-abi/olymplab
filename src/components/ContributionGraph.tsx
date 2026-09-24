@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useCallback, useSyncExternalStore } from 'react'
 import ReactDOM from 'react-dom'
-import { cn } from '@/lib/utils'
+import { useTheme } from '@/components/shared/ThemeProvider'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ContributionGraphProps {
@@ -79,19 +79,11 @@ function TooltipPortal({ tip }: { tip: TooltipState | null }) {
   )
 }
 
-// ─── Cell intensity ───────────────────────────────────────────────────────────
-function intensityClass(count: number, isEmpty: boolean) {
-  if (isEmpty) return 'bg-transparent border-transparent'
-  if (count === 0) return 'bg-secondary/50 border-border/10'
-  if (count <= 2)  return 'bg-[#0e4429] border-[#006d32]/30'
-  if (count <= 5)  return 'bg-[#006d32] border-[#26a641]/40'
-  if (count <= 8)  return 'bg-[#26a641] border-[#39d353]/50'
-  return 'bg-[#39d353] border-[#39d353]/60 shadow-sm'
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export function ContributionGraph({ data }: ContributionGraphProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme !== 'light'
 
   // ── Build grid ────────────────────────────────────────────────────────────
   const { weeks, monthLabels } = useMemo(() => {
@@ -103,7 +95,6 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
     startDate.setDate(today.getDate() - 364)
 
     // The grid always shows Sun–Sat columns.
-    // startDate may not be a Sunday → offset empty cells at the start.
     const startDow = startDate.getDay()  // 0 = Sun … 6 = Sat
 
     // Grid begins on the Sunday of startDate's week
@@ -154,25 +145,10 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
     return { weeks: weeksArr, monthLabels: monthsArr }
   }, [data])
 
-  // ── Tooltip handlers ──────────────────────────────────────────────────────
-  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLDivElement>, day: DayCell) => {
-    if (day.isEmpty) return
-    const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
-    const tasksText = day.count === 1 ? '1 задача' : `${day.count} задач`
-    const dateText  = day.date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
-    setTooltip({
-      anchorX: rect.left + rect.width / 2,
-      anchorY: rect.top,
-      tasksText,
-      dateText,
-    })
-  }, [])
-
   const handleMouseLeave = useCallback(() => setTooltip(null), [])
 
   // ── Render ────────────────────────────────────────────────────────────────
   const totalWeeks = weeks.length
-  // SVG dimensions: dynamic width, fixed row heights
   const CELL_SIZE = 13
   const CELL_GAP = 2
   const STRIDE = CELL_SIZE + CELL_GAP
@@ -225,12 +201,21 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
             week.map((day, dIdx) => {
               const x = LABEL_W + wIdx * STRIDE
               const y = HEADER_H + dIdx * STRIDE
-              const color =
+              const fill =
                 day.isEmpty ? 'transparent' :
-                day.count === 0 ? 'rgba(255,255,255,0.05)' :
-                day.count <= 2 ? '#0e4429' :
-                day.count <= 5 ? '#006d32' :
-                day.count <= 8 ? '#26a641' : '#39d353'
+                isDark
+                  ? (day.count === 0 ? 'rgba(255,255,255,0.06)' :
+                     day.count <= 2 ? '#0e4429' :
+                     day.count <= 5 ? '#006d32' :
+                     day.count <= 8 ? '#26a641' : '#39d353')
+                  : (day.count === 0 ? '#ebedf0' :
+                     day.count <= 2 ? '#9be9a8' :
+                     day.count <= 5 ? '#40c463' :
+                     day.count <= 8 ? '#30a14e' : '#216e39')
+
+              const stroke = !isDark && day.count === 0 ? '#d0d7de' : 'transparent'
+              const strokeWidth = !isDark && day.count === 0 ? 0.75 : 0
+
               return (
                 <rect
                   key={`${wIdx}-${dIdx}`}
@@ -239,7 +224,9 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
                   width={CELL_SIZE}
                   height={CELL_SIZE}
                   rx={2}
-                  fill={color}
+                  fill={fill}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
                   onMouseEnter={day.isEmpty ? undefined : (e) => {
                     const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect()
                     const tasksText = day.count === 1 ? '1 задача' : `${day.count} задач`
@@ -253,6 +240,19 @@ export function ContributionGraph({ data }: ContributionGraphProps) {
             })
           )}
         </svg>
+
+        {/* Legend */}
+        <div className="flex items-center justify-end gap-2 mt-3 pt-2 text-[10px] font-mono text-muted-foreground border-t border-border/40">
+          <span>Меньше</span>
+          <div className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#ebedf0', border: isDark ? 'none' : '1px solid #d0d7de' }} />
+            <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#0e4429' : '#9be9a8' }} />
+            <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#006d32' : '#40c463' }} />
+            <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#26a641' : '#30a14e' }} />
+            <span className="w-2.5 h-2.5 rounded-[2px]" style={{ background: isDark ? '#39d353' : '#216e39' }} />
+          </div>
+          <span>Больше</span>
+        </div>
       </div>
     </>
   )

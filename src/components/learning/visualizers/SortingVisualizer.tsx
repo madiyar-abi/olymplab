@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface SortingVisualizerProps {
@@ -14,6 +15,9 @@ export default function SortingVisualizer({
   initialArray = [45, 20, 60, 10, 35, 5, 50],
   algorithm = 'bubble' 
 }: SortingVisualizerProps) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+
   const steps = useMemo(() => {
     const newSteps: { array: number[], active: number[], comparing: number[], sorted: number[], pivot?: number }[] = []
     const arr = [...initialArray]
@@ -100,8 +104,14 @@ export default function SortingVisualizer({
           if (tempArr[i] <= tempArr[j]) merged.push(tempArr[i++])
           else merged.push(tempArr[j++])
         }
-        while (i <= mid) merged.push(tempArr[i++])
-        while (j <= r) merged.push(tempArr[j++])
+        while (i <= mid) {
+          newSteps.push({ array: [...tempArr], active: [i], comparing: [i], sorted: [] })
+          merged.push(tempArr[i++])
+        }
+        while (j <= r) {
+          newSteps.push({ array: [...tempArr], active: [j], comparing: [j], sorted: [] })
+          merged.push(tempArr[j++])
+        }
         for (let k = 0; k < merged.length; k++) {
           tempArr[l + k] = merged[k]
           newSteps.push({ array: [...tempArr], active: [l + k], comparing: [], sorted: [] })
@@ -110,12 +120,13 @@ export default function SortingVisualizer({
       mergeSortSync(0, tempArr.length - 1)
       newSteps.push({ array: [...tempArr], active: [], comparing: [], sorted: Array.from({ length: tempArr.length }, (_, k) => k) })
     }
+
     return newSteps
-  }, [initialArray, algorithm])
+  }, [algorithm, initialArray])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const speed = algorithm === 'quick' || algorithm === 'merge' ? 300 : 500
+  const speed = 400
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -147,27 +158,33 @@ export default function SortingVisualizer({
 
   const step = steps[currentStep] || { array: initialArray, active: [], comparing: [], sorted: [] }
 
+  const algoTitle = algorithm === 'bubble'
+    ? (isRu ? 'Пузырьковая сортировка' : 'Bubble Sort')
+    : algorithm === 'selection'
+    ? (isRu ? 'Сортировка выбором' : 'Selection Sort')
+    : algorithm === 'insertion'
+    ? (isRu ? 'Сортировка вставками' : 'Insertion Sort')
+    : algorithm === 'quick'
+    ? (isRu ? 'Быстрая сортировка (QuickSort)' : 'Quick Sort')
+    : (isRu ? 'Сортировка слиянием (MergeSort)' : 'Merge Sort')
+
   return (
     <div className="not-prose my-8 p-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Визуализация: {
-              algorithm === 'bubble' ? 'Пузырьковая сортировка' : 
-              algorithm === 'selection' ? 'Сортировка выбором' : 
-              algorithm === 'insertion' ? 'Сортировка вставками' :
-              algorithm === 'quick' ? 'Быстрая сортировка (QuickSort)' :
-              'Сортировка слиянием (MergeSort)'
-            }
+            {isRu ? 'Визуализация' : 'Visualization'}: {algoTitle}
           </h4>
-          <p className="text-xs text-muted-foreground mt-1">Пошаговое исполнение алгоритма</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? 'Пошаговое исполнение алгоритма' : 'Step-by-step algorithm execution'}
+          </p>
         </div>
         
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setCurrentStep(0); setIsPlaying(false); }}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
-            title="Сброс"
+            title={isRu ? 'Сброс' : 'Reset'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -181,12 +198,12 @@ export default function SortingVisualizer({
             )}
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-            {isPlaying ? 'Пауза' : 'Запуск'}
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
           </button>
           <button
             onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
-            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
-            title="Следующий шаг"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors disabled:opacity-30"
+            title={isRu ? 'Следующий шаг' : 'Next Step'}
             disabled={currentStep === steps.length - 1}
           >
             <SkipForward className="w-4 h-4" />
@@ -211,16 +228,16 @@ export default function SortingVisualizer({
                   y: 0,
                   height: `${(val / Math.max(...initialArray)) * 100}%`,
                   backgroundColor: isPivot
-                    ? '#8b5cf6' // violet-500
+                    ? '#8b5cf6'
                     : isComparing 
-                      ? '#f59e0b' // amber-500
+                      ? '#f59e0b'
                       : isSorted 
-                        ? '#10b981' // emerald-500
-                        : '#3b82f6', // blue-500
+                        ? '#10b981'
+                        : '#3b82f6',
                 }}
                 exit={{ opacity: 0, scale: 0.5 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="w-10 rounded-t-lg relative group"
+                className="w-10 rounded-t-lg relative group shadow-sm"
               >
                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold font-mono text-muted-foreground">
                   {val}
@@ -231,29 +248,29 @@ export default function SortingVisualizer({
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground pt-4 border-t border-border/50 flex-wrap gap-4">
+      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground pt-4 border-t border-border flex-wrap gap-4">
         <div className="flex gap-4 flex-wrap">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>Ожидание</span>
+            <span>{isRu ? 'Ожидание' : 'Idle'}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>Сравнение</span>
+            <span>{isRu ? 'Сравнение' : 'Comparing'}</span>
           </div>
           {algorithm === 'quick' && (
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-violet-500" />
-              <span>Опорный (Pivot)</span>
+              <span>{isRu ? 'Опорный (Pivot)' : 'Pivot'}</span>
             </div>
           )}
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Отсортировано</span>
+            <span>{isRu ? 'Отсортировано' : 'Sorted'}</span>
           </div>
         </div>
         <div>
-          Шаг {currentStep + 1} / {steps.length}
+          {isRu ? `Шаг ${currentStep + 1} из ${steps.length}` : `Step ${currentStep + 1} of ${steps.length}`}
         </div>
       </div>
     </div>

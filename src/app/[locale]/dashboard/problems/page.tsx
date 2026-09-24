@@ -20,7 +20,7 @@ export default async function DashboardProblemsPage() {
   // Fetch problems directly using indexed columns: tags and rating
   const { data: problemsData, error: fetchError } = await supabase
     .from('problems')
-    .select('id, title, difficulty, rating, requirements, tags')
+    .select('id, title, title_ru, difficulty, rating, requirements, tags')
     .order('created_at', { ascending: false })
     .limit(1200)
 
@@ -33,7 +33,10 @@ export default async function DashboardProblemsPage() {
   ])
 
   const profile = profileResult.data
-  const hideUnsolvedTags = profile?.hide_unsolved_tags ?? (profile?.settings as { hide_unsolved_tags?: boolean } | null)?.hide_unsolved_tags ?? true
+  const cookieSpoiler = cookieStore.get('hide-unsolved-tags')?.value
+  const hideUnsolvedTags = cookieSpoiler !== undefined
+    ? cookieSpoiler === 'true'
+    : (profile?.hide_unsolved_tags ?? (profile?.settings as { hide_unsolved_tags?: boolean } | null)?.hide_unsolved_tags ?? true)
   const initialView = (profile?.problems_view as 'grid' | 'table') || (cookieStore.get('problems-view')?.value as 'grid' | 'table') || 'grid'
   const settings = {
     sound_enabled: (profile?.settings as { sound_enabled?: boolean } | null)?.sound_enabled ?? true,
@@ -51,6 +54,7 @@ export default async function DashboardProblemsPage() {
   const problemList: Problem[] = (problemsData || []).map(p => ({
     id: p.id,
     title: p.title,
+    title_ru: p.title_ru,
     difficulty: p.difficulty,
     rating: p.rating,
     requirements: p.requirements,

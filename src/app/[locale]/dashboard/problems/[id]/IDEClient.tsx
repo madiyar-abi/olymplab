@@ -321,7 +321,17 @@ export default function IDEClient({
   }, [savedCode, isHydrated])
 
   // Language translation state for problem statement
-  const [statementLang, setStatementLang] = useState<'ru' | 'en'>(locale === 'ru' ? 'ru' : 'en')
+  const [prevLocale, setPrevLocale] = useState(locale)
+  const [statementLangOverride, setStatementLangOverride] = useState<'ru' | 'en' | null>(null)
+
+  // Adjust state during render when route locale changes (official React pattern)
+  if (locale !== prevLocale) {
+    setPrevLocale(locale)
+    setStatementLangOverride(null)
+  }
+
+  const statementLang = statementLangOverride ?? (locale === 'ru' ? 'ru' : 'en')
+
   const [translatedRu, setTranslatedRu] = useState<{ title: string; description: string } | null>(
     problem.description_ru ? { title: problem.title_ru || problem.title, description: problem.description_ru } : null
   )
@@ -365,7 +375,10 @@ export default function IDEClient({
     }
   }, [statementLang, currentRu, problem.id, problem.title])
 
-  const displayTitle = statementLang === 'ru' && currentRu ? currentRu.title : problem.title
+  const displayTitle = statementLang === 'ru' 
+    ? (currentRu?.title || problem.title_ru || problem.title) 
+    : (problem.title?.replace(/^\[CF\]\s*/, '') || problem.title)
+
   const displayDescription = statementLang === 'ru' && currentRu ? currentRu.description : problem.description
 
   const processDescription = (text: string) => {
@@ -851,7 +864,7 @@ export default function IDEClient({
                 {/* Statement Language Toggle */}
                 <div className="flex items-center rounded-lg border border-border bg-secondary/50 p-0.5 text-[11px] font-mono">
                   <button
-                    onClick={() => setStatementLang('ru')}
+                    onClick={() => setStatementLangOverride('ru')}
                     title="Русский"
                     className={cn(
                       "px-2 py-0.5 rounded-md transition-all font-semibold text-[10px]",
@@ -861,7 +874,7 @@ export default function IDEClient({
                     RU
                   </button>
                   <button
-                    onClick={() => setStatementLang('en')}
+                    onClick={() => setStatementLangOverride('en')}
                     title="English"
                     className={cn(
                       "px-2 py-0.5 rounded-md transition-all font-semibold text-[10px]",

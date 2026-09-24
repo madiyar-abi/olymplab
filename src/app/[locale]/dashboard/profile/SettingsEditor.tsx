@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
 import { Volume2, VolumeX, Save, Check, EyeOff, Eye, Code2, Trophy, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -32,6 +33,7 @@ export function SettingsEditor({
   userId
 }: SettingsEditorProps) {
   const t = useTranslations('Settings')
+  const router = useRouter()
   const [soundEnabled, setSoundEnabled] = useState(initialSettings?.sound_enabled ?? true)
   const [hideSpoilers, setHideSpoilers] = useState(initialHideSpoilers)
   const [preferredLang, setPreferredLang] = useState(initialPreferredLanguage)
@@ -42,19 +44,30 @@ export function SettingsEditor({
 
   const saveSettings = async () => {
     setIsSaving(true)
+    const cleanCf = cfHandle.trim() || null
+
+    // Persist cookie for instant SSR rendering
+    if (typeof document !== 'undefined') {
+      document.cookie = `hide-unsolved-tags=${hideSpoilers};path=/;max-age=31536000;SameSite=Lax`
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({
-        settings: { sound_enabled: soundEnabled },
+        settings: { sound_enabled: soundEnabled, hide_unsolved_tags: hideSpoilers },
         hide_unsolved_tags: hideSpoilers,
         preferred_language: preferredLang,
-        cf_handle: cfHandle.trim() || null,
+        cf_handle: cleanCf,
       } as never)
       .eq('id', userId)
 
     if (!error) {
       setHasSaved(true)
       setTimeout(() => setHasSaved(false), 3000)
+      toast.success(t('savedShort') || 'Настройки сохранены')
+      router.refresh()
+    } else {
+      toast.error('Не удалось сохранить настройки')
     }
     setIsSaving(false)
   }
@@ -67,30 +80,39 @@ export function SettingsEditor({
   } | null>(null)
 
   const handleSyncCf = async () => {
-    if (!cfHandle.trim()) {
-      toast.error('Enter Codeforces handle')
+    const cleanHandle = cfHandle.trim()
+    if (!cleanHandle) {
+      toast.error('Введите никнейм на Codeforces')
       return
     }
     setIsSyncingCf(true)
     try {
+      // 1. Ensure cf_handle is saved to profiles first
+      await supabase
+        .from('profiles')
+        .update({ cf_handle: cleanHandle } as never)
+        .eq('id', userId)
+
+      // 2. Call Codeforces sync
       const res = await fetch('/api/codeforces/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle: cfHandle.trim() }),
+        body: JSON.stringify({ handle: cleanHandle }),
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Failed to sync with Codeforces')
+        toast.error(data.error || 'Ошибка синхронизации с Codeforces')
       } else {
         setCfSyncResult({
           rank: data.rank,
           rating: data.rating,
           solvedCount: data.solvedCount,
         })
-        toast.success(`Codeforces synced: ${data.rank} (${data.rating ?? 'unrated'})`)
+        toast.success(`Codeforces синхронизирован: ${data.rank} (${data.rating ?? 'unrated'})`)
+        router.refresh()
       }
     } catch {
-      toast.error('Network error during Codeforces sync')
+      toast.error('Сетевая ошибка при синхронизации с Codeforces')
     } finally {
       setIsSyncingCf(false)
     }

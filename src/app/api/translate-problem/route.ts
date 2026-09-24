@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return NextResponse.json({
-        title_ru: problem.title,
-        description_ru: problem.description,
+        title_ru: problem.title_ru || problem.title,
+        description_ru: problem.description_ru || problem.description,
       })
     }
 
@@ -70,11 +70,15 @@ ${problem.description}
     })
 
     if (!response.ok) {
-      const errText = await response.text()
-      console.error('Gemini translation error:', errText)
+      if (response.status === 429) {
+        console.warn('Gemini API quota exceeded (429), falling back to seeded problem data.')
+      } else {
+        const errText = await response.text()
+        console.warn(`Gemini translation error (${response.status}):`, errText.slice(0, 150))
+      }
       return NextResponse.json({
-        title_ru: problem.title,
-        description_ru: problem.description,
+        title_ru: problem.title_ru || problem.title,
+        description_ru: problem.description_ru || problem.description,
       })
     }
 

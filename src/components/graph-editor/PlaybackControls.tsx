@@ -66,10 +66,10 @@ export function PlaybackControls({
 
         {/* Algorithm selector */}
         <div className="flex items-center gap-2">
-          <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">
+          <span className="text-[9px] font-mono font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">
             {t('algorithm')}
           </span>
-          <div className="flex rounded-lg overflow-hidden border border-zinc-700/60 text-[11px] font-mono">
+          <div className="flex rounded-lg overflow-hidden border border-border text-[11px] font-mono bg-muted/20">
             {ALGORITHMS.map(algo => (
               <button
                 key={algo}
@@ -78,9 +78,9 @@ export function PlaybackControls({
                 className="px-3 py-1 transition-all duration-200"
                 style={{
                   background: selectedAlgorithm === algo ? ALGO_COLORS[algo] + '22' : 'transparent',
-                  color: selectedAlgorithm === algo ? ALGO_COLORS[algo] : '#71717a',
+                  color: selectedAlgorithm === algo ? ALGO_COLORS[algo] : 'inherit',
                   fontWeight: selectedAlgorithm === algo ? 700 : 400,
-                  borderRight: algo !== 'Dijkstra' ? '1px solid rgba(63,63,70,0.6)' : 'none',
+                  borderRight: algo !== 'Dijkstra' ? '1px solid var(--border)' : 'none',
                 }}
               >
                 {algo}
@@ -94,18 +94,18 @@ export function PlaybackControls({
           <button
             id="playback-reset"
             onClick={onReset}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 transition-all duration-200"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
             title={t('reset')}
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-px h-4 bg-zinc-700/60 mx-1" />
+          <div className="w-px h-4 bg-border mx-1" />
 
           <button
             id="playback-backward"
             onClick={onStepBackward}
-            className="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
             disabled={currentFrameIndex === 0}
             title={t('stepBackward')}
           >
@@ -131,7 +131,7 @@ export function PlaybackControls({
           <button
             id="playback-forward"
             onClick={onStepForward}
-            className="p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800/60 transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
             disabled={currentFrameIndex === totalFrames - 1 || totalFrames === 0}
             title={t('stepForward')}
           >
@@ -142,8 +142,8 @@ export function PlaybackControls({
         {/* Speed + frame counter */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest hidden sm:block">
-              Speed
+            <span className="text-[9px] font-mono font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">
+              {t('speed')}
             </span>
             <input
               id="speed-slider"
@@ -157,17 +157,17 @@ export function PlaybackControls({
               style={{
                 height: 4,
                 appearance: 'none',
-                background: `linear-gradient(to right, ${accentColor}aa ${((2100 - speed - 100) / 1900) * 100}%, rgba(63,63,70,0.6) ${((2100 - speed - 100) / 1900) * 100}%)`,
+                background: `linear-gradient(to right, ${accentColor}aa ${((2100 - speed - 100) / 1900) * 100}%, rgba(120,120,120,0.3) ${((2100 - speed - 100) / 1900) * 100}%)`,
                 outline: 'none',
                 borderRadius: 4,
               }}
             />
-            <span className="text-[9px] font-mono text-zinc-500 w-8 tabular-nums">
+            <span className="text-[9px] font-mono text-muted-foreground w-8 tabular-nums">
               {(speed / 1000).toFixed(1)}s
             </span>
           </div>
 
-          <span className="text-[10px] font-mono text-zinc-500 tabular-nums">
+          <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
             {totalFrames > 0 ? `${currentFrameIndex + 1} / ${totalFrames}` : '0 / 0'}
           </span>
         </div>

@@ -22,22 +22,22 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
     .sort((a, b) => b.percentage - a.percentage);
 
   return (
-    <div className="space-y-8 bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800/50">
+    <div className="space-y-8 bg-card p-6 rounded-2xl border border-border shadow-sm">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Verdict Analytics</h2>
-          <p className="text-zinc-400">Deep dive into your submission patterns</p>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Verdict Analytics</h2>
+          <p className="text-muted-foreground text-sm">Deep dive into your submission patterns</p>
         </div>
-        <div className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-col items-center sm:items-end">
-          <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Total Submissions</span>
-          <div className="text-xl font-mono text-white leading-none mt-1">{totalSubmissions}</div>
+        <div className="px-4 py-2 rounded-xl bg-secondary/60 border border-border flex flex-col items-center sm:items-end shadow-inner">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold">Total Submissions</span>
+          <div className="text-xl font-mono text-foreground font-bold leading-none mt-1">{totalSubmissions}</div>
         </div>
       </div>
 
       {/* Visual Breakdown */}
       <div className="space-y-6">
-        <div className="h-3 w-full bg-zinc-900 rounded-full overflow-hidden flex shadow-inner">
+        <div className="h-3.5 w-full bg-secondary rounded-full overflow-hidden flex shadow-inner border border-border/40">
           {displayStats.map((stat, index) => {
             const barColors: Record<string, string> = {
               [Verdict.AC]: 'bg-emerald-500',
@@ -53,7 +53,7 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
                 initial={{ width: 0 }}
                 animate={{ width: `${stat.percentage}%` }}
                 transition={{ duration: 1, delay: index * 0.1, ease: "circOut" }}
-                className={cn("h-full", barColors[stat.verdict] || "bg-zinc-700")}
+                className={cn("h-full", barColors[stat.verdict] || "bg-muted-foreground")}
               />
             );
           })}
@@ -65,11 +65,11 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
             const meta = VERDICT_METADATA[v];
             
             return (
-              <div key={v} className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/30 hover:border-zinc-700/50 transition-all group">
+              <div key={v} className="p-3.5 rounded-xl bg-secondary/40 border border-border hover:border-primary/40 transition-all group">
                 <div className={cn("text-[10px] font-bold uppercase tracking-wider mb-1", meta.color)}>{meta.label}</div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-mono font-bold text-zinc-100 group-hover:text-white transition-colors">{stat.count}</span>
-                  <span className="text-xs text-zinc-500">{stat.percentage.toFixed(1)}%</span>
+                  <span className="text-xl font-mono font-bold text-foreground transition-colors">{stat.count}</span>
+                  <span className="text-xs text-muted-foreground">{stat.percentage.toFixed(1)}%</span>
                 </div>
               </div>
             );
@@ -78,10 +78,10 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
       </div>
 
       {/* Smart Insights */}
-      <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+      <div className="space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-2">
           <Zap size={16} className="text-amber-400 fill-amber-400/20" />
-          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-zinc-300">Smart Insights</h3>
+          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-foreground">Smart Insights</h3>
         </div>
 
         <div className="grid gap-3">
@@ -93,12 +93,12 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
               transition={{ delay: 0.6 + index * 0.1 }}
               className={cn(
                 "p-4 rounded-xl border flex gap-4 items-start transition-colors",
-                insight.type === 'success' && "bg-emerald-500/5 border-emerald-500/10 hover:bg-emerald-500/10",
-                insight.type === 'warning' && "bg-amber-500/5 border-amber-500/10 hover:bg-amber-500/10",
-                insight.type === 'info' && "bg-blue-500/5 border-blue-500/10 hover:bg-blue-500/10"
+                insight.type === 'success' && "bg-emerald-500/5 border-emerald-500/20",
+                insight.type === 'warning' && "bg-amber-500/5 border-amber-500/20",
+                insight.type === 'info' && "bg-blue-500/5 border-blue-500/20"
               )}
             >
-              <div className="mt-0.5 p-1.5 rounded-lg bg-zinc-900/80 border border-zinc-800 shadow-sm">
+              <div className="mt-0.5 p-1.5 rounded-lg bg-secondary border border-border shadow-sm">
                 {insight.type === 'success' && <CheckCircle className="text-emerald-500" size={16} />}
                 {insight.type === 'warning' && <AlertTriangle className="text-amber-500" size={16} />}
                 {insight.type === 'info' && <Info className="text-blue-500" size={16} />}
@@ -106,13 +106,13 @@ export default function VerdictAnalytics({ stats }: VerdictAnalyticsProps) {
               <div>
                 <h4 className={cn(
                   "font-bold text-sm mb-0.5 tracking-tight",
-                  insight.type === 'success' && "text-emerald-400",
-                  insight.type === 'warning' && "text-amber-400",
-                  insight.type === 'info' && "text-blue-400"
+                  insight.type === 'success' && "text-emerald-500",
+                  insight.type === 'warning' && "text-amber-500",
+                  insight.type === 'info' && "text-blue-500"
                 )}>
                   {insight.title}
                 </h4>
-                <p className="text-zinc-400 text-xs leading-relaxed max-w-2xl">
+                <p className="text-muted-foreground text-xs leading-relaxed max-w-2xl">
                   {insight.message}
                 </p>
               </div>

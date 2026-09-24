@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 interface GraphNode {
@@ -21,6 +23,11 @@ interface GraphVisualizerProps {
 }
 
 export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const nodes: GraphNode[] = [
     { id: 0, x: 150, y: 50 },
     { id: 1, x: 80, y: 120 },
@@ -119,20 +126,29 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
 
   const step = steps[currentStep] || { visited: [], active: null, queue: [] }
 
+  const title = type === 'bfs'
+    ? (isRu ? 'Обход в ширину (BFS)' : 'Breadth-First Search (BFS)')
+    : (isRu ? 'Обход в глубину (DFS)' : 'Depth-First Search (DFS)')
+
+  const subtitle = isRu
+    ? 'Порядок посещения вершин графа'
+    : 'Graph traversal vertex visitation order'
+
   return (
     <div className="not-prose my-8 p-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Визуализация: {type === 'bfs' ? 'Обход в ширину (BFS)' : 'Обход в глубину (DFS)'}
+            {isRu ? 'Визуализация' : 'Visualization'}: {title}
           </h4>
-          <p className="text-xs text-muted-foreground mt-1">Порядок посещения вершин графа</p>
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
         </div>
         
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setCurrentStep(0); setIsPlaying(false); }}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -144,12 +160,13 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
             )}
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-            {isPlaying ? 'Пауза' : 'Запуск'}
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
           </button>
           <button
             onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
-            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors disabled:opacity-30"
             disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Следующий шаг' : 'Next Step'}
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -173,7 +190,7 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
                 y1={fromNode.y}
                 x2={toNode.x}
                 y2={toNode.y}
-                stroke={isVisited ? '#0ea5e9' : (isFromVisited || isToVisited) ? '#0891b2' : '#3f3f46'}
+                stroke={isVisited ? '#0ea5e9' : (isFromVisited || isToVisited) ? '#0891b2' : (isDark ? '#3f3f46' : '#cbd5e1')}
                 strokeWidth="2"
                 strokeDasharray={isVisited ? "0" : "4 2"}
                 className="transition-colors duration-500"
@@ -194,8 +211,8 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
                   cy={node.y}
                   r="18"
                   animate={{
-                    fill: isActive ? '#f59e0b' : isVisited ? '#0ea5e9' : isInQueue ? '#0891b2' : '#18181b',
-                    stroke: isActive ? '#fbbf24' : isVisited ? '#38bdf8' : isInQueue ? '#0ea5e9' : '#3f3f46',
+                    fill: isActive ? '#f59e0b' : isVisited ? '#0ea5e9' : isInQueue ? '#0891b2' : (isDark ? '#18181b' : '#f4f4f5'),
+                    stroke: isActive ? '#fbbf24' : isVisited ? '#38bdf8' : isInQueue ? '#0ea5e9' : (isDark ? '#3f3f46' : '#d4d4d8'),
                     scale: isActive ? 1.2 : 1,
                   }}
                   strokeWidth="2"
@@ -205,7 +222,8 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
                   y={node.y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-white text-[10px] font-bold font-mono pointer-events-none"
+                  fill={isActive || isVisited || isInQueue ? '#ffffff' : (isDark ? '#ffffff' : '#09090b')}
+                  className="text-[10px] font-bold font-mono pointer-events-none"
                 >
                   {node.id}
                 </text>
@@ -216,10 +234,16 @@ export default function GraphVisualizer({ type = 'bfs' }: GraphVisualizerProps) 
       </div>
 
       <div className="flex items-center gap-4 text-[10px] font-mono text-muted-foreground border-t border-border pt-4 flex-wrap">
-        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#18181b] border border-[#3f3f46]" /> Не посещено</div>
-        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0891b2]" /> В очереди</div>
-        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" /> Активна</div>
-        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9]" /> Посещено</div>
+        <div className="flex items-center gap-1.5">
+          <div className={cn("w-2.5 h-2.5 rounded-full border", isDark ? "bg-[#18181b] border-[#3f3f46]" : "bg-[#f4f4f5] border-[#d4d4d8]")} />
+          {isRu ? 'Не посещено' : 'Unvisited'}
+        </div>
+        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0891b2]" /> {isRu ? 'В очереди' : 'In Queue'}</div>
+        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" /> {isRu ? 'Активна' : 'Active'}</div>
+        <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9]" /> {isRu ? 'Посещено' : 'Visited'}</div>
+        <div className="ml-auto text-muted-foreground">
+          {isRu ? `Шаг ${currentStep + 1} из ${steps.length}` : `Step ${currentStep + 1} of ${steps.length}`}
+        </div>
       </div>
     </div>
   )

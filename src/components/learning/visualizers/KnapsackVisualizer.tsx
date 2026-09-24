@@ -3,9 +3,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 export default function KnapsackVisualizer() {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+
   const items = useMemo(() => [
     { w: 2, v: 3 },
     { w: 3, v: 4 },
@@ -18,7 +22,13 @@ export default function KnapsackVisualizer() {
     const newSteps: { dp: number[][], i: number, j: number, msg: string, activeCells: {i: number, j: number}[] }[] = []
     const currentDp = Array.from({ length: items.length + 1 }, () => new Array(capacity + 1).fill(0))
     
-    newSteps.push({ dp: currentDp.map(r => [...r]), i: -1, j: -1, msg: "Инициализация таблицы DP нулями.", activeCells: [] })
+    newSteps.push({ 
+      dp: currentDp.map(r => [...r]), 
+      i: -1, 
+      j: -1, 
+      msg: isRu ? "Инициализация таблицы DP нулями." : "Initializing DP table with zeros.", 
+      activeCells: [] 
+    })
 
     for (let i = 1; i <= items.length; i++) {
       const { w, v } = items[i - 1]
@@ -31,14 +41,38 @@ export default function KnapsackVisualizer() {
           activeCells.push({ i: i - 1, j: j - w })
           if (take > prev) {
             currentDp[i][j] = take
-            newSteps.push({ dp: currentDp.map(r => [...r]), i, j, msg: `Предмет ${i} (w=${w}, v=${v}): берем его. DP[${i}][${j}] = DP[${i-1}][${j-w}] + ${v} = ${take}`, activeCells })
+            newSteps.push({ 
+              dp: currentDp.map(r => [...r]), 
+              i, 
+              j, 
+              msg: isRu 
+                ? `Предмет ${i} (w=${w}, v=${v}): берем его. DP[${i}][${j}] = DP[${i-1}][${j-w}] + ${v} = ${take}` 
+                : `Item ${i} (w=${w}, v=${v}): take it. DP[${i}][${j}] = DP[${i-1}][${j-w}] + ${v} = ${take}`, 
+              activeCells 
+            })
           } else {
             currentDp[i][j] = prev
-            newSteps.push({ dp: currentDp.map(r => [...r]), i, j, msg: `Предмет ${i} (w=${w}, v=${v}): не берем. DP[${i}][${j}] = DP[${i-1}][${j}] = ${prev}`, activeCells })
+            newSteps.push({ 
+              dp: currentDp.map(r => [...r]), 
+              i, 
+              j, 
+              msg: isRu 
+                ? `Предмет ${i} (w=${w}, v=${v}): не берем. DP[${i}][${j}] = DP[${i-1}][${j}] = ${prev}` 
+                : `Item ${i} (w=${w}, v=${v}): do not take. DP[${i}][${j}] = DP[${i-1}][${j}] = ${prev}`, 
+              activeCells 
+            })
           }
         } else {
           currentDp[i][j] = prev
-          newSteps.push({ dp: currentDp.map(r => [...r]), i, j, msg: `Предмет ${i} (w=${w}, v=${v}): слишком тяжелый. DP[${i}][${j}] = DP[${i-1}][${j}] = ${prev}`, activeCells })
+          newSteps.push({ 
+            dp: currentDp.map(r => [...r]), 
+            i, 
+            j, 
+            msg: isRu 
+              ? `Предмет ${i} (w=${w}, v=${v}): слишком тяжелый. DP[${i}][${j}] = DP[${i-1}][${j}] = ${prev}` 
+              : `Item ${i} (w=${w}, v=${v}): too heavy for weight ${j}. DP[${i}][${j}] = ${prev}`, 
+            activeCells 
+          })
         }
       }
     }
@@ -46,7 +80,13 @@ export default function KnapsackVisualizer() {
     // Backtracking
     let currW = capacity
     const picked: number[] = []
-    newSteps.push({ dp: currentDp.map(r => [...r]), i: -1, j: -1, msg: "Начинаем обратный ход для поиска предметов.", activeCells: [] })
+    newSteps.push({ 
+      dp: currentDp.map(r => [...r]), 
+      i: -1, 
+      j: -1, 
+      msg: isRu ? "Начинаем обратный ход для поиска предметов." : "Backtracking to reconstruct selected items.", 
+      activeCells: [] 
+    })
     
     for (let i = items.length; i > 0; i--) {
       if (currentDp[i][currW] !== currentDp[i - 1][currW]) {
@@ -57,7 +97,9 @@ export default function KnapsackVisualizer() {
           dp: currentDp.map(r => [...r]), 
           i, 
           j: oldW, 
-          msg: `Значение изменилось: предмет ${i} был взят. Новый вес: ${currW}`, 
+          msg: isRu 
+            ? `Значение изменилось: предмет ${i} был взят. Новый вес: ${currW}` 
+            : `Value changed: item ${i} was included. Remaining capacity: ${currW}`, 
           activeCells: [{ i, j: oldW }, { i: i - 1, j: currW }] 
         })
       } else {
@@ -65,7 +107,9 @@ export default function KnapsackVisualizer() {
           dp: currentDp.map(r => [...r]), 
           i, 
           j: currW, 
-          msg: `Значение не изменилось: предмет ${i} не брали.`, 
+          msg: isRu 
+            ? `Значение не изменилось: предмет ${i} не брали.` 
+            : `Value unchanged: item ${i} was skipped.`, 
           activeCells: [{ i, j: currW }, { i: i - 1, j: currW }] 
         })
       }
@@ -75,12 +119,14 @@ export default function KnapsackVisualizer() {
       dp: currentDp.map(r => [...r]), 
       i: -1, 
       j: -1, 
-      msg: `Готово! Выбранные предметы: ${picked.join(', ')}. Итоговая ценность: ${currentDp[items.length][capacity]}`, 
-      activeCells: picked.map(p => ({ i: p, j: 0 })) // Hack to highlight picked items
+      msg: isRu 
+        ? `Готово! Выбранные предметы: ${picked.join(', ')}. Итоговая ценность: ${currentDp[items.length][capacity]}` 
+        : `Done! Selected items: ${picked.join(', ')}. Total value: ${currentDp[items.length][capacity]}`, 
+      activeCells: picked.map(p => ({ i: p, j: 0 }))
     })
 
     return newSteps
-  }, [items, capacity])
+  }, [items, capacity, isRu])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -108,15 +154,39 @@ export default function KnapsackVisualizer() {
     <div className="not-prose my-8 p-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Задача о рюкзаке (DP)</h4>
-          <p className="text-xs text-muted-foreground mt-1">Заполнение таблицы динамики</p>
+          <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
+            {isRu ? 'Задача о рюкзаке (DP)' : '0/1 Knapsack (DP)'}
+          </h4>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? 'Заполнение таблицы динамики' : 'Dynamic programming matrix construction'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="p-2 rounded-lg hover:bg-muted text-muted-foreground"><RotateCcw className="w-4 h-4" /></button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className={cn("flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90")}>
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} {isPlaying ? 'Пауза' : 'Запуск'}
+          <button 
+            onClick={() => { setCurrentStep(0); setIsPlaying(false); }} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
+          >
+            <RotateCcw className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" disabled={currentStep === steps.length - 1}><SkipForward className="w-4 h-4" /></button>
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)} 
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", 
+              isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
+            )}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} 
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
+          </button>
+          <button 
+            onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" 
+            disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Шаг вперед' : 'Step forward'}
+          >
+            <SkipForward className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -156,7 +226,9 @@ export default function KnapsackVisualizer() {
         </table>
       </div>
 
-      <div className="bg-muted/30 p-4 rounded-xl border border-border/50 font-mono text-xs text-muted-foreground"><span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}</div>
+      <div className="bg-muted/30 p-4 rounded-xl border border-border/50 font-mono text-xs text-muted-foreground">
+        <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
+      </div>
     </div>
   )
 }

@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Play, RotateCcw, SkipForward, Pause, Info } from 'lucide-react'
+import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 export default function PrefixSum2DVisualizer({ 
@@ -12,6 +14,11 @@ export default function PrefixSum2DVisualizer({
     [7, 8, 9]
   ] 
 }) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const steps = useMemo(() => {
     const newSteps: { 
       grid: number[][], 
@@ -25,7 +32,15 @@ export default function PrefixSum2DVisualizer({
     const C = initialGrid[0].length
     const pref: (number|null)[][] = Array.from({ length: R }, () => new Array(C).fill(null))
 
-    newSteps.push({ grid: initialGrid, pref: pref.map(row => [...row]), active: null, summing: [], msg: "Исходная матрица. Будем вычислять префиксные суммы." })
+    newSteps.push({ 
+      grid: initialGrid, 
+      pref: pref.map(row => [...row]), 
+      active: null, 
+      summing: [], 
+      msg: isRu 
+        ? "Исходная матрица. Будем вычислять префиксные суммы." 
+        : "Initial matrix. Computing 2D prefix sums." 
+    })
 
     for (let r = 0; r < R; r++) {
       for (let c = 0; c < C; c++) {
@@ -57,7 +72,7 @@ export default function PrefixSum2DVisualizer({
     }
 
     return newSteps
-  }, [initialGrid])
+  }, [initialGrid, isRu])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -81,23 +96,47 @@ export default function PrefixSum2DVisualizer({
       <div className="flex items-center justify-between mb-8">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            2D Префиксные суммы
+            {isRu ? '2D Префиксные суммы' : '2D Prefix Sums'}
           </h4>
-          <p className="text-xs text-muted-foreground mt-1">Вычисление суммы прямоугольника (0,0) до (r,c)</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? 'Вычисление суммы прямоугольника (0,0) до (r,c)' : 'Compute rectangle sum from (0,0) to (r,c)'}
+          </p>
         </div>
         
         <div className="flex items-center gap-2">
-          <button onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"><RotateCcw className="w-4 h-4" /></button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className={cn("flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90")}>
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} {isPlaying ? 'Пауза' : 'Запуск'}
+          <button 
+            onClick={() => { setCurrentStep(0); setIsPlaying(false); }} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
+          >
+            <RotateCcw className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" disabled={currentStep === steps.length - 1}><SkipForward className="w-4 h-4" /></button>
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)} 
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", 
+              isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
+            )}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} 
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
+          </button>
+          <button 
+            onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" 
+            disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Шаг вперед' : 'Step forward'}
+          >
+            <SkipForward className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
         <div>
-          <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3">Матрица A</h5>
+          <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3">
+            {isRu ? 'Матрица A' : 'Matrix A'}
+          </h5>
           <div className="inline-grid grid-cols-3 gap-1 bg-muted/20 p-2 rounded-lg border border-border/50">
             {initialGrid.flat().map((val, i) => {
               const r = Math.floor(i / 3)
@@ -107,10 +146,11 @@ export default function PrefixSum2DVisualizer({
                 <motion.div
                   key={i}
                   animate={{ 
-                    backgroundColor: isActive ? '#0ea5e9' : '#18181b',
+                    backgroundColor: isActive ? '#0ea5e9' : (isDark ? '#18181b' : '#f4f4f5'),
+                    borderColor: isActive ? '#38bdf8' : (isDark ? '#3f3f46' : '#e4e4e7'),
                     scale: isActive ? 1.05 : 1
                   }}
-                  className="w-10 h-10 flex items-center justify-center rounded border border-zinc-800 text-[10px] font-bold font-mono text-foreground"
+                  className="w-10 h-10 flex items-center justify-center rounded border text-[10px] font-bold font-mono text-foreground"
                 >
                   {val}
                 </motion.div>
@@ -120,7 +160,9 @@ export default function PrefixSum2DVisualizer({
         </div>
 
         <div>
-          <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3">Префиксные суммы P</h5>
+          <h5 className="text-[10px] font-bold text-muted-foreground uppercase mb-3">
+            {isRu ? 'Префиксные суммы P' : 'Prefix Sums P'}
+          </h5>
           <div className="inline-grid grid-cols-3 gap-1 bg-muted/20 p-2 rounded-lg border border-border/50">
             {step.pref.flat().map((val, i) => {
               const r = Math.floor(i / 3)
@@ -131,8 +173,8 @@ export default function PrefixSum2DVisualizer({
                 <motion.div
                   key={i}
                   animate={{ 
-                    backgroundColor: isActive ? '#0ea5e9' : isSumming ? '#f59e0b' : '#18181b',
-                    borderColor: isActive ? '#38bdf8' : isSumming ? '#fbbf24' : '#3f3f46',
+                    backgroundColor: isActive ? '#0ea5e9' : isSumming ? '#f59e0b' : (isDark ? '#18181b' : '#f4f4f5'),
+                    borderColor: isActive ? '#38bdf8' : isSumming ? '#fbbf24' : (isDark ? '#3f3f46' : '#e4e4e7'),
                   }}
                   className="w-10 h-10 flex items-center justify-center rounded border text-[10px] font-bold font-mono text-foreground"
                 >

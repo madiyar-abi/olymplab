@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import Editor from '@monaco-editor/react'
 import { useTheme } from '@/components/shared/ThemeProvider'
-import { ChevronDown, Code2 } from 'lucide-react'
+import { ChevronDown, Code2, RotateCcw } from 'lucide-react'
 
 const DEFAULT_TEMPLATES: Record<string, string> = {
   cpp: `#include <iostream>
@@ -86,7 +86,10 @@ export function CodeTemplateEditor({
 }) {
   const t = useTranslations('Settings')
   const { resolvedTheme } = useTheme()
-  const [template, setTemplate] = useState(initialTemplate)
+  const defaultForLang = DEFAULT_TEMPLATES[initialLanguage] || DEFAULT_TEMPLATES['cpp']
+  const [template, setTemplate] = useState(() => {
+    return initialTemplate && initialTemplate.trim().length > 0 ? initialTemplate : defaultForLang
+  })
   const [language, setLanguage] = useState(initialLanguage)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
@@ -94,10 +97,11 @@ export function CodeTemplateEditor({
 
   const handleLanguageChange = (newLang: string) => {
     setLanguage(newLang)
-    // If the template is empty or matches a default template of another language, 
-    // or if the user wants to switch, we update it.
-    // For now, let's just update it to the new default to fulfill the "should switch" requirement.
     setTemplate(DEFAULT_TEMPLATES[newLang] || '')
+  }
+
+  const handleReset = () => {
+    setTemplate(DEFAULT_TEMPLATES[language] || DEFAULT_TEMPLATES['cpp'])
   }
 
   const handleSave = async () => {
@@ -139,8 +143,8 @@ export function CodeTemplateEditor({
           </p>
         </div>
         
-        <div className="flex items-center gap-4 w-full sm:w-auto">
-          <div className="relative group w-full sm:w-48">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative group w-full sm:w-44">
             <select
               value={language}
               onChange={(e) => handleLanguageChange(e.target.value)}
@@ -156,9 +160,19 @@ export function CodeTemplateEditor({
           </div>
 
           <button
+            type="button"
+            onClick={handleReset}
+            title="Reset template to default"
+            className="px-3 py-2.5 rounded-xl font-mono text-xs border border-border bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all flex items-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
+
+          <button
             onClick={handleSave}
             disabled={isSaving}
-            className={`whitespace-nowrap px-6 py-2.5 rounded-xl font-mono text-sm border transition-all duration-300 ${
+            className={`whitespace-nowrap px-5 py-2.5 rounded-xl font-mono text-sm border transition-all duration-300 ${
               saveStatus === 'success' 
                 ? 'bg-green-500/10 border-green-500/50 text-green-500' 
                 : saveStatus === 'error'

@@ -30,6 +30,7 @@ import '@xyflow/react/dist/style.css';
 import { PlaybackControls } from './PlaybackControls';
 import { useGraphSimulation } from '../../hooks/useGraphSimulation';
 import { AlgorithmType, runBFS, runDFS, runDijkstra } from '../../utils/graphAlgorithms';
+import { useTheme } from '@/components/shared/ThemeProvider';
 
 interface GraphVisualizerProps {
   initialNodes: Node[];
@@ -56,12 +57,12 @@ function CustomNode({ data, selected }: NodeProps) {
 
   // State-driven classes
   const stateClasses = isCurrent
-    ? 'bg-amber-400 border-2 border-amber-300 text-black ring-4 ring-offset-2 ring-offset-zinc-950 ring-amber-400/70 shadow-[0_0_20px_rgba(251,191,36,0.4)]'
+    ? 'bg-amber-400 border-2 border-amber-300 text-black ring-4 ring-offset-2 ring-offset-background ring-amber-400/70 shadow-[0_0_20px_rgba(251,191,36,0.4)]'
     : isVisited
-    ? 'bg-emerald-600 border-2 border-emerald-400 text-white ring-4 ring-offset-2 ring-offset-zinc-950 ring-emerald-500/60 shadow-[0_0_16px_rgba(16,185,129,0.3)]'
+    ? 'bg-emerald-600 border-2 border-emerald-400 text-white ring-4 ring-offset-2 ring-offset-background ring-emerald-500/60 shadow-[0_0_16px_rgba(16,185,129,0.3)]'
     : selected
-    ? 'bg-zinc-800 border-2 border-indigo-400 text-white ring-4 ring-offset-2 ring-offset-zinc-950 ring-indigo-500/50'
-    : 'bg-zinc-800 border-2 border-zinc-600 text-white shadow-lg hover:border-zinc-400';
+    ? 'bg-primary/20 border-2 border-primary text-foreground ring-4 ring-offset-2 ring-offset-background ring-primary/50'
+    : 'bg-card border-2 border-border text-foreground shadow-md hover:border-muted-foreground';
 
   return (
     <div className={`${base} ${stateClasses}`}>
@@ -102,7 +103,6 @@ function StraightEdge({
   style = {},
   markerEnd,
   label,
-  selected,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX, sourceY,
@@ -124,7 +124,7 @@ function StraightEdge({
             className="absolute nodrag nopan"
             style={{ transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)` }}
           >
-            <span className="bg-zinc-900 text-zinc-300 px-2 py-0.5 rounded-md text-xs border border-zinc-700 font-mono font-semibold shadow-md">
+            <span className="bg-card text-foreground px-2 py-0.5 rounded-md text-xs border border-border font-mono font-semibold shadow-md">
               {label as string}
             </span>
           </div>
@@ -141,6 +141,9 @@ const edgeTypes = { straight: StraightEdge };
 // Inner component (needs ReactFlow context)
 // ─────────────────────────────────────────────────────────────────────────────
 function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedAlgorithm, setSelectedAlgorithm] = useState<AlgorithmType>('BFS');
@@ -255,7 +258,7 @@ function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerPro
         defaultEdgeOptions={{ type: 'straight' }}
         fitView
         fitViewOptions={{ padding: 0.3 }}
-        colorMode="dark"
+        colorMode={isDark ? 'dark' : 'light'}
         nodesDraggable
         nodesConnectable
         elementsSelectable
@@ -271,7 +274,7 @@ function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerPro
       >
         <Background
           variant={BackgroundVariant.Dots}
-          color="rgba(255,255,255,0.035)"
+          color={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.12)"}
           gap={28}
           size={1.5}
         />
@@ -279,19 +282,19 @@ function GraphVisualizerInner({ initialNodes, initialEdges }: GraphVisualizerPro
           showInteractive={false}
           showFitView
           showZoom
-          className="!bg-zinc-900/90 !border-zinc-700/50 !shadow-2xl [&>button]:!bg-zinc-900 [&>button]:!text-zinc-400 [&>button:hover]:!bg-zinc-800 [&>button:hover]:!text-white [&>button]:!border-zinc-700/50"
+          className="!bg-card/95 !border-border !shadow-2xl [&>button]:!bg-card [&>button]:!text-muted-foreground [&>button:hover]:!bg-muted [&>button:hover]:!text-foreground [&>button]:!border-border"
         />
         <MiniMap
           nodeColor={n => {
             const d = n.data as { isCurrent?: boolean; isVisited?: boolean };
             if (d.isCurrent) return '#f59e0b';
             if (d.isVisited) return '#10b981';
-            return '#3f3f46';
+            return isDark ? '#3f3f46' : '#cbd5e1';
           }}
-          maskColor="rgba(0,0,0,0.55)"
+          maskColor={isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.65)"}
           style={{
-            background: '#18181b',
-            border: '1px solid rgba(63,63,70,0.5)',
+            background: isDark ? '#18181b' : '#ffffff',
+            border: '1px solid var(--border)',
             borderRadius: 8,
           }}
           nodeStrokeWidth={2}

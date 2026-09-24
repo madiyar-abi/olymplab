@@ -1,7 +1,7 @@
 "use client"
 
 import { Link } from '@/i18n/routing'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { CheckCircle2, Circle, ExternalLink, Flag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Problem } from '@/app/[locale]/dashboard/problems/ProblemsClient'
@@ -86,6 +86,7 @@ function ProblemRow({
   userId?: string 
 }) {
   const t = useTranslations('Problems')
+  const locale = useLocale()
   const [revealed, setRevealed] = useState(isInitiallyRevealed)
   const supabase = createClient()
   const shouldHide = hideTagsSetting && !isSolved && !revealed
@@ -130,7 +131,7 @@ function ProblemRow({
               href={`/dashboard/problems/${problem.id}`}
               className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1"
             >
-              {problem.title}
+              {(locale === 'ru' && problem.title_ru) ? problem.title_ru : problem.title}
             </Link>
             {problem.rating && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400/10 border border-amber-400/20 text-amber-300">

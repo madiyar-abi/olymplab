@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { InteractivePlayground } from '@/components/landing/InteractivePlayground'
 import { InteractiveVisualizerTeaser } from '@/components/landing/InteractiveVisualizerTeaser'
 
@@ -45,7 +46,7 @@ const stagger: Variants = {
   show: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
 }
 
-const GOLD = 'bg-gradient-to-br from-amber-200 via-amber-300 to-orange-400 bg-clip-text text-transparent'
+const GOLD = 'bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 dark:from-amber-200 dark:via-amber-300 dark:to-orange-400 bg-clip-text text-transparent'
 
 export default function LandingPage() {
   const t = useTranslations('Landing')
@@ -83,25 +84,25 @@ export default function LandingPage() {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden text-white scroll-smooth selection:bg-amber-400/30 relative"
+      className="flex-1 overflow-y-auto overflow-x-hidden bg-background text-foreground scroll-smooth selection:bg-amber-400/30 relative"
     >
       {/* ── Ink canvas + warm/cool ambient glow ── */}
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-[#070709]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#11101a] via-[#070709] to-black" />
-        <div className="absolute top-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-amber-500/10 blur-[180px] rounded-full" />
-        <div className="absolute top-[30%] left-[-10%] w-[40vw] h-[40vw] bg-blue-600/10 blur-[180px] rounded-full" />
-        <div className="absolute bottom-[-10%] left-[30%] w-[45vw] h-[45vw] bg-indigo-700/10 blur-[200px] rounded-full" />
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-background">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/5 via-background to-background dark:from-[#11101a] dark:via-[#070709] dark:to-black" />
+        <div className="absolute top-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-amber-500/10 blur-[180px] rounded-full opacity-60 dark:opacity-100" />
+        <div className="absolute top-[30%] left-[-10%] w-[40vw] h-[40vw] bg-blue-600/10 blur-[180px] rounded-full opacity-50 dark:opacity-100" />
+        <div className="absolute bottom-[-10%] left-[30%] w-[45vw] h-[45vw] bg-indigo-700/10 blur-[200px] rounded-full opacity-50 dark:opacity-100" />
         <div
-          className="absolute inset-0 opacity-[0.06]"
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]"
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.09) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.09) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
             backgroundSize: '46px 46px',
             maskImage: 'radial-gradient(ellipse at top, black 30%, transparent 75%)',
             WebkitMaskImage: 'radial-gradient(ellipse at top, black 30%, transparent 75%)',
           }}
         />
         <div
-          className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+          className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03] mix-blend-overlay"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
           }}
@@ -115,23 +116,23 @@ export default function LandingPage() {
             initial={{ y: -90, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="max-w-6xl mx-auto rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]"
+            className="max-w-6xl mx-auto rounded-2xl border border-border bg-card/85 dark:bg-black/60 backdrop-blur-xl shadow-lg dark:shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]"
           >
             <div className="px-4 sm:px-5 h-16 flex items-center justify-between">
               <Link href="/" className="flex items-center gap-2.5 group/logo">
                 <Image src="/logo.png" alt="OlympLab" width={30} height={30} className="rounded-lg" />
-                <span className="font-bold text-lg tracking-tight text-white group-hover/logo:text-amber-200 transition-colors">
+                <span className="font-bold text-lg tracking-tight text-foreground group-hover/logo:text-amber-500 dark:group-hover/logo:text-amber-200 transition-colors">
                   OlympLab
                 </span>
               </Link>
 
-              <nav className="hidden md:flex items-center gap-1 bg-white/[0.03] border border-white/10 rounded-full px-1.5 py-1.5">
+              <nav className="hidden md:flex items-center gap-1 bg-muted/40 border border-border rounded-full px-1.5 py-1.5">
                 {navLinks.map((item) => (
                   <a
                     key={item.label}
                     href={item.href}
                     onClick={(e) => scrollToSection(e, item.href)}
-                    className="text-sm font-medium px-3.5 py-1.5 rounded-full text-white/65 hover:text-white hover:bg-white/10 transition-colors"
+                    className="text-sm font-medium px-3.5 py-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   >
                     {item.label}
                   </a>
@@ -139,13 +140,14 @@ export default function LandingPage() {
               </nav>
 
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="hidden md:block">
+                <div className="hidden md:flex items-center gap-2">
                   <LanguageSwitcher />
+                  <ThemeToggle />
                 </div>
                 {user ? (
                   <Link
                     href="/dashboard"
-                    className="flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20 transition-colors"
+                    className="flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl border border-amber-400/40 bg-amber-400/10 text-amber-700 dark:text-amber-100 hover:bg-amber-400/20 transition-colors"
                   >
                     <Terminal className="w-4 h-4" />
                     <span className="hidden sm:inline">{tNav('dashboard')}</span>
@@ -154,13 +156,13 @@ export default function LandingPage() {
                   <>
                     <Link
                       href="/login"
-                      className="text-sm font-medium text-white/65 hover:text-white transition-colors hidden sm:block px-3"
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block px-3"
                     >
                       {tNav('login')}
                     </Link>
                     <Link
                       href="/signup"
-                      className="text-sm font-bold px-4 sm:px-5 py-2 rounded-xl bg-amber-400 text-black hover:bg-amber-300 transition-colors flex items-center gap-1.5"
+                      className="text-sm font-bold px-4 sm:px-5 py-2 rounded-xl bg-amber-400 text-black hover:bg-amber-300 transition-colors flex items-center gap-1.5 shadow-sm"
                     >
                       {tNav('signup')}
                       <ArrowRight className="w-4 h-4" />
@@ -169,7 +171,7 @@ export default function LandingPage() {
                 )}
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="md:hidden p-2 rounded-xl border border-white/10 text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                  className="md:hidden p-2 rounded-xl border border-border text-foreground/80 hover:text-foreground hover:bg-muted transition-colors"
                   aria-label="Toggle menu"
                 >
                   {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -184,7 +186,7 @@ export default function LandingPage() {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25, ease: 'easeInOut' }}
-                  className="md:hidden overflow-hidden border-t border-white/10 px-5 py-5 space-y-5"
+                  className="md:hidden overflow-hidden border-t border-border px-5 py-5 space-y-5"
                 >
                   <nav className="flex flex-col gap-4">
                     {navLinks.map((item) => (
@@ -192,14 +194,15 @@ export default function LandingPage() {
                         key={item.label}
                         href={item.href}
                         onClick={(e) => scrollToSection(e, item.href)}
-                        className="text-base font-semibold text-white/80 hover:text-white transition-colors"
+                        className="text-base font-semibold text-foreground/80 hover:text-foreground transition-colors"
                       >
                         {item.label}
                       </a>
                     ))}
                   </nav>
-                  <div className="pt-4 border-t border-white/10">
+                  <div className="pt-4 border-t border-border flex items-center justify-between">
                     <LanguageSwitcher />
+                    <ThemeToggle />
                   </div>
                 </motion.div>
               )}
@@ -219,7 +222,7 @@ export default function LandingPage() {
               variants={reveal}
               href="#features"
               onClick={(e) => scrollToSection(e, '#features')}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-xs sm:text-sm font-medium text-white/70 hover:border-amber-400/30 hover:text-white transition-colors mb-8"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-1.5 text-xs sm:text-sm font-medium text-foreground/80 hover:border-amber-400/40 hover:text-foreground transition-colors mb-8"
             >
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/70" />
@@ -232,13 +235,13 @@ export default function LandingPage() {
               variants={reveal}
               className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6"
             >
-              <span className="block text-white">{t('heroTitle1')}</span>
+              <span className="block text-foreground">{t('heroTitle1')}</span>
               <span className={cn('block', GOLD)}>{t('heroTitle2')}</span>
             </motion.h1>
 
             <motion.p
               variants={reveal}
-              className="text-base md:text-xl text-white/60 max-w-2xl mx-auto mb-9 leading-relaxed"
+              className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto mb-9 leading-relaxed"
             >
               {t('heroSubtitle')}
             </motion.p>
@@ -254,7 +257,7 @@ export default function LandingPage() {
               <a
                 href="#features"
                 onClick={(e) => scrollToSection(e, '#features')}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-white/[0.04] border border-white/15 text-white font-semibold text-base hover:bg-white/10 hover:border-white/25 transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-muted/60 border border-border text-foreground font-semibold text-base hover:bg-muted transition-colors"
               >
                 {t('exploreFeatures')}
               </a>
@@ -262,12 +265,12 @@ export default function LandingPage() {
 
             <motion.div
               variants={reveal}
-              className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 font-mono text-xs sm:text-sm text-white/40"
+              className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 font-mono text-xs sm:text-sm text-muted-foreground/70"
             >
               {languages.map((lang, i) => (
                 <span key={lang} className="flex items-center gap-3">
-                  {i > 0 && <span className="text-white/20">·</span>}
-                  <span className="hover:text-amber-200/80 transition-colors">{lang}</span>
+                  {i > 0 && <span className="text-muted-foreground/40">·</span>}
+                  <span className="hover:text-amber-500 dark:hover:text-amber-200 transition-colors">{lang}</span>
                 </span>
               ))}
             </motion.div>
@@ -288,7 +291,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── Trust strip ── */}
-        <section className="relative z-10 border-y border-white/10 bg-white/[0.015] py-10">
+        <section className="relative z-10 border-y border-border bg-muted/20 py-10">
           <div className="max-w-5xl mx-auto px-6">
             <motion.div
               initial="hidden"
@@ -302,7 +305,7 @@ export default function LandingPage() {
                   <div className={cn('text-2xl md:text-3xl font-black tracking-tight mb-1', GOLD)}>
                     {t(`trust.${key}Value`)}
                   </div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {t(`trust.${key}`)}
                   </div>
                 </motion.div>
@@ -321,10 +324,10 @@ export default function LandingPage() {
               variants={reveal}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5">
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5 text-foreground">
                 {t('featuresHeading')} <span className={GOLD}>{t('featuresHeadingColor')}</span>
               </h2>
-              <p className="text-white/55 text-base md:text-lg max-w-2xl mx-auto">{t('featuresSub')}</p>
+              <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto">{t('featuresSub')}</p>
             </motion.div>
 
             <motion.div
@@ -342,7 +345,7 @@ export default function LandingPage() {
                     key={f.key}
                     variants={reveal}
                     className={cn(
-                      'group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-7 transition-all duration-300 hover:-translate-y-1',
+                      'group relative overflow-hidden rounded-3xl border border-border bg-card/70 backdrop-blur-md p-7 transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-md',
                       a.hoverBorder,
                       a.glow,
                       f.span,
@@ -358,10 +361,10 @@ export default function LandingPage() {
                       <div className={cn('inline-flex p-3 rounded-2xl border mb-5', a.icon)}>
                         <Icon className="w-6 h-6" />
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-2.5 tracking-tight">
+                      <h3 className="text-xl font-bold text-foreground mb-2.5 tracking-tight">
                         {t(`features.${f.key}Title`)}
                       </h3>
-                      <p className="text-white/55 leading-relaxed text-[15px]">{t(`features.${f.key}Desc`)}</p>
+                      <p className="text-muted-foreground leading-relaxed text-[15px]">{t(`features.${f.key}Desc`)}</p>
                     </div>
                   </motion.div>
                 )
@@ -371,14 +374,14 @@ export default function LandingPage() {
         </section>
 
         {/* ── Visualizers ── */}
-        <section id="visualizers" style={{ scrollMarginTop: 96 }} className="py-24 md:py-32 px-4 relative z-10 border-t border-white/10">
+        <section id="visualizers" style={{ scrollMarginTop: 96 }} className="py-24 md:py-32 px-4 relative z-10 border-t border-border">
           <div className="max-w-5xl mx-auto text-center">
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={reveal}>
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-200 mb-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-200 mb-6">
                 <Sparkles className="w-3.5 h-3.5" /> {t('trust.visualizersValue')}
               </div>
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5">{t('visualizersHeading')}</h2>
-              <p className="text-white/55 text-base md:text-lg max-w-2xl mx-auto mb-12">{t('visualizersSub')}</p>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-5 text-foreground">{t('visualizersHeading')}</h2>
+              <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto mb-12">{t('visualizersSub')}</p>
             </motion.div>
 
             <motion.div
@@ -392,14 +395,14 @@ export default function LandingPage() {
                 <motion.span
                   key={name}
                   variants={reveal}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/70 hover:border-amber-400/30 hover:text-white hover:bg-amber-400/[0.06] transition-colors cursor-default"
+                  className="rounded-xl border border-border bg-card/60 px-4 py-2 text-sm font-medium text-foreground/80 hover:border-amber-400/30 hover:text-foreground hover:bg-amber-400/10 transition-colors cursor-default"
                 >
                   {name}
                 </motion.span>
               ))}
               <motion.span
                 variants={reveal}
-                className="rounded-xl border border-dashed border-white/15 px-4 py-2 text-sm font-medium text-white/40"
+                className="rounded-xl border border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground"
               >
                 {t('visualizersMore')}…
               </motion.span>
@@ -419,14 +422,14 @@ export default function LandingPage() {
         </section>
 
         {/* ── How it works ── */}
-        <section id="how" style={{ scrollMarginTop: 96 }} className="py-24 md:py-32 px-4 relative z-10 border-t border-white/10">
+        <section id="how" style={{ scrollMarginTop: 96 }} className="py-24 md:py-32 px-4 relative z-10 border-t border-border">
           <div className="max-w-6xl mx-auto">
             <motion.h2
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
               variants={reveal}
-              className="text-3xl md:text-5xl font-black tracking-tight text-center mb-16"
+              className="text-3xl md:text-5xl font-black tracking-tight text-center mb-16 text-foreground"
             >
               {t('howHeading')}
             </motion.h2>
@@ -441,11 +444,11 @@ export default function LandingPage() {
                 <motion.div
                   key={n}
                   variants={reveal}
-                  className="relative rounded-2xl border border-white/10 bg-white/[0.02] p-6"
+                  className="relative rounded-2xl border border-border bg-card/60 p-6 shadow-sm"
                 >
-                  <div className="text-5xl font-black text-white/[0.07] mb-3 leading-none">{`0${n}`}</div>
-                  <h3 className="text-lg font-bold text-white mb-2">{t(`how.step${n}Title`)}</h3>
-                  <p className="text-white/55 text-sm leading-relaxed">{t(`how.step${n}Desc`)}</p>
+                  <div className="text-5xl font-black text-foreground/[0.08] mb-3 leading-none">{`0${n}`}</div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">{t(`how.step${n}Title`)}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{t(`how.step${n}Desc`)}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -453,26 +456,26 @@ export default function LandingPage() {
         </section>
 
         {/* ── AI mentor spotlight ── */}
-        <section id="mentor" style={{ scrollMarginTop: 96 }} className="py-24 md:py-32 px-4 relative z-10 border-t border-white/10">
+        <section id="mentor" style={{ scrollMarginTop: 96 }} className="py-24 md:py-32 px-4 relative z-10 border-t border-border">
           <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-14 items-center">
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={stagger}>
               <motion.div
                 variants={reveal}
-                className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200 mb-6"
+                className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-200 mb-6"
               >
                 <Bot className="w-3.5 h-3.5" /> {t('ide.mentorName')}
               </motion.div>
-              <motion.h2 variants={reveal} className="text-3xl md:text-5xl font-black tracking-tight mb-5">
+              <motion.h2 variants={reveal} className="text-3xl md:text-5xl font-black tracking-tight mb-5 text-foreground">
                 {t('mentorHeading')}
               </motion.h2>
-              <motion.p variants={reveal} className="text-white/55 text-base md:text-lg leading-relaxed mb-8">
+              <motion.p variants={reveal} className="text-muted-foreground text-base md:text-lg leading-relaxed mb-8">
                 {t('mentorSub')}
               </motion.p>
               <ul className="space-y-4">
                 {mentorPoints.map((key) => (
                   <motion.li key={key} variants={reveal} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
-                    <span className="text-white/75">{t(key)}</span>
+                    <CheckCircle2 className="w-5 h-5 text-amber-500 dark:text-amber-300 shrink-0 mt-0.5" />
+                    <span className="text-foreground/80">{t(key)}</span>
                   </motion.li>
                 ))}
               </ul>
@@ -483,27 +486,27 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="rounded-2xl border border-white/10 bg-[#0b0b0f] p-6 shadow-2xl"
+              className="rounded-2xl border border-border bg-card p-6 shadow-2xl"
             >
-              <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-                <div className="w-9 h-9 rounded-lg bg-violet-500/25 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-violet-300" />
+              <div className="flex items-center gap-3 pb-4 border-b border-border">
+                <div className="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-violet-600 dark:text-violet-300" />
                 </div>
-                <div className="text-sm font-bold text-white">{t('ide.mentorName')}</div>
+                <div className="text-sm font-bold text-foreground">{t('ide.mentorName')}</div>
               </div>
               <div className="space-y-3 pt-4">
-                <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-amber-400/10 border border-amber-400/20 px-4 py-2.5 text-sm text-amber-50">
+                <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-amber-400/10 border border-amber-400/20 px-4 py-2.5 text-sm text-amber-800 dark:text-amber-50">
                   {t('how.step3Title')}?
                 </div>
-                <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-white/[0.04] border border-white/10 px-4 py-2.5 text-sm text-white/80 leading-relaxed">
+                <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-muted/60 border border-border px-4 py-2.5 text-sm text-foreground/80 leading-relaxed">
                   {t('ide.mentorText')}
                 </div>
                 <div className="flex items-center gap-2 pt-2">
-                  <div className="flex-1 rounded-xl bg-white/[0.03] border border-white/10 px-4 py-2.5 text-sm text-white/30">
+                  <div className="flex-1 rounded-xl bg-muted/40 border border-border px-4 py-2.5 text-sm text-muted-foreground">
                     …
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center">
-                    <Send className="w-4 h-4 text-black" />
+                  <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center text-black">
+                    <Send className="w-4 h-4" />
                   </div>
                 </div>
               </div>
@@ -512,14 +515,14 @@ export default function LandingPage() {
         </section>
 
         {/* ── Extras ── */}
-        <section className="py-20 px-4 relative z-10 border-t border-white/10">
+        <section className="py-20 px-4 relative z-10 border-t border-border">
           <div className="max-w-6xl mx-auto">
             <motion.h2
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
               variants={reveal}
-              className="text-2xl md:text-3xl font-black tracking-tight text-center mb-12 text-white/90"
+              className="text-2xl md:text-3xl font-black tracking-tight text-center mb-12 text-foreground"
             >
               {t('extrasHeading')}
             </motion.h2>
@@ -538,15 +541,15 @@ export default function LandingPage() {
                     key={f.key}
                     variants={reveal}
                     className={cn(
-                      'rounded-2xl border border-white/10 bg-white/[0.02] p-6 transition-colors',
+                      'rounded-2xl border border-border bg-card/60 p-6 transition-colors shadow-sm hover:shadow-md',
                       a.hoverBorder,
                     )}
                   >
                     <div className={cn('inline-flex p-2.5 rounded-xl border mb-4', a.icon)}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <h3 className="text-base font-bold text-white mb-2">{t(`extras.${f.key}Title`)}</h3>
-                    <p className="text-white/55 text-sm leading-relaxed">{t(`extras.${f.key}Desc`)}</p>
+                    <h3 className="text-base font-bold text-foreground mb-2">{t(`extras.${f.key}Title`)}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{t(`extras.${f.key}Desc`)}</p>
                   </motion.div>
                 )
               })}
@@ -563,7 +566,7 @@ export default function LandingPage() {
             variants={stagger}
             className="max-w-3xl mx-auto text-center"
           >
-            <motion.h2 variants={reveal} className="text-4xl md:text-6xl font-black tracking-tight mb-8">
+            <motion.h2 variants={reveal} className="text-4xl md:text-6xl font-black tracking-tight mb-8 text-foreground">
               {t('ctaTitle')} <span className={GOLD}>{t('ctaTitleColor')}</span>
             </motion.h2>
             <motion.div variants={reveal} className="flex justify-center">
@@ -575,7 +578,7 @@ export default function LandingPage() {
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </motion.div>
-            <motion.p variants={reveal} className="text-white/45 mt-6 text-sm">
+            <motion.p variants={reveal} className="text-muted-foreground mt-6 text-sm">
               {t('ctaSub')}
             </motion.p>
           </motion.div>

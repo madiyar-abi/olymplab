@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Link, useRouter } from '@/i18n/routing'
-import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/routing'
+import { useTranslations, useLocale } from 'next-intl'
 import { ArrowRight, FilterX, Eye, Flag, Search, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TagSelector } from './TagSelector'
@@ -65,6 +65,7 @@ const itemVariants = {
 export interface Problem {
   id: string
   title: string
+  title_ru?: string | null
   difficulty: string
   requirements: Requirements
   tags?: string[]
@@ -158,6 +159,7 @@ export function ProblemsClient({
   initialView?: ViewMode
 }) {
   const t = useTranslations('Problems')
+  const locale = useLocale()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -169,32 +171,32 @@ export function ProblemsClient({
   const handleViewChange = async (newView: ViewMode) => {
     setView(newView)
     setCookie('problems-view', newView)
-    if (userId) {
-      await supabase.from('profiles')
-        .update({ problems_view: newView })
-        .eq('id', userId)
+    try {
+      await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problems_view: newView }),
+      })
+    } catch (e) {
+      console.error('Failed to sync view preference:', e)
     }
   }
 
   const supabase = createClient()
-  const router = useRouter()
 
   const handleToggleSpoiler = async () => {
     const newValue = !hideUnsolved
     setHideUnsolved(newValue)
+    setCookie('hide-unsolved-tags', String(newValue))
     
-    if (userId) {
-      await supabase.from('profiles')
-        .update({ 
-          hide_unsolved_tags: newValue,
-          settings: { 
-            ...initialSettings, 
-            hide_unsolved_tags: newValue 
-          } 
-        })
-        .eq('id', userId)
-      
-      router.refresh()
+    try {
+      await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hide_unsolved_tags: newValue }),
+      })
+    } catch (e) {
+      console.error('Failed to sync spoiler preference:', e)
     }
   }
 
@@ -518,7 +520,7 @@ export function ProblemsClient({
                       {/* Problem Title & Solved badge */}
                       <div className="flex flex-col items-center gap-1.5 my-auto px-2">
                         <h3 className="text-base font-bold text-foreground line-clamp-2 font-mono tracking-tight group-hover:text-primary transition-colors">
-                          {problem.title}
+                          {(locale === 'ru' && problem.title_ru) ? problem.title_ru : problem.title}
                         </h3>
                         {isSolved && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">

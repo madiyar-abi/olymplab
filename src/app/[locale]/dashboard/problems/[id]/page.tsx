@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import IDEClient, { Problem } from './IDEClient'
 
 export const dynamic = 'force-dynamic'
@@ -35,7 +36,7 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
   // Fetch user's code template and settings
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('code_template, settings, preferred_language')
+    .select('code_template, settings, preferred_language, hide_unsolved_tags')
     .eq('id', user.id)
     .single()
 
@@ -43,7 +44,14 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
     code_template: string | null;
     settings: { sound_enabled: boolean; hide_unsolved_tags?: boolean } | null;
     preferred_language: string | null;
+    hide_unsolved_tags: boolean | null;
   } | null
+
+  const cookieStore = await cookies()
+  const cookieHideTags = cookieStore.get('hide-unsolved-tags')?.value
+  const hideUnsolvedTags = cookieHideTags !== undefined
+    ? cookieHideTags === 'true'
+    : (profile?.hide_unsolved_tags ?? profile?.settings?.hide_unsolved_tags ?? true)
 
   // Check if problem is already solved or revealed
   const [{ data: solvedData }, { data: revealedData }] = await Promise.all([
@@ -106,7 +114,10 @@ export default async function ProblemIDEPage({ params, searchParams }: PageProps
         initialLanguage={initialLanguage}
         isSolved={isSolved}
         initialIsRevealed={initialIsRevealed}
-        settings={profile?.settings || { sound_enabled: true }}
+        settings={{
+          sound_enabled: profile?.settings?.sound_enabled ?? true,
+          hide_unsolved_tags: hideUnsolvedTags,
+        }}
       />
     </div>
   )

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 interface Point {
@@ -12,6 +14,11 @@ interface Point {
 }
 
 export default function ConvexHullVisualizer() {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const initialPoints: Point[] = useMemo(() => [
     { x: 50, y: 50, id: 1 }, { x: 150, y: 30, id: 2 }, { x: 240, y: 60, id: 3 },
     { x: 260, y: 150, id: 4 }, { x: 200, y: 220, id: 5 }, { x: 80, y: 240, id: 6 },
@@ -25,7 +32,11 @@ export default function ConvexHullVisualizer() {
     // Sort points by X (Monotone Chain)
     const sorted = [...initialPoints].sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y)
     
-    newSteps.push({ hull: [], active: null, msg: "Сортируем точки по координате X." })
+    newSteps.push({ 
+      hull: [], 
+      active: null, 
+      msg: isRu ? "Сортируем точки по координате X." : "Sorting points by X coordinate." 
+    })
 
     const crossProduct = (a: Point, b: Point, c: Point) => {
       return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
@@ -35,10 +46,22 @@ export default function ConvexHullVisualizer() {
     for (const p of sorted) {
       while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
         const removed = upper.pop()!
-        newSteps.push({ hull: [...upper], active: p, msg: `Удаляем точку ${removed.id}: поворот не в ту сторону.` })
+        newSteps.push({ 
+          hull: [...upper], 
+          active: p, 
+          msg: isRu 
+            ? `Удаляем точку ${removed.id}: поворот не в ту сторону.` 
+            : `Discard point ${removed.id}: not a counter-clockwise turn.` 
+        })
       }
       upper.push(p)
-      newSteps.push({ hull: [...upper], active: p, msg: `Добавляем точку ${p.id} в верхнюю оболочку.` })
+      newSteps.push({ 
+        hull: [...upper], 
+        active: p, 
+        msg: isRu 
+          ? `Добавляем точку ${p.id} в верхнюю оболочку.` 
+          : `Add point ${p.id} to upper hull.` 
+      })
     }
 
     const lower: Point[] = []
@@ -46,20 +69,36 @@ export default function ConvexHullVisualizer() {
       const p = sorted[i]
       while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
         const removed = lower.pop()!
-        newSteps.push({ hull: [...upper, ...lower], active: p, msg: `Удаляем точку ${removed.id}: поворот не в ту сторону.` })
+        newSteps.push({ 
+          hull: [...upper, ...lower], 
+          active: p, 
+          msg: isRu 
+            ? `Удаляем точку ${removed.id}: поворот не в ту сторону.` 
+            : `Discard point ${removed.id}: not a counter-clockwise turn.` 
+        })
       }
       lower.push(p)
-      newSteps.push({ hull: [...upper, ...lower], active: p, msg: `Добавляем точку ${p.id} в нижнюю оболочку.` })
+      newSteps.push({ 
+        hull: [...upper, ...lower], 
+        active: p, 
+        msg: isRu 
+          ? `Добавляем точку ${p.id} в нижнюю оболочку.` 
+          : `Add point ${p.id} to lower hull.` 
+      })
     }
 
     // Combine
     upper.pop()
     lower.pop()
     const fullHull = [...upper, ...lower]
-    newSteps.push({ hull: fullHull, active: null, msg: "Построение выпуклой оболочки завершено!" })
+    newSteps.push({ 
+      hull: fullHull, 
+      active: null, 
+      msg: isRu ? "Построение выпуклой оболочки завершено!" : "Convex hull construction completed!" 
+    })
 
     return newSteps
-  }, [initialPoints])
+  }, [initialPoints, isRu])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -84,7 +123,7 @@ export default function ConvexHullVisualizer() {
     return () => clearInterval(interval)
   }, [isPlaying, currentStep, steps.length])
 
-  const step = steps[currentStep] || { hull: [], active: null, msg: "" }
+  const step = useMemo(() => steps[currentStep] || { hull: [], active: null, msg: "" }, [steps, currentStep])
 
   const pathD = useMemo(() => {
     if (step.hull.length === 0) return ""
@@ -93,11 +132,9 @@ export default function ConvexHullVisualizer() {
       d += ` L ${step.hull[i].x} ${step.hull[i].y}`
     }
     
-    // Add active point if it exists
     if (step.active) {
       d += ` L ${step.active.x} ${step.active.y}`
     } else if (currentStep === steps.length - 1 && step.hull.length > 2) {
-      // Close the hull at the final step
       d += ` Z`
     }
     return d
@@ -107,15 +144,39 @@ export default function ConvexHullVisualizer() {
     <div className="not-prose my-8 p-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Выпуклая оболочка</h4>
-          <p className="text-xs text-muted-foreground mt-1">Алгоритм Эндрю (Monotone Chain)</p>
+          <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
+            {isRu ? 'Выпуклая оболочка' : 'Convex Hull'}
+          </h4>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? 'Алгоритм Эндрю (Monotone Chain)' : "Andrew's Algorithm (Monotone Chain)"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="p-2 rounded-lg hover:bg-muted text-muted-foreground"><RotateCcw className="w-4 h-4" /></button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className={cn("flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90")}>
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} {isPlaying ? 'Пауза' : 'Запуск'}
+          <button 
+            onClick={() => { setCurrentStep(0); setIsPlaying(false); }} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
+          >
+            <RotateCcw className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" disabled={currentStep === steps.length - 1}><SkipForward className="w-4 h-4" /></button>
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)} 
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", 
+              isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
+            )}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} 
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
+          </button>
+          <button 
+            onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" 
+            disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Шаг вперед' : 'Step forward'}
+          >
+            <SkipForward className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -127,7 +188,7 @@ export default function ConvexHullVisualizer() {
               key={p.id}
               cx={p.x} cy={p.y} r="5"
               animate={{
-                fill: step.active?.id === p.id ? '#f59e0b' : step.hull.find(h => h.id === p.id) ? '#10b981' : '#3f3f46',
+                fill: step.active?.id === p.id ? '#f59e0b' : step.hull.find(h => h.id === p.id) ? '#10b981' : (isDark ? '#3f3f46' : '#94a3b8'),
                 scale: step.active?.id === p.id ? 1.5 : 1
               }}
             />

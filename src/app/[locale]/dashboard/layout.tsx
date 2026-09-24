@@ -16,10 +16,28 @@ export default async function DashboardLayout({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  let profile: { username: string, primary_subject?: string, experience_level?: string, level?: number } | null = null;
+  let profile: {
+    username: string
+    primary_subject?: string
+    experience_level?: string
+    level?: number
+    avatar_url?: string | null
+    cf_avatar?: string | null
+  } | null = null
   if (user) {
-    const { data } = await supabase.from('profiles').select('username, primary_subject, experience_level, level').eq('id', user.id).single();
-    profile = data as { username: string; primary_subject?: string; experience_level?: string; level?: number } | null;
+    const { data } = await supabase
+      .from('profiles')
+      .select('username, primary_subject, experience_level, level, avatar_url, cf_avatar')
+      .eq('id', user.id)
+      .single()
+    profile = data as {
+      username: string
+      primary_subject?: string
+      experience_level?: string
+      level?: number
+      avatar_url?: string | null
+      cf_avatar?: string | null
+    } | null
   }
 
   // Enforce Onboarding
@@ -29,12 +47,13 @@ export default async function DashboardLayout({
   
   const username = profile?.username || user?.email?.split('@')[0] || 'User'
   const level = profile?.level || 1
+  const avatarUrl = profile?.avatar_url || profile?.cf_avatar || null
 
   return (
     <div className="flex h-full overflow-hidden">
       {/* Sidebar - hidden on very small screens, visible on md+ */}
       <div className="hidden md:flex h-full animate-in fade-in slide-in-from-left duration-700 ease-out">
-        <Sidebar username={username} email={user?.email || ''} level={level} />
+        <Sidebar username={username} email={user?.email || ''} level={level} avatarUrl={avatarUrl} />
       </div>
 
       {/* Main Content Area */}

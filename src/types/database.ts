@@ -37,6 +37,8 @@ export interface Database {
           cf_max_rating: number | null
           cf_avatar: string | null
           cf_last_synced_at: string | null
+          avatar_url: string | null
+          cf_submissions_data: Json | null
           settings: Json
           solved_count: number
           level: number
@@ -58,6 +60,8 @@ export interface Database {
           cf_max_rating?: number | null
           cf_avatar?: string | null
           cf_last_synced_at?: string | null
+          avatar_url?: string | null
+          cf_submissions_data?: Json | null
           settings?: Json
           solved_count?: number
           level?: number
@@ -79,6 +83,8 @@ export interface Database {
           cf_max_rating?: number | null
           cf_avatar?: string | null
           cf_last_synced_at?: string | null
+          avatar_url?: string | null
+          cf_submissions_data?: Json | null
           settings?: Json
           solved_count?: number
           level?: number

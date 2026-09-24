@@ -3,9 +3,16 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RotateCcw, Plus, Search, Info } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 2] }) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const [currentStep, setCurrentStep] = useState(0)
   const [range, setRange] = useState<{ l: number, r: number } | null>(null)
   
@@ -32,10 +39,11 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
       <div className="flex items-center justify-between mb-8">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Визуализация: Префиксные суммы
+            {isRu ? 'Визуализация: Префиксные суммы' : 'Prefix Sums Visualization'}
           </h4>
           <p className="text-xs text-muted-foreground mt-1">
-            Построение массива <span className="font-mono font-bold text-sky-500">P[i] = P[i-1] + A[i-1]</span>
+            {isRu ? 'Построение массива' : 'Constructing array'}{' '}
+            <span className="font-mono font-bold text-sky-500">P[i] = P[i-1] + A[i-1]</span>
           </p>
         </div>
         
@@ -43,7 +51,7 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
           <button
             onClick={() => { setCurrentStep(0); setRange(null); }}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
-            title="Сброс"
+            title={isRu ? 'Сброс' : 'Reset'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -56,7 +64,10 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
               )}
             >
               <Search className="w-4 h-4" />
-              {range ? "Скрыть запрос" : "Запрос на отрезке"}
+              {range 
+                ? (isRu ? "Скрыть запрос" : "Hide query") 
+                : (isRu ? "Запрос на отрезке" : "Range query")
+              }
             </button>
           )}
           <button
@@ -65,7 +76,7 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
             className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold bg-primary text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-50 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Добавить элемент
+            {isRu ? 'Добавить элемент' : 'Add element'}
           </button>
         </div>
       </div>
@@ -73,7 +84,9 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
       <div className="space-y-12">
         {/* Original Array */}
         <div>
-          <label className="text-[10px] font-bold text-muted-foreground uppercase mb-3 block">Исходный массив A</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase mb-3 block">
+            {isRu ? 'Исходный массив A' : 'Source Array A'}
+          </label>
           <div className="flex gap-2">
             {initialArray.map((val, idx) => {
               const inRange = range && idx >= range.l && idx <= range.r
@@ -97,7 +110,9 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
 
         {/* Prefix Sum Array */}
         <div>
-          <label className="text-[10px] font-bold text-muted-foreground uppercase mb-3 block">Массив префиксов P</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase mb-3 block">
+            {isRu ? 'Массив префиксов P' : 'Prefix Sum Array P'}
+          </label>
           <div className="flex gap-2">
             {prefixSum.map((val, idx) => {
               const isR = range && idx === range.r + 1
@@ -111,7 +126,7 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
                     opacity: idx <= currentStep ? 1 : 0.2,
                     scale: idx === currentStep || isR || isLminus1 ? 1.1 : 1,
                     backgroundColor: isR ? '#f59e0b' : isLminus1 ? '#ef4444' : idx === currentStep ? '#0ea5e9' : 'transparent',
-                    borderColor: isR ? '#f59e0b' : isLminus1 ? '#ef4444' : idx === currentStep ? '#0ea5e9' : '#3f3f46',
+                    borderColor: isR ? '#f59e0b' : isLminus1 ? '#ef4444' : idx === currentStep ? '#0ea5e9' : (isDark ? '#3f3f46' : '#e4e4e7'),
                     color: idx === currentStep || isR || isLminus1 ? '#ffffff' : 'inherit'
                   }}
                   className={cn(
@@ -147,9 +162,13 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
             <div className="flex items-start gap-3">
               <Info className="w-4 h-4 text-amber-500 mt-1" />
               <div>
-                <p className="text-sm font-medium text-foreground">Запрос: Сумма на отрезке [{range.l}, {range.r}]</p>
-                <p className="text-xs text-muted-foreground mt-1 font-mono">
-                  Sum(A[{range.l}..{range.r}]) = P[{range.r + 1}] - P[{range.l}] = {prefixSum[range.r + 1]} - {prefixSum[range.l]} = <span className="text-emerald-500 font-bold">{prefixSum[range.r + 1] - prefixSum[range.l]}</span>
+                <p className="text-sm font-medium text-foreground">
+                  {isRu 
+                    ? `Запрос: Сумма на отрезке [${range.l}, ${range.r}]` 
+                    : `Query: Range sum on [${range.l}, ${range.r}]`}
+                </p>
+                <p className="text-xs font-mono text-muted-foreground mt-1">
+                  P[{range.r + 1}] - P[{range.l}] = {prefixSum[range.r + 1]} - {prefixSum[range.l]} = <span className="text-amber-500 font-bold">{prefixSum[range.r + 1] - prefixSum[range.l]}</span>
                 </p>
               </div>
             </div>
@@ -159,4 +178,3 @@ export default function PrefixSumVisualizer({ initialArray = [3, 1, 4, 1, 5, 9, 
     </div>
   )
 }
-

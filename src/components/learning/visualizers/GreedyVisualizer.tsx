@@ -3,9 +3,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 export default function GreedyVisualizer() {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+
   const initialIntervals = useMemo(() => [
     { id: 1, start: 1, end: 4 },
     { id: 2, start: 3, end: 5 },
@@ -27,7 +31,7 @@ export default function GreedyVisualizer() {
       sorted: false, 
       active: null, 
       selected: [], 
-      msg: "Изначальный набор отрезков." 
+      msg: isRu ? "Изначальный набор отрезков." : "Initial set of intervals." 
     })
 
     const sorted = [...initialIntervals].sort((a, b) => a.end - b.end)
@@ -37,7 +41,7 @@ export default function GreedyVisualizer() {
       sorted: true, 
       active: null, 
       selected: [], 
-      msg: "Шаг 1: Сортируем отрезки по времени окончания." 
+      msg: isRu ? "Шаг 1: Сортируем отрезки по времени окончания." : "Step 1: Sort intervals by end time." 
     })
 
     let lastEnd = -1
@@ -53,7 +57,9 @@ export default function GreedyVisualizer() {
           sorted: true, 
           active: inv.id, 
           selected: [...selected], 
-          msg: `Отрезок [${inv.start}, ${inv.end}] начинается позже ${lastEnd === inv.end ? '-1' : lastEnd}. Берем!` 
+          msg: isRu 
+            ? `Отрезок [${inv.start}, ${inv.end}] начинается позже ${lastEnd === inv.end ? '-1' : lastEnd}. Берем!` 
+            : `Interval [${inv.start}, ${inv.end}] starts after ${lastEnd === inv.end ? '-1' : lastEnd}. Selecting it!` 
         })
       } else {
         newSteps.push({ 
@@ -61,7 +67,9 @@ export default function GreedyVisualizer() {
           sorted: true, 
           active: inv.id, 
           selected: [...selected], 
-          msg: `Отрезок [${inv.start}, ${inv.end}] пересекается с выбранными (начало < ${lastEnd}). Пропускаем.` 
+          msg: isRu 
+            ? `Отрезок [${inv.start}, ${inv.end}] пересекается с выбранными (начало < ${lastEnd}). Пропускаем.` 
+            : `Interval [${inv.start}, ${inv.end}] overlaps with selected (start < ${lastEnd}). Skipping.` 
         })
       }
     }
@@ -71,11 +79,11 @@ export default function GreedyVisualizer() {
       sorted: true, 
       active: null, 
       selected: [...selected], 
-      msg: "Алгоритм завершен. Найдено максимальное расписание." 
+      msg: isRu ? "Алгоритм завершен. Найдено максимальное расписание." : "Algorithm finished. Maximum set of compatible intervals found." 
     })
 
     return newSteps
-  }, [initialIntervals])
+  }, [initialIntervals, isRu])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -106,15 +114,39 @@ export default function GreedyVisualizer() {
     <div className="not-prose my-8 p-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Жадный алгоритм</h4>
-          <p className="text-xs text-muted-foreground mt-1">Выбор заявок (Interval Scheduling)</p>
+          <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
+            {isRu ? 'Жадный алгоритм' : 'Greedy Algorithm'}
+          </h4>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? 'Выбор заявок (Interval Scheduling)' : 'Interval Scheduling Problem'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"><RotateCcw className="w-4 h-4" /></button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className={cn("flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90")}>
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} {isPlaying ? 'Пауза' : 'Запуск'}
+          <button 
+            onClick={() => { setCurrentStep(0); setIsPlaying(false); }} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
+          >
+            <RotateCcw className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" disabled={currentStep === steps.length - 1}><SkipForward className="w-4 h-4" /></button>
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)} 
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", 
+              isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
+            )}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} 
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
+          </button>
+          <button 
+            onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} 
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" 
+            disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Шаг вперед' : 'Step forward'}
+          >
+            <SkipForward className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

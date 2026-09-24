@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 interface BitwiseVisualizerProps {
@@ -10,12 +12,16 @@ interface BitwiseVisualizerProps {
 }
 
 export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: BitwiseVisualizerProps) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const [a, setA] = useState(initialA)
   const [b, setB] = useState(initialB)
   const [op, setOp] = useState<'AND' | 'OR' | 'XOR' | 'NOT' | 'LSHIFT' | 'RSHIFT'>('AND')
 
   const toBinary = (n: number) => {
-    // Handle negative numbers for NOT if necessary, but keep 8-bit for simplicity
     const val = (n & 0xFF)
     return val.toString(2).padStart(8, '0').split('')
   }
@@ -44,9 +50,11 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Песочница побитовых операций
+            {isRu ? 'Песочница побитовых операций' : 'Bitwise Operations Sandbox'}
           </h4>
-          <p className="text-xs text-muted-foreground mt-1">Интерактивная работа с 8-битными числами</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? 'Интерактивная работа с 8-битными числами' : 'Interactive 8-bit arithmetic and masks'}
+          </p>
         </div>
         
         <div className="flex flex-wrap bg-muted p-1 rounded-lg gap-1">
@@ -69,7 +77,9 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
         {/* Input A */}
         <div className="relative group">
           <div className="flex items-center justify-between mb-2">
-             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Operand A</span>
+             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+               {isRu ? 'Операнд A' : 'Operand A'}
+             </span>
              <input 
               type="number" 
               value={a} 
@@ -82,9 +92,9 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
               <motion.div 
                 key={`a-${i}`}
                 animate={{
-                  backgroundColor: bit === '1' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(39, 39, 42, 0.5)',
-                  borderColor: bit === '1' ? 'rgba(56, 189, 248, 0.5)' : 'rgba(63, 63, 70, 0.5)',
-                  color: bit === '1' ? '#38bdf8' : '#71717a'
+                  backgroundColor: bit === '1' ? 'rgba(56, 189, 248, 0.2)' : (isDark ? 'rgba(39, 39, 42, 0.5)' : 'rgba(244, 244, 245, 0.8)'),
+                  borderColor: bit === '1' ? 'rgba(56, 189, 248, 0.5)' : (isDark ? 'rgba(63, 63, 70, 0.5)' : 'rgba(228, 228, 231, 0.8)'),
+                  color: bit === '1' ? '#38bdf8' : (isDark ? '#71717a' : '#a1a1aa')
                 }}
                 className="w-10 h-12 flex flex-col items-center justify-center rounded-lg border text-base font-bold shadow-sm"
               >
@@ -105,7 +115,9 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
               className="relative overflow-hidden"
             >
               <div className="flex items-center justify-between mb-2">
-                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Operand B</span>
+                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                   {isRu ? 'Операнд B' : 'Operand B'}
+                 </span>
                  <input 
                   type="number" 
                   value={b} 
@@ -127,7 +139,9 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
 
         {/* Result */}
         <div className="border-t border-border pt-8 mt-4 relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Result</div>
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-card px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">
+            {isRu ? 'Результат' : 'Result'}
+          </div>
           
           <div className="flex items-center justify-between mb-4">
              <div className="flex flex-col">
@@ -142,11 +156,6 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
 
           <div className="flex justify-center gap-1.5">
             {binRes.map((bit, i) => {
-              // Highlight the bit if it changed from A (or A/B)
-              const aBit = binA[i]
-              const bBit = binB[i]
-              const changed = isUnary ? bit !== aBit : (bit === '1')
-
               return (
                 <motion.div 
                   key={`${op}-${i}-${bit}`}
@@ -170,12 +179,12 @@ export default function BitwiseVisualizer({ initialA = 12, initialB = 25 }: Bitw
       {/* Visual Logic Explanation */}
       <div className="mt-8 p-4 bg-primary/5 border border-primary/10 rounded-xl">
         <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-          {op === 'AND' && "Результат 1 только если оба бита равны 1. Используется для маскирования."}
-          {op === 'OR' && "Результат 1 если хотя бы один из бит равен 1. Используется для установки бит."}
-          {op === 'XOR' && "Результат 1 если биты различны. Используется для инверсии или обмена значений."}
-          {op === 'NOT' && "Инвертирует каждый бит. 0 становится 1, 1 становится 0."}
-          {op === 'LSHIFT' && "Сдвигает все биты влево на 1 позицию. Эквивалентно умножению на 2."}
-          {op === 'RSHIFT' && "Сдвигает все биты вправо на 1 позицию. Эквивалентно делению на 2."}
+          {op === 'AND' && (isRu ? "Результат 1 только если оба бита равны 1. Используется для маскирования." : "Result 1 only if both bits are 1. Commonly used for bitmasking.")}
+          {op === 'OR' && (isRu ? "Результат 1 если хотя бы один из бит равен 1. Используется для установки бит." : "Result 1 if at least one bit is 1. Used to set bits.")}
+          {op === 'XOR' && (isRu ? "Результат 1 если биты различны. Используется для инверсии или обмена значений." : "Result 1 if bits differ. Used for bit flipping or toggling.")}
+          {op === 'NOT' && (isRu ? "Инвертирует каждый бит. 0 становится 1, 1 становится 0." : "Inverts every bit. 0 becomes 1, 1 becomes 0.")}
+          {op === 'LSHIFT' && (isRu ? "Сдвигает все биты влево на 1 позицию. Эквивалентно умножению на 2." : "Shifts all bits left by 1 position. Equivalent to multiplying by 2.")}
+          {op === 'RSHIFT' && (isRu ? "Сдвигает все биты вправо на 1 позицию. Эквивалентно делению на 2." : "Shifts all bits right by 1 position. Equivalent to integer division by 2.")}
         </p>
       </div>
     </div>

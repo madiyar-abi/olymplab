@@ -1,13 +1,20 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Play, RotateCcw, SkipForward, Pause, Search, Info } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7, 2, 6] }) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const [mode, setMode] = useState<'build' | 'query'>('build')
-  const [queryRange, setQueryRange] = useState({ l: 2, r: 6 })
+  const [queryRange] = useState({ l: 2, r: 6 })
 
   const treeData = useMemo(() => {
     const tree = new Array(initialArray.length * 4).fill(null)
@@ -34,37 +41,81 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
     if (mode === 'build') {
       const tree = new Array(initialArray.length * 4).fill(null)
       const build = (node: number, l: number, r: number) => {
-        newSteps.push({ activeNodes: [node], selectedNodes: [], skippedNodes: [], msg: `Строим узел ${node} для отрезка [${l}, ${r}]`, tree: [...tree] })
+        newSteps.push({
+          activeNodes: [node],
+          selectedNodes: [],
+          skippedNodes: [],
+          msg: isRu ? `Строим узел ${node} для отрезка [${l}, ${r}]` : `Building node ${node} for segment [${l}, ${r}]`,
+          tree: [...tree]
+        })
         if (l === r) {
           tree[node] = initialArray[l]
-          newSteps.push({ activeNodes: [node], selectedNodes: [], skippedNodes: [], msg: `Лист: узел ${node} = ${tree[node]} (A[${l}])`, tree: [...tree] })
+          newSteps.push({
+            activeNodes: [node],
+            selectedNodes: [],
+            skippedNodes: [],
+            msg: isRu ? `Лист: узел ${node} = ${tree[node]} (A[${l}])` : `Leaf: node ${node} = ${tree[node]} (A[${l}])`,
+            tree: [...tree]
+          })
           return
         }
         const mid = Math.floor((l + r) / 2)
         build(node * 2, l, mid)
         build(node * 2 + 1, mid + 1, r)
         tree[node] = tree[node * 2] + tree[node * 2 + 1]
-        newSteps.push({ activeNodes: [node, node*2, node*2+1], selectedNodes: [], skippedNodes: [], msg: `Суммируем детей: узел ${node} = ${tree[node*2]} + ${tree[node*2+1]} = ${tree[node]}`, tree: [...tree] })
+        newSteps.push({
+          activeNodes: [node, node*2, node*2+1],
+          selectedNodes: [],
+          skippedNodes: [],
+          msg: isRu
+            ? `Суммируем детей: узел ${node} = ${tree[node*2]} + ${tree[node*2+1]} = ${tree[node]}`
+            : `Summing children: node ${node} = ${tree[node*2]} + ${tree[node*2+1]} = ${tree[node]}`,
+          tree: [...tree]
+        })
       }
       build(1, 0, initialArray.length - 1)
-      newSteps.push({ activeNodes: [], selectedNodes: [], skippedNodes: [], msg: "Построение дерева отрезков завершено.", tree: [...tree] })
+      newSteps.push({
+        activeNodes: [],
+        selectedNodes: [],
+        skippedNodes: [],
+        msg: isRu ? "Построение дерева отрезков завершено." : "Segment tree construction complete.",
+        tree: [...tree]
+      })
     } else {
-      const { tree, bounds } = treeData
+      const { tree } = treeData
       const selected: number[] = []
       const skipped: number[] = []
       
       const query = (node: number, l: number, r: number, qL: number, qR: number): number => {
-        newSteps.push({ activeNodes: [node], selectedNodes: [...selected], skippedNodes: [...skipped], msg: `Запрос в узле ${node} [${l}, ${r}] для диапазона [${qL}, ${qR}]`, tree: [...tree] })
+        newSteps.push({
+          activeNodes: [node],
+          selectedNodes: [...selected],
+          skippedNodes: [...skipped],
+          msg: isRu ? `Запрос в узле ${node} [${l}, ${r}] для диапазона [${qL}, ${qR}]` : `Query at node ${node} [${l}, ${r}] for range [${qL}, ${qR}]`,
+          tree: [...tree]
+        })
         
         if (qL <= l && r <= qR) {
           selected.push(node)
-          newSteps.push({ activeNodes: [], selectedNodes: [...selected], skippedNodes: [...skipped], msg: `Узел ${node} [${l}, ${r}] полностью внутри [${qL}, ${qR}]. Берем значение ${tree[node]}.`, tree: [...tree] })
+          newSteps.push({
+            activeNodes: [],
+            selectedNodes: [...selected],
+            skippedNodes: [...skipped],
+            msg: isRu ? `Узел ${node} [${l}, ${r}] полностью внутри [${qL}, ${qR}]. Берем ${tree[node]}.` : `Node ${node} [${l}, ${r}] inside range. Value = ${tree[node]}.`,
+            tree: [...tree]
+          })
           return tree[node]
         }
         
         if (r < qL || l > qR) {
           skipped.push(node)
-          newSteps.push({ activeNodes: [], selectedNodes: [...selected], skippedNodes: [...skipped], msg: `Узел ${node} [${l}, ${r}] полностью вне [${qL}, ${qR}]. Пропускаем.`, tree: [...tree] })
+          newSteps.push({
+            activeNodes: [],
+            selectedNodes: [...selected],
+            skippedNodes: [...skipped],
+            msg: isRu ? `Узел ${node} [${l}, ${r}] вне диапазона. Пропускаем.` : `Node ${node} [${l}, ${r}] outside range. Skipped.`,
+            tree: [...tree]
+          })
           return 0
         }
         
@@ -72,14 +123,20 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
         const leftRes = query(node * 2, l, mid, qL, qR)
         const rightRes = query(node * 2 + 1, mid + 1, r, qL, qR)
         const res = leftRes + rightRes
-        newSteps.push({ activeNodes: [node], selectedNodes: [...selected], skippedNodes: [...skipped], msg: `Возвращаемся в узел ${node}. Сумма из поддеревьев: ${res}`, tree: [...tree] })
+        newSteps.push({
+          activeNodes: [node],
+          selectedNodes: [...selected],
+          skippedNodes: [...skipped],
+          msg: isRu ? `Возвращаемся в узел ${node}. Сумма: ${res}` : `Backtrack to node ${node}. Combined sum: ${res}`,
+          tree: [...tree]
+        })
         return res
       }
       query(1, 0, initialArray.length - 1, queryRange.l, queryRange.r)
     }
 
     return newSteps
-  }, [initialArray, mode, queryRange, treeData])
+  }, [initialArray, mode, queryRange, treeData, isRu])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -116,18 +173,31 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
     return { x, y }
   }
 
+  const title = mode === 'build'
+    ? (isRu ? 'Построение' : 'Build')
+    : (isRu ? 'Запрос суммы на отрезке' : 'Range Sum Query')
+
   return (
     <div className="not-prose my-8 p-6 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-      {/* ... (header same) */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Дерево отрезков: {mode === 'build' ? 'Построение' : 'Запрос'}
+            {isRu ? 'Дерево отрезков' : 'Segment Tree'}: {title}
           </h4>
           <div className="flex items-center gap-3 mt-1">
              <div className="flex bg-muted rounded-lg p-0.5">
-               <button onClick={() => setMode('build')} className={cn("px-2 py-0.5 text-[10px] font-bold rounded-md transition-all", mode === 'build' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>BUILD</button>
-               <button onClick={() => setMode('query')} className={cn("px-2 py-0.5 text-[10px] font-bold rounded-md transition-all", mode === 'query' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>QUERY</button>
+               <button
+                 onClick={() => setMode('build')}
+                 className={cn("px-2.5 py-1 text-[10px] font-bold rounded-md transition-all", mode === 'build' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+               >
+                 {isRu ? 'ПОСТРОЕНИЕ' : 'BUILD'}
+               </button>
+               <button
+                 onClick={() => setMode('query')}
+                 className={cn("px-2.5 py-1 text-[10px] font-bold rounded-md transition-all", mode === 'query' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+               >
+                 {isRu ? 'ЗАПРОС' : 'QUERY'}
+               </button>
              </div>
              {mode === 'query' && (
                <span className="text-[10px] text-muted-foreground font-mono">Range: [{queryRange.l}, {queryRange.r}]</span>
@@ -135,11 +205,31 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setCurrentStep(0); setIsPlaying(false); }} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"><RotateCcw className="w-4 h-4" /></button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className={cn("flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-sky-500 text-white shadow-sm hover:opacity-90")}>
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />} {isPlaying ? 'Пауза' : 'Запуск'}
+          <button
+            onClick={() => { setCurrentStep(0); setIsPlaying(false); }}
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
+          >
+            <RotateCcw className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors" disabled={currentStep === steps.length - 1}><SkipForward className="w-4 h-4" /></button>
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all",
+              isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-sky-500 text-white shadow-sm hover:opacity-90"
+            )}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
+          </button>
+          <button
+            onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors disabled:opacity-30"
+            disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Следующий шаг' : 'Next Step'}
+          >
+            <SkipForward className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -155,7 +245,7 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
                 key={`line-${idx}`} 
                 x1={parentPos.x} y1={parentPos.y} 
                 x2={nodePos.x} y2={nodePos.y} 
-                stroke={step.selectedNodes.includes(idx) ? "#10b981" : step.activeNodes.includes(idx) ? "#0ea5e9" : "#3f3f46"} 
+                stroke={step.selectedNodes.includes(idx) ? "#10b981" : step.activeNodes.includes(idx) ? "#0ea5e9" : (isDark ? "#3f3f46" : "#cbd5e1")} 
                 strokeWidth={step.selectedNodes.includes(idx) ? "3" : "1.5"}
                 className="transition-all duration-300"
               />
@@ -176,14 +266,21 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
                 <motion.circle
                   cx={pos.x} cy={pos.y} r="15"
                   animate={{
-                    fill: isSelected ? '#10b981' : isSkipped ? '#3f3f46' : isActive ? '#0ea5e9' : '#18181b',
-                    stroke: isSelected ? '#34d399' : isSkipped ? '#52525b' : isActive ? '#38bdf8' : '#3f3f46',
+                    fill: isSelected ? '#10b981' : isSkipped ? (isDark ? '#3f3f46' : '#e4e4e7') : isActive ? '#0ea5e9' : (isDark ? '#18181b' : '#f4f4f5'),
+                    stroke: isSelected ? '#34d399' : isSkipped ? (isDark ? '#52525b' : '#a1a1aa') : isActive ? '#38bdf8' : (isDark ? '#3f3f46' : '#d4d4d8'),
                     scale: isActive || isSelected ? 1.2 : 1,
-                    opacity: isSkipped ? 0.3 : 1
+                    opacity: isSkipped ? 0.35 : 1
                   }}
                   strokeWidth="2"
                 />
-                <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="middle" className="fill-white text-[9px] font-bold font-mono">
+                <text
+                  x={pos.x}
+                  y={pos.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill={isSelected || isActive ? '#ffffff' : (isDark ? '#ffffff' : '#09090b')}
+                  className="text-[9px] font-bold font-mono"
+                >
                   {displayVal}
                 </text>
               </g>
@@ -193,16 +290,15 @@ export default function SegmentTreeVisualizer({ initialArray = [5, 8, 6, 3, 2, 7
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-4 text-[9px] font-mono text-muted-foreground">
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9]" /> Активный узел</div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#10b981]" /> Выбран для суммы</div>
-          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#3f3f46] opacity-30" /> Пропущен</div>
+        <div className="flex items-center gap-4 text-[9px] font-mono text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9]" /> {isRu ? 'Активный узел' : 'Active Node'}</div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#10b981]" /> {isRu ? 'Выбран для суммы' : 'Selected for Sum'}</div>
+          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#71717a] opacity-50" /> {isRu ? 'Пропущен' : 'Skipped'}</div>
         </div>
-        <div className="bg-muted/30 p-3 rounded-xl border border-border font-mono text-[11px] text-muted-foreground">
+        <div className="bg-muted/40 p-3 rounded-xl border border-border font-mono text-[11px] text-muted-foreground">
           <span className="text-sky-500 font-bold mr-2">LOG:</span>{step.msg}
         </div>
       </div>
     </div>
   )
 }
-

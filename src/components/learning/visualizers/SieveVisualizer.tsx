@@ -3,41 +3,62 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 type SieveNum = { val: number, state: 'idle' | 'prime' | 'composite' | 'active' }
 
 export default function SieveVisualizer({ limit = 40 }) {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const steps = useMemo(() => {
     const newSteps: { nums: SieveNum[], p: number | null, msg: string }[] = []
     let currentNums: SieveNum[] = Array.from({ length: limit - 1 }, (_, i) => ({ val: i + 2, state: 'idle' }))
     
-    newSteps.push({ nums: [...currentNums], p: null, msg: "Начинаем с первого числа (2)" })
+    newSteps.push({ 
+      nums: [...currentNums], 
+      p: null, 
+      msg: isRu ? "Начинаем с первого числа (2)" : "Starting with the first number (2)" 
+    })
 
     for (let p = 2; p <= Math.sqrt(limit); p++) {
       const pIdx = currentNums.findIndex(n => n.val === p)
       if (currentNums[pIdx].state === 'idle') {
-        // Mark as prime
         currentNums[pIdx] = { ...currentNums[pIdx], state: 'prime' }
-        newSteps.push({ nums: [...currentNums], p, msg: `Число ${p} — простое. Вычеркиваем кратные.` })
+        newSteps.push({ 
+          nums: [...currentNums], 
+          p, 
+          msg: isRu ? `Число ${p} — простое. Вычеркиваем кратные.` : `Number ${p} is prime. Sifting multiples.` 
+        })
 
         for (let i = p * p; i <= limit; i += p) {
           const mIdx = currentNums.findIndex(n => n.val === i)
           if (currentNums[mIdx].state !== 'composite') {
             currentNums[mIdx] = { ...currentNums[mIdx], state: 'active' }
-            newSteps.push({ nums: [...currentNums], p, msg: `Вычеркиваем ${i} (кратно ${p})` })
+            newSteps.push({ 
+              nums: [...currentNums], 
+              p, 
+              msg: isRu ? `Вычеркиваем ${i} (кратно ${p})` : `Marking ${i} as composite (multiple of ${p})` 
+            })
             currentNums[mIdx] = { ...currentNums[mIdx], state: 'composite' }
           }
         }
       }
     }
 
-    // Final state
     currentNums = currentNums.map(n => n.state === 'idle' ? { ...n, state: 'prime' } : n)
-    newSteps.push({ nums: [...currentNums], p: null, msg: "Все оставшиеся числа — простые!" })
+    newSteps.push({ 
+      nums: [...currentNums], 
+      p: null, 
+      msg: isRu ? "Все оставшиеся числа — простые!" : "All remaining unmarked numbers are prime!" 
+    })
 
     return newSteps
-  }, [limit])
+  }, [limit, isRu])
 
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -71,15 +92,18 @@ export default function SieveVisualizer({ limit = 40 }) {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Визуализация: Решето Эратосфена
+            {isRu ? 'Визуализация: Решето Эратосфена' : 'Sieve of Eratosthenes'}
           </h4>
-          <p className="text-xs text-muted-foreground mt-1">Поиск простых чисел до {limit}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isRu ? `Поиск простых чисел до ${limit}` : `Find prime numbers up to ${limit}`}
+          </p>
         </div>
         
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setCurrentStep(0); setIsPlaying(false); }}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -91,12 +115,13 @@ export default function SieveVisualizer({ limit = 40 }) {
             )}
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-            {isPlaying ? 'Пауза' : 'Запуск'}
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
           </button>
           <button
             onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Шаг вперед' : 'Step forward'}
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -108,9 +133,10 @@ export default function SieveVisualizer({ limit = 40 }) {
           <motion.div
             key={n.val}
             animate={{
-              backgroundColor: n.state === 'prime' ? '#10b981' : n.state === 'composite' ? '#3f3f46' : n.state === 'active' ? '#f59e0b' : '#18181b',
-              opacity: n.state === 'composite' ? 0.4 : 1,
+              backgroundColor: n.state === 'prime' ? '#10b981' : n.state === 'composite' ? (isDark ? '#3f3f46' : '#e4e4e7') : n.state === 'active' ? '#f59e0b' : (isDark ? '#18181b' : '#f4f4f5'),
+              opacity: n.state === 'composite' ? 0.45 : 1,
               scale: n.state === 'active' ? 1.1 : 1,
+              color: n.state === 'prime' ? '#ffffff' : n.state === 'active' ? '#000000' : 'inherit'
             }}
             className="h-10 flex items-center justify-center rounded-lg border border-border text-xs font-mono font-bold text-foreground"
           >

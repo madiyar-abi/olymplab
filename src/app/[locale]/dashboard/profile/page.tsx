@@ -5,10 +5,12 @@ import { ContributionGraph } from '@/components/ContributionGraph'
 import { calculateStreak } from '@/lib/analytics/streaks'
 import VerdictAnalytics from '@/components/Profile/VerdictAnalytics'
 import SkillRadar from '@/components/Profile/SkillRadar'
+import { ProfileHeaderEditor } from '@/components/Profile/ProfileHeaderEditor'
 import { mapRawVerdict, Verdict } from '@/types/verdict'
 import { VerdictStat } from '@/lib/verdictInsights'
 import type { SkillAxes } from '@/types/database'
-import { Trophy } from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -24,7 +26,40 @@ export default async function ProfilePage() {
   const t = await getTranslations('Profile')
   const format = await getFormatter()
 
-  // Fetch verdict stats using RPC (function isn't in the generated types; cast).
+  // 1. Fetch username, stats, skills, and cf data from profiles table
+  const { data: profileData } = await supabase
+    .from('profiles')
+    .select('username, solved_count, level, skills, cf_handle, cf_rating, cf_rank, cf_max_rating, cf_avatar, cf_last_synced_at, avatar_url, cf_submissions_data')
+    .eq('id', user.id)
+    .single()
+
+  const profile = profileData as { 
+    username: string; 
+    solved_count?: number;
+    level?: number;
+    skills?: Partial<Record<SkillAxes, number>>;
+    cf_handle?: string | null;
+    cf_rating?: number | null;
+    cf_rank?: string | null;
+    cf_max_rating?: number | null;
+    cf_avatar?: string | null;
+    cf_last_synced_at?: string | null;
+    avatar_url?: string | null;
+    cf_submissions_data?: {
+      total?: number;
+      solvedCount?: number;
+      verdicts?: Record<string, number>;
+      activity?: { date: string; count: number }[];
+    } | null;
+  } | null
+
+  const cfData = profile?.cf_submissions_data
+  const username = profile?.username || user?.email?.split('@')[0] || 'User'
+  const solvedCount = profile?.solved_count || cfData?.solvedCount || 0
+  const skills = profile?.skills || {}
+  const cfHandle = profile?.cf_handle
+
+  // 2. Fetch verdict stats using RPC
   const { data: verdictStatsRaw } = await supabase.rpc(
     'get_user_verdict_stats' as never,
     { p_user_id: user.id } as never,
@@ -44,18 +79,39 @@ export default async function ProfilePage() {
     totalSubmissions += count
     statsMap.set(v, existing)
   })
+
+  // Merge Codeforces verdicts if synced
+  if (cfData?.verdicts) {
+    const cfVerdictsMap: Record<string, Verdict> = {
+      AC: Verdict.AC,
+      WA: Verdict.WA,
+      TLE: Verdict.TLE,
+      MLE: Verdict.MLE,
+      RE: Verdict.RE,
+      CE: Verdict.CE,
+    }
+    for (const [key, vEnum] of Object.entries(cfVerdictsMap)) {
+      const count = cfData.verdicts[key] || 0
+      if (count > 0) {
+        const existing = statsMap.get(vEnum) || { verdict: vEnum, count: 0 }
+        existing.count += count
+        totalSubmissions += count
+        statsMap.set(vEnum, existing)
+      }
+    }
+  }
   
   const stats: VerdictStat[] = Array.from(statsMap.values()).map(s => ({
     ...s,
     percentage: totalSubmissions > 0 ? (s.count / totalSubmissions) * 100 : 0
   }))
 
-  // Fetch real contribution data for the heatmap
+  // 3. Fetch real contribution data for the heatmap
   const { data: contributionsData } = await supabase
     .from('submissions')
     .select('created_at')
     .eq('user_id', user.id)
-    .in('verdict', ['Accepted', 'AC', 'OK', 'CORRECT']) // Covers most common raw formats
+    .in('verdict', ['Accepted', 'AC', 'OK', 'CORRECT'])
 
   const contributionsMap = new Map<string, number>()
   ;(contributionsData as { created_at: string }[] | null)?.forEach(sub => {
@@ -63,87 +119,46 @@ export default async function ProfilePage() {
     contributionsMap.set(date, (contributionsMap.get(date) || 0) + 1)
   })
 
+  // Merge Codeforces activity dates
+  if (cfData?.activity && Array.isArray(cfData.activity)) {
+    cfData.activity.forEach(item => {
+      contributionsMap.set(item.date, (contributionsMap.get(item.date) || 0) + item.count)
+    })
+  }
+
   const realContributions = Array.from(contributionsMap.entries()).map(([date, count]) => ({
     date,
     count
   }))
 
-  const streakCount = calculateStreak((contributionsData as { created_at: string }[])?.map(c => c.created_at) || [])
-
-  // Fetch username, stats, skills, and cf data from profiles table
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('username, solved_count, level, skills, cf_handle, cf_rating, cf_rank, cf_max_rating, cf_avatar, cf_last_synced_at')
-    .eq('id', user.id)
-    .single()
-
-  const profile = profileData as { 
-    username: string; 
-    solved_count?: number;
-    level?: number;
-    skills?: Partial<Record<SkillAxes, number>>;
-    cf_handle?: string | null;
-    cf_rating?: number | null;
-    cf_rank?: string | null;
-    cf_max_rating?: number | null;
-    cf_avatar?: string | null;
-    cf_last_synced_at?: string | null;
-  } | null
-  const username = profile?.username || user?.email?.split('@')[0] || 'User'
-  const initial = username.charAt(0).toUpperCase()
-  const solvedCount = profile?.solved_count || 0
-  const skills = profile?.skills || {}
-  const cfHandle = profile?.cf_handle
+  const allActivityDates = Array.from(contributionsMap.keys())
+  const streakCount = calculateStreak(allActivityDates)
 
   return (
     <div className="min-h-full p-4 md:p-8 space-y-8">
       <div className="max-w-4xl mx-auto space-y-8">
-      <header className="border-b border-white/5 pb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight mb-1">
+      <header className="border-b border-border pb-6">
+        <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-1">
           {t('title')}
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <p className="text-muted-foreground text-sm">
           {t('subtitle')}
         </p>
       </header>
 
-      {/* Profile Header Card */}
-      <div className="rounded-xl border border-border bg-card p-8 flex flex-col md:flex-row items-center gap-8 transition-all duration-500 ease-out hover:-translate-y-1 shadow-sm hover:shadow-md">
-        <div className="h-24 w-24 rounded-xl bg-secondary border border-border flex items-center justify-center text-foreground font-semibold text-4xl shrink-0 shadow-sm">
-          {initial}
-        </div>
-        
-        <div className="flex-1 text-center md:text-left space-y-1">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">{username}</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{user.email}</p>
-          <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2">
-            <span className="inline-flex items-center rounded border border-white/5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              {t('statusLabel')}: {t('statusActive')}
-            </span>
-            {cfHandle && (
-              <a
-                href={`https://codeforces.com/profile/${cfHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold font-mono tracking-wider text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm"
-              >
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span>CF: {cfHandle}</span>
-                {profile?.cf_rating && (
-                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-extrabold text-[10px]">
-                    ★ {profile.cf_rating}
-                  </span>
-                )}
-                {profile?.cf_rank && (
-                  <span className="text-[10px] text-amber-400/80 font-normal">
-                    ({profile.cf_rank})
-                  </span>
-                )}
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Interactive Profile Header & Avatar Editor */}
+      <ProfileHeaderEditor
+        key={`${user.id}-${username}-${profile?.avatar_url || ''}-${cfHandle || ''}-${profile?.cf_rating || ''}-${profile?.cf_avatar || ''}`}
+        userId={user.id}
+        initialUsername={username}
+        initialAvatarUrl={profile?.avatar_url}
+        cfHandle={cfHandle}
+        cfRating={profile?.cf_rating}
+        cfRank={profile?.cf_rank}
+        cfAvatar={profile?.cf_avatar}
+        email={user.email || ''}
+        level={profile?.level || 1}
+      />
 
       {/* Stats Grid */}
       <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 pt-4">

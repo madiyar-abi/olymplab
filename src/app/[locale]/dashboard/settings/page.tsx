@@ -4,6 +4,8 @@ import { getTranslations } from 'next-intl/server'
 import { CodeTemplateEditor } from '../profile/CodeTemplateEditor'
 import { SettingsEditor } from '../profile/SettingsEditor'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage() {
   const supabase = await createClient()
 

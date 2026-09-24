@@ -3,9 +3,16 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, RotateCcw, SkipForward, Pause, Info } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import { useTheme } from '@/components/shared/ThemeProvider'
 import { cn } from '@/lib/utils'
 
 export default function SlidingWindowVisualizer() {
+  const locale = useLocale()
+  const isRu = locale === 'ru'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const array = useMemo(() => [4, 2, 1, 7, 8, 1, 2, 8, 1, 0], [])
   const targetSum = 8
   const [currentStep, setCurrentStep] = useState(0)
@@ -25,7 +32,9 @@ export default function SlidingWindowVisualizer() {
         right, 
         sum, 
         minLen: minLen === Infinity ? 0 : minLen, 
-        explanation: `Расширяем окно вправо: добавляем ${array[right]}. Текущая сумма: ${sum}` 
+        explanation: isRu 
+          ? `Расширяем окно вправо: добавляем ${array[right]}. Текущая сумма: ${sum}` 
+          : `Expand window to the right: adding ${array[right]}. Current sum: ${sum}` 
       })
 
       while (sum >= targetSum) {
@@ -35,7 +44,9 @@ export default function SlidingWindowVisualizer() {
           right, 
           sum, 
           minLen, 
-          explanation: `Сумма ${sum} >= ${targetSum}. Обновляем минимальную длину: ${minLen}` 
+          explanation: isRu 
+            ? `Сумма ${sum} >= ${targetSum}. Обновляем минимальную длину: ${minLen}` 
+            : `Sum ${sum} >= ${targetSum}. Updating minimum length: ${minLen}` 
         })
         
         sum -= array[left]
@@ -45,12 +56,14 @@ export default function SlidingWindowVisualizer() {
           right, 
           sum, 
           minLen, 
-          explanation: `Сжимаем окно слева: вычитаем ${array[left-1]}. Новая сумма: ${sum}` 
+          explanation: isRu 
+            ? `Сжимаем окно слева: вычитаем ${array[left - 1]}. Новая сумма: ${sum}` 
+            : `Shrink window from left: subtracting ${array[left - 1]}. New sum: ${sum}` 
         })
       }
     }
     return newSteps
-  }, [array, targetSum])
+  }, [array, targetSum, isRu])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -81,10 +94,11 @@ export default function SlidingWindowVisualizer() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">
-            Визуализация: Скользящее окно
+            {isRu ? 'Визуализация: Скользящее окно' : 'Visualization: Sliding Window'}
           </h4>
           <p className="text-xs text-muted-foreground mt-1">
-            Задача: Найти минимальную длину подмассива с суммой ≥ <span className="text-sky-500 font-bold">{targetSum}</span>
+            {isRu ? 'Задача: Найти минимальную длину подмассива с суммой ≥' : 'Problem: Find minimum subarray length with sum ≥'}{' '}
+            <span className="text-sky-500 font-bold">{targetSum}</span>
           </p>
         </div>
         
@@ -92,6 +106,7 @@ export default function SlidingWindowVisualizer() {
           <button
             onClick={() => { setCurrentStep(0); setIsPlaying(false); }}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+            title={isRu ? 'Сброс' : 'Reset'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -99,16 +114,17 @@ export default function SlidingWindowVisualizer() {
             onClick={() => setIsPlaying(!isPlaying)}
             className={cn(
               "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all",
-              isPlaying ? "bg-amber-500/10 text-amber-500" : "bg-sky-500 text-white"
+              isPlaying ? "bg-amber-500/10 text-amber-500 border border-amber-500/30" : "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
             )}
           >
             {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-            {isPlaying ? 'Пауза' : 'Запуск'}
+            {isPlaying ? (isRu ? 'Пауза' : 'Pause') : (isRu ? 'Запуск' : 'Play')}
           </button>
           <button
             onClick={() => setCurrentStep((s) => Math.min(steps.length - 1, s + 1))}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
             disabled={currentStep === steps.length - 1}
+            title={isRu ? 'Шаг вперед' : 'Step forward'}
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -126,15 +142,16 @@ export default function SlidingWindowVisualizer() {
               <motion.div
                 animate={{ 
                   height: `${(val + 1) * 10}px`,
-                  backgroundColor: inWindow ? '#0ea5e9' : '#18181b',
-                  borderColor: inWindow ? '#38bdf8' : '#3f3f46',
-                  opacity: inWindow ? 1 : 0.3
+                  backgroundColor: inWindow ? '#0ea5e9' : (isDark ? '#18181b' : '#f4f4f5'),
+                  borderColor: inWindow ? '#38bdf8' : (isDark ? '#3f3f46' : '#e4e4e7'),
+                  opacity: inWindow ? 1 : 0.4
                 }}
                 className="w-full rounded-t-lg border-t border-x flex items-center justify-center text-[10px] font-mono font-bold text-white overflow-hidden pt-1"
+                style={{ color: inWindow ? '#ffffff' : (isDark ? '#71717a' : '#52525b') }}
               >
                 {val}
               </motion.div>
-              <div className="w-full h-8 bg-muted/50 border border-border flex items-center justify-center text-[10px] font-mono">
+              <div className="w-full h-8 bg-muted/50 border border-border flex items-center justify-center text-[10px] font-mono text-muted-foreground">
                 {idx}
               </div>
 
@@ -168,18 +185,20 @@ export default function SlidingWindowVisualizer() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-xl bg-muted/30 border border-border md:col-span-2">
           <div className="flex items-start gap-3">
-            <Info className="w-4 h-4 text-sky-500 mt-1" />
+            <Info className="w-4 h-4 text-sky-500 mt-1 shrink-0" />
             <p className="text-sm text-foreground leading-relaxed">{step.explanation}</p>
           </div>
         </div>
-        <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs space-y-2">
+        <div className="p-4 rounded-xl bg-card border border-border font-mono text-xs space-y-2 shadow-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Sum:</span>
-            <span className={step.sum >= targetSum ? "text-emerald-500 font-bold" : "text-white"}>{step.sum}</span>
+            <span className="text-muted-foreground">{isRu ? 'Сумма:' : 'Sum:'}</span>
+            <span className={step.sum >= targetSum ? "text-emerald-500 font-bold" : "text-foreground font-bold"}>
+              {step.sum}
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Min Len:</span>
-            <span className="text-sky-400 font-bold">{step.minLen || '—'}</span>
+            <span className="text-muted-foreground">{isRu ? 'Мин. длина:' : 'Min Len:'}</span>
+            <span className="text-sky-500 font-bold">{step.minLen || '—'}</span>
           </div>
         </div>
       </div>

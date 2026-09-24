@@ -38,7 +38,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className="h-full antialiased dark"
+      className="h-full antialiased"
     >
       <head>
         {/* Blocking script: applies stored theme before first paint — must be in <head> */}
