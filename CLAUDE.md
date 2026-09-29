@@ -82,3 +82,4 @@ Hand-maintained types in `src/types/database.ts` (keep in sync with `supabase/mi
 
 ### Theming
 Dark mode is the default. A blocking inline script in `src/app/[locale]/layout.tsx` `<head>` reads `localStorage.theme` and sets the `dark`/`light` class before first paint to avoid flash; `ThemeProvider` manages it thereafter. Tailwind v4 (config-less, via `@tailwindcss/postcss`); design tokens live in `src/app/globals.css`.
+#madiyar
